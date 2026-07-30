@@ -82,6 +82,11 @@ const patchSchema = z.object({
   coverPhotoUrl: z.string().url().nullable().optional(),
   durationDays: z.number().int().positive().max(60).optional(),
   difficulty: z.enum(["easy", "moderate", "hard"]).optional(),
+  startPlaceId: z.string().max(256).nullable().optional(),
+  startPlaceName: z.string().max(200).nullable().optional(),
+  startAddress: z.string().max(500).nullable().optional(),
+  startLatitude: z.number().nullable().optional(),
+  startLongitude: z.number().nullable().optional(),
 });
 
 export async function PATCH(request: Request, ctx: Ctx) {

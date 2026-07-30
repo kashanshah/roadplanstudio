@@ -39,6 +39,10 @@ export type GuestTripDraft = {
   title: string;
   description?: string;
   startLocation?: string;
+  startPlaceId?: string | null;
+  startAddress?: string | null;
+  startLatitude?: number | null;
+  startLongitude?: number | null;
   endLocation?: string;
   durationDays: number;
   days: GuestDay[];
@@ -49,19 +53,34 @@ export const GUEST_TRIP_STORAGE_KEY = "roadplan:guest-trip";
 
 export function createEmptyGuestTrip(
   partial?: Partial<
-    Pick<GuestTripDraft, "title" | "startLocation" | "endLocation">
+    Pick<
+      GuestTripDraft,
+      | "title"
+      | "startLocation"
+      | "startPlaceId"
+      | "startAddress"
+      | "startLatitude"
+      | "startLongitude"
+      | "endLocation"
+    >
   >,
 ): GuestTripDraft {
   const title =
     partial?.title?.trim() ||
     (partial?.startLocation && partial?.endLocation
       ? `${partial.startLocation} → ${partial.endLocation}`
-      : "Untitled road trip");
+      : partial?.startLocation
+        ? `From ${partial.startLocation}`
+        : "Untitled road trip");
 
   return {
     guestToken: crypto.randomUUID(),
     title,
     startLocation: partial?.startLocation,
+    startPlaceId: partial?.startPlaceId ?? null,
+    startAddress: partial?.startAddress ?? null,
+    startLatitude: partial?.startLatitude ?? null,
+    startLongitude: partial?.startLongitude ?? null,
     endLocation: partial?.endLocation,
     durationDays: 1,
     days: [

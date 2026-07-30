@@ -46,6 +46,10 @@ const claimSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   startLocation: z.string().optional(),
+  startPlaceId: z.string().nullable().optional(),
+  startAddress: z.string().nullable().optional(),
+  startLatitude: z.number().nullable().optional(),
+  startLongitude: z.number().nullable().optional(),
   endLocation: z.string().optional(),
   durationDays: z.number().int().positive().default(1),
   days: z.array(guestDaySchema).default([]),
@@ -80,6 +84,11 @@ export async function POST(request: Request) {
           draft.description ||
           [draft.startLocation, draft.endLocation].filter(Boolean).join(" → ") ||
           null,
+        startPlaceId: draft.startPlaceId ?? null,
+        startPlaceName: draft.startLocation ?? null,
+        startAddress: draft.startAddress ?? null,
+        startLatitude: draft.startLatitude ?? null,
+        startLongitude: draft.startLongitude ?? null,
         durationDays: Math.max(draft.durationDays, draft.days.length || 1),
         visibility: "private",
         lastEditedBy: session.user.id,
