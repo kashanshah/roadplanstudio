@@ -25,12 +25,25 @@ type Props = {
   dayId: string;
   disabled?: boolean;
   bias?: { lat: number; lng: number } | null;
-  onAdd: (
+  /** add = append a stop; replace = swap the current stop's place */
+  variant?: "add" | "replace";
+  /** Prefill hotel toggle for replace custom mode */
+  defaultAsHotel?: boolean;
+  onAdd?: (
     place: PlaceDetailsPayload,
     asHotel: boolean,
     timing: StopTimingInput,
   ) => Promise<void> | void;
-  onAddCustom: (input: CustomStopInput) => Promise<void> | void;
+  onAddCustom?: (input: CustomStopInput) => Promise<void> | void;
+  onReplace?: (
+    place: PlaceDetailsPayload,
+    asHotel: boolean,
+  ) => Promise<void> | void;
+  onReplaceCustom?: (input: {
+    name: string;
+    address?: string | null;
+    asHotel?: boolean;
+  }) => Promise<void> | void;
 };
 
 type Mode = "search" | "custom";
@@ -39,11 +52,16 @@ export function AddStopSearch({
   dayId,
   disabled,
   bias,
+  variant = "add",
+  defaultAsHotel = false,
   onAdd,
   onAddCustom,
+  onReplace,
+  onReplaceCustom,
 }: Props) {
+  const isReplace = variant === "replace";
   const listId = useId();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(isReplace);
   const [mode, setMode] = useState<Mode>("search");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceDetailsPayload[]>([]);
@@ -54,7 +72,7 @@ export function AddStopSearch({
   const [customName, setCustomName] = useState("");
   const [customAddress, setCustomAddress] = useState("");
   const [customNotes, setCustomNotes] = useState("");
-  const [customAsHotel, setCustomAsHotel] = useState(false);
+  const [customAsHotel, setCustomAsHotel] = useState(defaultAsHotel);
   const [savingCustom, setSavingCustom] = useState(false);
   const [arriveTime, setArriveTime] = useState("");
   const [departTime, setDepartTime] = useState("");
@@ -101,8 +119,7 @@ export function AddStopSearch({
     return { timingMode: null, timingMins: null, durationMins: null };
   })();
 
-  function resetAndClose() {
-    setOpen(false);
+  function resetForm() {
     setMode("search");
     setQuery("");
     setResults([]);
@@ -110,9 +127,14 @@ export function AddStopSearch({
     setCustomName("");
     setCustomAddress("");
     setCustomNotes("");
-    setCustomAsHotel(false);
+    setCustomAsHotel(defaultAsHotel);
     setArriveTime("");
     setDepartTime("");
+  }
+
+  function resetAndClose() {
+    setOpen(false);
+    resetForm();
   }
 
   const biasLat = bias?.lat;
@@ -162,11 +184,16 @@ export function AddStopSearch({
     };
   }, [query, open, biasLat, biasLng, dayId, mode]);
 
-  async function addPlace(place: PlaceDetailsPayload, asHotel: boolean) {
+  async function selectPlace(place: PlaceDetailsPayload, asHotel: boolean) {
     setAddingId(place.placeId);
     try {
-      await onAdd(place, asHotel, timingInput);
-      resetAndClose();
+      if (isReplace) {
+        await onReplace?.(place, asHotel);
+        resetForm();
+      } else {
+        await onAdd?.(place, asHotel, timingInput);
+        resetAndClose();
+      }
     } finally {
       setAddingId(null);
     }
@@ -178,14 +205,23 @@ export function AddStopSearch({
     if (!name || savingCustom) return;
     setSavingCustom(true);
     try {
-      await onAddCustom({
-        name,
-        address: customAddress.trim() || null,
-        notes: customNotes.trim() || null,
-        asHotel: customAsHotel,
-        timing: timingInput,
-      });
-      resetAndClose();
+      if (isReplace) {
+        await onReplaceCustom?.({
+          name,
+          address: customAddress.trim() || null,
+          asHotel: customAsHotel,
+        });
+        resetForm();
+      } else {
+        await onAddCustom?.({
+          name,
+          address: customAddress.trim() || null,
+          notes: customNotes.trim() || null,
+          asHotel: customAsHotel,
+          timing: timingInput,
+        });
+        resetAndClose();
+      }
     } finally {
       setSavingCustom(false);
     }
@@ -208,7 +244,12 @@ export function AddStopSearch({
   }
 
   return (
-    <div className="mt-3 rounded-2xl border border-border bg-background/80 p-3">
+    <div
+      className={cn(
+        "rounded-2xl border border-border bg-background/80 p-3",
+        !isReplace && "mt-3",
+      )}
+    >
       <div className="flex gap-1 rounded-full border border-border bg-card p-1">
         <button
           type="button"
@@ -276,23 +317,23 @@ export function AddStopSearch({
                 <div className="mt-2 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    disabled={!!addingId}
-                    onClick={() => void addPlace(place, false)}
+                    disabled={!!addingId || disabled}
+                    onClick={() => void selectPlace(place, false)}
                     className={cn(
                       "min-h-10 rounded-full bg-primary px-3 py-2 text-sm text-primary-foreground",
                       addingId === place.placeId && "opacity-70",
                     )}
                   >
-                    Add stop
+                    {isReplace ? "Use this place" : "Add stop"}
                   </button>
                   <button
                     type="button"
-                    disabled={!!addingId}
-                    onClick={() => void addPlace(place, true)}
+                    disabled={!!addingId || disabled}
+                    onClick={() => void selectPlace(place, true)}
                     className="inline-flex min-h-10 items-center gap-1 rounded-full bg-secondary px-3 py-2 text-sm text-secondary-foreground"
                   >
                     <BedDouble className="size-3.5" />
-                    As hotel
+                    {isReplace ? "Use as hotel" : "As hotel"}
                   </button>
                 </div>
               </li>
@@ -328,20 +369,22 @@ export function AddStopSearch({
               className="h-11 w-full rounded-xl border border-input bg-card px-3 text-base outline-none focus:ring-2 focus:ring-ring"
             />
           </label>
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-muted-foreground">
-              Notes{" "}
-              <span className="font-normal">(optional)</span>
-            </span>
-            <textarea
-              value={customNotes}
-              onChange={(e) => setCustomNotes(e.target.value)}
-              placeholder="Parking, gate code, timing…"
-              rows={2}
-              maxLength={4000}
-              className="w-full resize-none rounded-xl border border-input bg-card px-3 py-2.5 text-base outline-none focus:ring-2 focus:ring-ring"
-            />
-          </label>
+          {!isReplace ? (
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-muted-foreground">
+                Notes{" "}
+                <span className="font-normal">(optional)</span>
+              </span>
+              <textarea
+                value={customNotes}
+                onChange={(e) => setCustomNotes(e.target.value)}
+                placeholder="Parking, gate code, timing…"
+                rows={2}
+                maxLength={4000}
+                className="w-full resize-none rounded-xl border border-input bg-card px-3 py-2.5 text-base outline-none focus:ring-2 focus:ring-ring"
+              />
+            </label>
+          ) : null}
           <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm text-foreground">
             <input
               type="checkbox"
@@ -356,64 +399,74 @@ export function AddStopSearch({
             type="submit"
             size="sm"
             className="w-full text-base sm:w-auto"
-            disabled={!customName.trim() || savingCustom}
+            disabled={!customName.trim() || savingCustom || disabled}
           >
-            {savingCustom ? "Adding…" : "Add custom stop"}
+            {savingCustom
+              ? isReplace
+                ? "Replacing…"
+                : "Adding…"
+              : isReplace
+                ? "Use custom place"
+                : "Add custom stop"}
           </Button>
         </form>
       )}
 
-      <div className="mt-3 rounded-xl border border-border bg-card/70 p-3">
-        <p className="text-sm font-medium text-foreground">Times (optional)</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Stay is calculated from arrive → depart when both are set.
-        </p>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-muted-foreground">
-              Arrive
-            </span>
-            <input
-              type="time"
-              value={arriveTime}
-              onChange={(e) => setArriveTime(e.target.value)}
-              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-muted-foreground">
-              Depart
-            </span>
-            <input
-              type="time"
-              value={departTime}
-              onChange={(e) => setDepartTime(e.target.value)}
-              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </label>
-        </div>
-        {derivedStay != null ? (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Stay{" "}
-            <span className="font-medium text-foreground">
-              {derivedStay < 60
-                ? `${derivedStay} min`
-                : `${Math.floor(derivedStay / 60)}h${
-                    derivedStay % 60 ? ` ${derivedStay % 60}m` : ""
-                  }`}
-            </span>{" "}
-            (auto)
+      {!isReplace ? (
+        <div className="mt-3 rounded-xl border border-border bg-card/70 p-3">
+          <p className="text-sm font-medium text-foreground">Times (optional)</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Stay is calculated from arrive → depart when both are set.
           </p>
-        ) : null}
-      </div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                Arrive
+              </span>
+              <input
+                type="time"
+                value={arriveTime}
+                onChange={(e) => setArriveTime(e.target.value)}
+                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                Depart
+              </span>
+              <input
+                type="time"
+                value={departTime}
+                onChange={(e) => setDepartTime(e.target.value)}
+                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </label>
+          </div>
+          {derivedStay != null ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Stay{" "}
+              <span className="font-medium text-foreground">
+                {derivedStay < 60
+                  ? `${derivedStay} min`
+                  : `${Math.floor(derivedStay / 60)}h${
+                      derivedStay % 60 ? ` ${derivedStay % 60}m` : ""
+                    }`}
+              </span>{" "}
+              (auto)
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
-      <button
-        type="button"
-        className="mt-3 text-sm text-muted-foreground underline-offset-2 hover:underline"
-        onClick={resetAndClose}
-      >
-        Cancel
-      </button>
+      {!isReplace ? (
+        <button
+          type="button"
+          className="mt-3 text-sm text-muted-foreground underline-offset-2 hover:underline"
+          onClick={resetAndClose}
+        >
+          Cancel
+        </button>
+      ) : null}
     </div>
   );
 }

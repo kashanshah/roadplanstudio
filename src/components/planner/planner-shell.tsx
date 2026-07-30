@@ -453,6 +453,82 @@ export function PlannerShell({ tripId }: Props) {
     }
   }
 
+  async function replacePlace(
+    itemId: string,
+    next: {
+      name: string;
+      address: string | null;
+      latitude: number | null;
+      longitude: number | null;
+      googlePlaceId: string | null;
+      googleMapsUri: string | null;
+      type: "attraction" | "hotel" | "custom";
+    },
+  ) {
+    if (!isEditor) return;
+
+    const existing = days
+      .flatMap((day) => day.items)
+      .find((item) => item.id === itemId);
+    if (!existing) return;
+
+    if (isTripStartItem(existing)) {
+      await updateTripStart({
+        placeId: next.googlePlaceId,
+        name: next.name,
+        address: next.address,
+        latitude: next.latitude,
+        longitude: next.longitude,
+      });
+      return;
+    }
+
+    const patch = {
+      name: next.name,
+      address: next.address,
+      latitude: next.latitude,
+      longitude: next.longitude,
+      googlePlaceId: next.googlePlaceId,
+      googleMapsUri: next.googleMapsUri,
+      type: next.type,
+    };
+
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        days: current.days.map((day) => ({
+          ...day,
+          items: day.items.map((item) =>
+            item.id === itemId ? { ...item, ...patch } : item,
+          ),
+        })),
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        days: prev.days.map((day) => ({
+          ...day,
+          items: day.items.map((item) =>
+            item.id === itemId ? { ...item, ...patch } : item,
+          ),
+        })),
+      };
+    });
+
+    const res = await fetch(`/api/trips/${tripId}/items/${itemId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      console.error("Failed to replace place");
+    }
+  }
+
   async function reorderDay(dayId: string, orderedItemIds: string[]) {
     if (!isEditor) return;
 
@@ -1536,6 +1612,7 @@ export function PlannerShell({ tripId }: Props) {
                   }
                   onUpdateItem={updateItem}
                   onDeleteItem={deleteItem}
+                  onReplaceItem={replacePlace}
                   onClearTripStart={() => updateTripStart(null)}
                   onUpdateDay={updateDay}
                   onDeleteDay={deleteDay}

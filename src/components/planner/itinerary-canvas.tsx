@@ -60,6 +60,18 @@ type Props = {
     >,
   ) => Promise<void> | void;
   onDeleteItem?: (itemId: string) => Promise<void> | void;
+  onReplaceItem?: (
+    itemId: string,
+    next: {
+      name: string;
+      address: string | null;
+      latitude: number | null;
+      longitude: number | null;
+      googlePlaceId: string | null;
+      googleMapsUri: string | null;
+      type: "attraction" | "hotel" | "custom";
+    },
+  ) => Promise<void> | void;
   /** Clears trip start (and Day 1 stop 1) when the pinned opener is removed. */
   onClearTripStart?: () => Promise<void> | void;
   onUpdateDay?: (dayId: string, patch: DayPatch) => Promise<void> | void;
@@ -317,6 +329,7 @@ export function ItineraryCanvas({
   showTemplates,
   onUpdateItem,
   onDeleteItem,
+  onReplaceItem,
   onClearTripStart,
   onUpdateDay,
   onDeleteDay,
@@ -520,6 +533,8 @@ export function ItineraryCanvas({
                           onUpdateItem={(itemId, patch) => {
                             void onUpdateItem(itemId, patch);
                           }}
+                          onReplaceItem={onReplaceItem}
+                          searchBias={biasForDay(day)}
                           onDeleteItem={
                             onDeleteItem || onClearTripStart
                               ? (itemId) => {
@@ -640,6 +655,8 @@ export function ItineraryCanvas({
         arriveMins={selectedRow?.arriveMins ?? null}
         departMins={selectedRow?.departMins ?? null}
         isFirstStop={selectedIsFirstStop}
+        searchBias={selectedDay ? biasForDay(selectedDay) : null}
+        dayId={selectedDay?.id}
         onClose={() => setSelected(null)}
         onUpdate={async (itemId, patch) => {
           await onUpdateItem(itemId, patch);
@@ -647,6 +664,16 @@ export function ItineraryCanvas({
             prev && prev.id === itemId ? { ...prev, ...patch } : prev,
           );
         }}
+        onReplace={
+          onReplaceItem
+            ? async (itemId, next) => {
+                await onReplaceItem(itemId, next);
+                setSelected((prev) =>
+                  prev && prev.id === itemId ? { ...prev, ...next } : prev,
+                );
+              }
+            : undefined
+        }
         onDelete={
           onDeleteItem || onClearTripStart
             ? async (itemId) => {

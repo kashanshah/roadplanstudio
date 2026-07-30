@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
+import { AddStopSearch } from "@/components/planner/add-stop-search";
 import {
   formatDurationLabel,
 } from "@/components/planner/use-day-timeline";
@@ -30,6 +31,16 @@ import {
 } from "@/lib/trips/stop-time";
 import { cn } from "@/lib/utils/cn";
 
+type ReplacePlacePayload = {
+  name: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  googlePlaceId: string | null;
+  googleMapsUri: string | null;
+  type: "attraction" | "hotel" | "custom";
+};
+
 type Props = {
   item: PlannerItem | null;
   isEditor: boolean;
@@ -39,6 +50,8 @@ type Props = {
   departMins?: number | null;
   /** First stop in the day — arrive edits set the day start. */
   isFirstStop?: boolean;
+  dayId?: string;
+  searchBias?: { lat: number; lng: number } | null;
   onClose: () => void;
   onUpdate: (
     itemId: string,
@@ -56,6 +69,10 @@ type Props = {
       >
     >,
   ) => Promise<void> | void;
+  onReplace?: (
+    itemId: string,
+    next: ReplacePlacePayload,
+  ) => Promise<void> | void;
   onDelete?: (itemId: string) => Promise<void> | void;
 };
 
@@ -72,8 +89,11 @@ export function PlaceDetailSheet({
   arriveMins = null,
   departMins = null,
   isFirstStop = false,
+  dayId,
+  searchBias = null,
   onClose,
   onUpdate,
+  onReplace,
   onDelete,
 }: Props) {
   const [details, setDetails] = useState<PlaceDetailsPayload | null>(null);
@@ -88,6 +108,7 @@ export function PlaceDetailSheet({
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [changingPlace, setChangingPlace] = useState(false);
 
   useEffect(() => {
     if (!item) {
@@ -115,6 +136,7 @@ export function PlaceDetailSheet({
       item.customTravelDistanceKm != null ? String(item.customTravelDistanceKm) : "",
     );
     setConfirmDelete(false);
+    setChangingPlace(false);
 
     if (!item.googlePlaceId) {
       setDetails(null);
@@ -359,6 +381,66 @@ export function PlaceDetailSheet({
               </button>
             ))}
           </div>
+
+          {isEditor && onReplace && dayId ? (
+            <div className="mt-6 space-y-2 rounded-xl border border-border bg-background/80 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-foreground">
+                  Change place
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={changingPlace ? "secondary" : "outline"}
+                  onClick={() => setChangingPlace((prev) => !prev)}
+                >
+                  {changingPlace ? "Cancel" : "Replace"}
+                </Button>
+              </div>
+              {changingPlace ? (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Times and notes stay the same.
+                  </p>
+                  <AddStopSearch
+                    dayId={dayId}
+                    variant="replace"
+                    bias={
+                      searchBias ??
+                      (item.latitude != null && item.longitude != null
+                        ? { lat: item.latitude, lng: item.longitude }
+                        : null)
+                    }
+                    defaultAsHotel={item.type === "hotel"}
+                    onReplace={async (place, asHotel) => {
+                      await onReplace(item.id, {
+                        name: place.name,
+                        address: place.formattedAddress,
+                        latitude: place.latitude,
+                        longitude: place.longitude,
+                        googlePlaceId: place.placeId,
+                        googleMapsUri: place.googleMapsUri,
+                        type: asHotel ? "hotel" : "attraction",
+                      });
+                      setChangingPlace(false);
+                    }}
+                    onReplaceCustom={async (input) => {
+                      await onReplace(item.id, {
+                        name: input.name,
+                        address: input.address ?? null,
+                        latitude: null,
+                        longitude: null,
+                        googlePlaceId: null,
+                        googleMapsUri: null,
+                        type: input.asHotel ? "hotel" : "custom",
+                      });
+                      setChangingPlace(false);
+                    }}
+                  />
+                </>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mt-6 grid gap-4">
             <label className="block">
