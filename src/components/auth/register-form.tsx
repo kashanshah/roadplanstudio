@@ -165,7 +165,27 @@ export function RegisterForm() {
             required
             className="mt-1 size-4 rounded border-input"
           />
-          <span>I agree to the Terms of Service and Privacy Policy.</span>
+          <span>
+            I agree to the{" "}
+            <Link
+              href="/terms"
+              className="text-primary underline-offset-4 hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/privacy"
+              className="text-primary underline-offset-4 hover:underline"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </span>
         </label>
         {error ? (
           <p className="text-base text-destructive" role="alert">
