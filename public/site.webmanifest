@@ -1,0 +1,22 @@
+{
+  "name": "RoadPlan Studio",
+  "short_name": "RoadPlan",
+  "description": "Premium multi-day road trip planner",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F5F2",
+  "theme_color": "#0F2A24",
+  "icons": [
+    {
+      "src": "/brand/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brand/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

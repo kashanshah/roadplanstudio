@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="RoadPlan Studio">
+  <rect width="64" height="64" rx="14" fill="#0F2A24"/>
+  <path d="M12 44 L28 22 L36 30 L52 14" stroke="#C4A882" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M14 50 C22 42, 30 46, 36 40 C42 34, 48 36, 54 30" stroke="#1A6B63" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <circle cx="14" cy="50" r="3" fill="#F7F5F2"/>
+  <circle cx="54" cy="30" r="3" fill="#F7F5F2"/>
+</svg>

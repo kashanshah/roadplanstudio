@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 40" fill="none" role="img" aria-label="RoadPlan Studio">
+  <g transform="translate(0,2)">
+    <rect width="36" height="36" rx="8" fill="#0F2A24"/>
+    <path d="M7 25 L16 13 L20 17 L29 8" stroke="#C4A882" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M8 28 C12 24, 16 25, 19 22 C22 19, 25 20, 29 17" stroke="#1A6B63" stroke-width="2.25" stroke-linecap="round"/>
+  </g>
+  <text x="48" y="27" font-family="Georgia, 'Times New Roman', serif" font-size="22" font-weight="600" fill="#0F2A24" letter-spacing="-0.02em">RoadPlan</text>
+  <text x="168" y="27" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="400" fill="#1A6B63" letter-spacing="0.01em">Studio</text>
+</svg>

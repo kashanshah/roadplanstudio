@@ -1,0 +1,76 @@
+# Role & Context
+You are a world-class Full-Stack Engineer and Core Architect specializing in premium, high-performance SaaS applications. Your task is to build **RoadPlan Studio** (www.roadplanstudio.com), a production-ready, highly interactive road trip planner platform. 
+
+The application must feel like a premium, fluid hybrid of Wanderlog, Notion, Google Travel, and Airbnb. The user experience must prioritize mobile workflows first, utilizing high-end UI design, polished animations, and responsive components generated via **Lovable MCP**.
+
+---
+
+## 1. Technical Stack & Deployment Infrastructure
+Ensure the entire application adheres to these specific infrastructure configurations:
+
+*   **Framework:** Next.js (App Router) utilizing TypeScript.
+*   **Hosting & Deployment:** Vercel (Fully optimized for Serverless/Edge runtimes, caching headers, and dynamic image optimization).
+*   **Database:** Neon (Serverless PostgreSQL). Implement connection pooling via the neondatabase/serverless driver to handle high-concurrency connection spikes efficiently.
+*   **Authentication & Services:** Supabase Auth & Supabase Storage integrated seamlessly within Next.js Middleware.
+*   **Frontend Foundations:** TailwindCSS, shadcn/ui, Framer Motion, React Hook Form, Zod, and dnd-kit (for multi-day drag-and-drop operations).
+*   **Data Fetching & State:** Next.js Server Components for high-performance, SEO-rich static rendering, paired with TanStack Query v5+ on the client side for real-time optimistic UI updating.
+*   **Location APIs:** Repository pattern encapsulating Google Maps JS, Places, Directions, and Geocoding APIs. 
+
+---
+
+## 2. Dynamic Rendering & SEO Strategy
+
+The app enforces a strict separation between public, discoverable indexing pages and the private interactive planner canvas.
+
+### Public Directory (Server Components - Maximum SEO Performance)
+*   **Routes:** /, /discover, and /trips/[public-slug].
+*   **Architecture:** Server-Side Rendered (SSR) or Static Site Generation (SSG) with incremental cache invalidation. No layout shifts.
+*   **Metadata:** Rich, dynamic OpenGraph assets, semantic HTML5, and automatic injection of JSON-LD Structured Data (Trip, Place, and BreadcrumbList schemas) inside layout.tsx or page.tsx blocks to ensure high visibility in Google Travel search results.
+
+### Workspace Directory (Client Components - Rich Interactive PWA)
+*   **Routes:** /planner/[tripId]/* wrapped entirely inside a user/session provider.
+*   **Architecture:** Driven by client-side state ("use client"). Heavy data sub-modules (e.g., full-screen map instances) must utilize Next.js dynamic lazy loading (next/dynamic) with custom skeleton loaders to minimize the initial bundle size.
+
+---
+
+## 3. Account State, Persistency, & Permissions Matrix
+
+RoadPlan Studio permits rapid application engagement through an upgraded guest session architecture.
+
+### Guest-to-Cloud Account Progression
+*   **Anonymous Mode:** Users can build full itineraries (adding days, mapping routes, adding stops) without logging in.
+    *   *Implementation:* Store ephemeral application states in a centralized React Context or local state engine. Display a high-end, Lovable-designed layout banner alerting the guest that data is restricted to their current browser tab.
+*   **Cloud Account Syncing:** Sharing options are fully restricted to registered users. Upon registration or login via Supabase Auth, catch the active in-memory guest state, trigger a bulk transactional write into Neon PostgreSQL, and redirect the user smoothly into their cloud-saved workspace.
+
+### Core Relational Database Design (Neon PostgreSQL)
+Ensure database migrations implement strict relational cascading, unified performance indexing, and declarative Row Level Security (RLS) policies matching three sharing profiles (Private, Public, Tripmates):
+
+*   **Profiles Table:** Links to Supabase Auth. Contains fields for user ID (primary key), unique email, full name, avatar URL, and updated timestamp.
+*   **Trips Table:** Contains fields for a unique trip ID (primary key), owner ID (foreign key referencing profiles), title, cover photo URL, duration in days, total distance in km, difficulty tier (Easy, Moderate, Hard), visibility tier (Private, Public), and a creation timestamp.
+*   **Trip Collaborators Join Table:** Manages shared tripmate access. Contains a collaborator ID, trip ID (foreign key), user ID (foreign key), and a permission level flag restricted strictly to either 'VIEWER' or 'EDITOR'. Includes a unique composite constraint pairing the trip ID and user ID together.
+*   *Note:* Establish similar cascading dependent tables for days, itinerary items (a flexible table/union supporting both tourist Attractions and Hotel Bookings/Night Stays), tracked expenses, and persistent packing checklists.
+
+---
+
+## 4. UI Architecture & Lovable MCP Workflow
+
+### The Lovable UI Mandate
+*   **UI Layout First:** When creating any primary user interface (e.g., authentication layouts, financial dashboards, timeline widgets, responsive bottom bars), **first call the Lovable MCP tool** to establish the presentation layers, color systems, typography tokens, and responsive structure.
+*   **Collaboration Safeguards:** Write absolute runtime checks (isEditor equals true if ownerId matches user.id OR if the collaboratorPermission equals 'EDITOR'). If isEditor evaluates to false, dynamically disable dnd-kit drag hooks, mutate state interactions, and block deletion or modification buttons completely across the interface.
+
+---
+
+## 5. Core Operational Requirements & Features
+
+1.  **Seed Data Blueprint:** Initialize database setups with the signature **Western Canada Road Trip 2026** itinerary: A 13-day circular trip loop mapping *Saskatoon to Calgary to Banff to Jasper to Vancouver to Clearwater to Edmonton to Saskatoon*. Include specific real-world attraction longitudes, latitudes, pre-fetched Google Place IDs, and confirmed hotel check-in objects marking each overnight stay.
+2.  **Reactive Reordering Engine:** Drag-and-drop events shifting items within or across day blocks must immediately compute updated paths via the Google Directions API, updating step durations, aggregate route mileage, and time coordinates across the daily timeline.
+3.  **Unified Map Control Canvas:** Synchronize route markers based on active Stop Status flags (To Visit, Visited, Skipped, Cancelled, Favorite). Render confirmed hotel points using unique custom lodging iconography.
+
+---
+
+## 6. Coding Steps Execution
+1.  **Phase 1:** Setup the directory shell inside Next.js App Router. Construct the global SEO parameters in app/layout.tsx utilizing canonical links matching https://www.roadplanstudio.com.
+2.  **Phase 2:** Design and initialize authentication interfaces (Login, Register, Password Recovery, Profile Details Update) using Lovable MCP UI parameters linked to Supabase middleware routing mechanisms.
+3.  **Phase 3:** Establish the Neon client utility connections, deploy table migrations, and write the custom data injection script provisioning the 2026 Western Canada template.
+
+Let's begin. Proceed to build out Phase 1, starting with the core application folder layout and baseline Next.js middleware routing guards.
