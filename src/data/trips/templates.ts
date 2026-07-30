@@ -51,7 +51,7 @@ export const tripTemplates: TripTemplate[] = [
     title: "Western Canada Road Trip 2026",
     tagline: "Prairies to peaks to Pacific — then home again.",
     description:
-      "A 13-day circular loop from Saskatoon through Calgary, Banff, Jasper, Vancouver, Clearwater and Edmonton. Lodging-ready overnight anchors with Rockies icons and Pacific rainforest stops.",
+      "A 13-day circular loop from Saskatoon through Calgary, Kananaskis, Banff, Jasper, Vancouver, Clearwater and Edmonton. Optimized daily flow with fixed lodging anchors — Kananaskis on Sunday to beat Banff crowds, early Lake Louise/Moraine shuttles, and Wells Gray falls moved to Clearwater day.",
     region: "Western Canada",
     country: "Canada",
     countries: ["Canada"],
@@ -62,9 +62,9 @@ export const tripTemplates: TripTemplate[] = [
     coverImage: "/images/trip-western-canada.jpg",
     coverAlt: "Turquoise glacier lake framed by snowy peaks in Western Canada",
     highlights: [
-      "Banff & Jasper Icefields Parkway",
-      "Vancouver seawall & North Shore",
-      "Circular loop back to Saskatoon",
+      "Kananaskis first, then Banff & Yoho early-bird loop",
+      "Icefields Parkway to Jasper & VIA Rail scenic day",
+      "Sea-to-Sky, Victoria ferry & Wells Gray falls",
     ],
     bestSeason: "June–September",
     languages: ["en", "fr"],
