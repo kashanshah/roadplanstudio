@@ -39,11 +39,11 @@ import { createDefaultPackingItems } from "@/lib/packing/defaults";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 import type { GuestItemType, GuestStopStatus } from "@/lib/trips/guest-trip";
 import {
-  findOvernightHotel,
+  findDayEndStop,
   MORNING_BASE_NOTE,
   syncNextDayMorningBase,
-  toOvernightPlaceFields,
-  type OvernightPlaceFields,
+  toDayEndPlaceFields,
+  type DayEndPlaceFields,
 } from "@/lib/trips/morning-base";
 import { demoteOtherOvernightHotels } from "@/lib/trips/overnight-hotel";
 import {
@@ -52,6 +52,23 @@ import {
   TRIP_START_NOTE,
 } from "@/lib/trips/trip-start";
 import { cn } from "@/lib/utils/cn";
+
+function dayEndSnapshot(
+  items: Array<{
+    type: string;
+    name: string;
+    address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    googlePlaceId?: string | null;
+    googleMapsUri?: string | null;
+    sortOrder?: number;
+    status?: string | null;
+  }>,
+): DayEndPlaceFields | null {
+  const end = findDayEndStop(items);
+  return end ? toDayEndPlaceFields(end) : null;
+}
 
 function applyMorningBaseSync<
   TDay extends {
@@ -77,14 +94,19 @@ function applyMorningBaseSync<
       travelMode?: "driving" | "walking" | "bicycling" | "transit";
     }>;
   },
->(days: TDay[], changedDayId: string, previousOvernight: OvernightPlaceFields | null): TDay[] {
+>(days: TDay[], changedDayId: string, previousDayEnd: DayEndPlaceFields | null): TDay[] {
   return syncNextDayMorningBase(days, changedDayId, {
-    previousOvernight,
+    previousDayEnd,
     createMorningBase: (place) =>
       ({
         id: crypto.randomUUID(),
         sortOrder: 0,
-        type: "hotel",
+        type:
+          place.type === "hotel"
+            ? "hotel"
+            : place.type === "custom"
+              ? "custom"
+              : "attraction",
         name: place.name,
         address: place.address ?? null,
         latitude: place.latitude ?? null,
@@ -440,13 +462,10 @@ export function PlannerShell({ tripId }: Props) {
     const hostDay = days.find((day) =>
       day.items.some((item) => item.id === itemId),
     );
-    const previousOvernight =
-      patch.type != null && hostDay
-        ? (() => {
-            const overnight = findOvernightHotel(hostDay.items);
-            return overnight ? toOvernightPlaceFields(overnight) : null;
-          })()
-        : null;
+    // Place swaps go through replacePlace; here only type/status can change day-end.
+    const mayChangeDayEnd = patch.type != null || patch.status != null;
+    const previousDayEnd =
+      mayChangeDayEnd && hostDay ? dayEndSnapshot(hostDay.items) : null;
 
     if (isDraftRoute) {
       updateDraft((current) => {
@@ -466,8 +485,8 @@ export function PlannerShell({ tripId }: Props) {
         return {
           ...current,
           days:
-            patch.type != null && hostDay
-              ? applyMorningBaseSync(nextDays, hostDay.id, previousOvernight)
+            previousDayEnd != null && hostDay
+              ? applyMorningBaseSync(nextDays, hostDay.id, previousDayEnd)
               : nextDays,
         };
       });
@@ -485,8 +504,8 @@ export function PlannerShell({ tripId }: Props) {
       return {
         ...prev,
         days:
-          patch.type != null && hostDay
-            ? applyMorningBaseSync(nextDays, hostDay.id, previousOvernight)
+          previousDayEnd != null && hostDay
+            ? applyMorningBaseSync(nextDays, hostDay.id, previousDayEnd)
             : nextDays,
       };
     });
@@ -501,7 +520,7 @@ export function PlannerShell({ tripId }: Props) {
       console.error("Failed to update item");
       return;
     }
-    if (patch.type != null) {
+    if (mayChangeDayEnd) {
       await refreshCloudTrip();
     }
   }
@@ -514,11 +533,8 @@ export function PlannerShell({ tripId }: Props) {
     const hostDay = days.find((day) =>
       day.items.some((item) => item.id === itemId),
     );
-    const previousOvernight = hostDay
-      ? (() => {
-          const overnight = findOvernightHotel(hostDay.items);
-          return overnight ? toOvernightPlaceFields(overnight) : null;
-        })()
+    const previousDayEnd = hostDay
+      ? dayEndSnapshot(hostDay.items)
       : null;
 
     if (isDraftRoute) {
@@ -532,7 +548,7 @@ export function PlannerShell({ tripId }: Props) {
         return {
           ...current,
           days: hostDay
-            ? applyMorningBaseSync(nextDays, hostDay.id, previousOvernight)
+            ? applyMorningBaseSync(nextDays, hostDay.id, previousDayEnd)
             : nextDays,
         };
       });
@@ -550,7 +566,7 @@ export function PlannerShell({ tripId }: Props) {
       return {
         ...prev,
         days: hostDay
-          ? applyMorningBaseSync(nextDays, hostDay.id, previousOvernight)
+          ? applyMorningBaseSync(nextDays, hostDay.id, previousDayEnd)
           : nextDays,
       };
     });
@@ -562,9 +578,7 @@ export function PlannerShell({ tripId }: Props) {
       console.error("Failed to delete item");
       return;
     }
-    if (previousOvernight) {
-      await refreshCloudTrip();
-    }
+    await refreshCloudTrip();
   }
 
   async function replacePlace(
@@ -610,11 +624,8 @@ export function PlannerShell({ tripId }: Props) {
     const hostDay = days.find((day) =>
       day.items.some((item) => item.id === itemId),
     );
-    const previousOvernight = hostDay
-      ? (() => {
-          const overnight = findOvernightHotel(hostDay.items);
-          return overnight ? toOvernightPlaceFields(overnight) : null;
-        })()
+    const previousDayEnd = hostDay
+      ? dayEndSnapshot(hostDay.items)
       : null;
 
     if (isDraftRoute) {
@@ -635,7 +646,7 @@ export function PlannerShell({ tripId }: Props) {
         return {
           ...current,
           days: hostDay
-            ? applyMorningBaseSync(nextDays, hostDay.id, previousOvernight)
+            ? applyMorningBaseSync(nextDays, hostDay.id, previousDayEnd)
             : nextDays,
         };
       });
@@ -660,7 +671,7 @@ export function PlannerShell({ tripId }: Props) {
       return {
         ...prev,
         days: hostDay
-          ? applyMorningBaseSync(nextDays, hostDay.id, previousOvernight)
+          ? applyMorningBaseSync(nextDays, hostDay.id, previousDayEnd)
           : nextDays,
       };
     });
@@ -674,15 +685,14 @@ export function PlannerShell({ tripId }: Props) {
       console.error("Failed to replace place");
       return;
     }
-    if (next.type === "hotel" || existing.type === "hotel") {
-      await refreshCloudTrip();
-    }
+    await refreshCloudTrip();
   }
 
   async function reorderDay(dayId: string, orderedItemIds: string[]) {
     if (!isEditor) return;
 
     const day = days.find((d) => d.id === dayId);
+    const previousDayEnd = day ? dayEndSnapshot(day.items) : null;
     const pinnedIds =
       day?.dayIndex === 1
         ? pinTripStartFirst(
@@ -694,9 +704,8 @@ export function PlannerShell({ tripId }: Props) {
         : orderedItemIds;
 
     if (isDraftRoute) {
-      updateDraft((current) => ({
-        ...current,
-        days: current.days.map((d) => {
+      updateDraft((current) => {
+        const nextDays = current.days.map((d) => {
           if (d.id !== dayId) return d;
           const byId = new Map(d.items.map((item) => [item.id, item]));
           return {
@@ -709,29 +718,34 @@ export function PlannerShell({ tripId }: Props) {
               })
               .filter((item): item is NonNullable<typeof item> => item != null),
           };
-        }),
-      }));
+        });
+        return {
+          ...current,
+          days: applyMorningBaseSync(nextDays, dayId, previousDayEnd),
+        };
+      });
       return;
     }
 
     setCloud((prev) => {
       if (!prev) return prev;
+      const nextDays = prev.days.map((d) => {
+        if (d.id !== dayId) return d;
+        const byId = new Map(d.items.map((item) => [item.id, item]));
+        return {
+          ...d,
+          items: pinnedIds
+            .map((id, index) => {
+              const item = byId.get(id);
+              if (!item) return null;
+              return { ...item, sortOrder: index };
+            })
+            .filter((item): item is PlannerItem => item != null),
+        };
+      });
       return {
         ...prev,
-        days: prev.days.map((d) => {
-          if (d.id !== dayId) return d;
-          const byId = new Map(d.items.map((item) => [item.id, item]));
-          return {
-            ...d,
-            items: pinnedIds
-              .map((id, index) => {
-                const item = byId.get(id);
-                if (!item) return null;
-                return { ...item, sortOrder: index };
-              })
-              .filter((item): item is PlannerItem => item != null),
-          };
-        }),
+        days: applyMorningBaseSync(nextDays, dayId, previousDayEnd),
       };
     });
 
@@ -742,7 +756,9 @@ export function PlannerShell({ tripId }: Props) {
     });
     if (!res.ok) {
       console.error("Failed to reorder items");
+      return;
     }
+    await refreshCloudTrip();
   }
 
   async function addPlace(
@@ -771,11 +787,8 @@ export function PlannerShell({ tripId }: Props) {
       return;
     }
 
-    const previousOvernight = targetDay
-      ? (() => {
-          const overnight = findOvernightHotel(targetDay.items);
-          return overnight ? toOvernightPlaceFields(overnight) : null;
-        })()
+    const previousDayEnd = targetDay
+      ? dayEndSnapshot(targetDay.items)
       : null;
 
     if (isDraftRoute) {
@@ -816,10 +829,7 @@ export function PlannerShell({ tripId }: Props) {
         });
         return {
           ...current,
-          days:
-            type === "hotel"
-              ? applyMorningBaseSync(nextDays, dayId, previousOvernight)
-              : nextDays,
+          days: applyMorningBaseSync(nextDays, dayId, previousDayEnd),
         };
       });
       return;
@@ -869,26 +879,18 @@ export function PlannerShell({ tripId }: Props) {
       });
       return {
         ...prev,
-        days:
-          type === "hotel"
-            ? applyMorningBaseSync(nextDays, dayId, previousOvernight)
-            : nextDays,
+        days: applyMorningBaseSync(nextDays, dayId, previousDayEnd),
       };
     });
-    if (type === "hotel") {
-      await refreshCloudTrip();
-    }
+    await refreshCloudTrip();
   }
 
   async function addCustomPlace(dayId: string, input: CustomStopInput) {
     if (!isEditor) return;
     const type: GuestItemType = input.asHotel ? "hotel" : "custom";
     const targetDay = days.find((day) => day.id === dayId);
-    const previousOvernight = targetDay
-      ? (() => {
-          const overnight = findOvernightHotel(targetDay.items);
-          return overnight ? toOvernightPlaceFields(overnight) : null;
-        })()
+    const previousDayEnd = targetDay
+      ? dayEndSnapshot(targetDay.items)
       : null;
 
     if (isDraftRoute) {
@@ -928,10 +930,7 @@ export function PlannerShell({ tripId }: Props) {
         });
         return {
           ...current,
-          days:
-            type === "hotel"
-              ? applyMorningBaseSync(nextDays, dayId, previousOvernight)
-              : nextDays,
+          days: applyMorningBaseSync(nextDays, dayId, previousDayEnd),
         };
       });
       return;
@@ -983,15 +982,10 @@ export function PlannerShell({ tripId }: Props) {
       });
       return {
         ...prev,
-        days:
-          type === "hotel"
-            ? applyMorningBaseSync(nextDays, dayId, previousOvernight)
-            : nextDays,
+        days: applyMorningBaseSync(nextDays, dayId, previousDayEnd),
       };
     });
-    if (type === "hotel") {
-      await refreshCloudTrip();
-    }
+    await refreshCloudTrip();
   }
 
   async function addDay(opts?: { isRestDay?: boolean }) {

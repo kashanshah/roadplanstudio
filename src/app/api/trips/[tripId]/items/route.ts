@@ -7,8 +7,8 @@ import { accommodations, itineraryItems, tripDays } from "@/lib/db/schema";
 import { assertCanEdit, getTripAccess } from "@/lib/trips/permissions";
 import { getPlaceDetails } from "@/lib/maps/places";
 import {
-  findOvernightHotel,
-  toOvernightPlaceFields,
+  findDayEndStop,
+  toDayEndPlaceFields,
 } from "@/lib/trips/morning-base";
 import { demoteOtherOvernightHotels } from "@/lib/trips/overnight-hotel";
 import { syncNextDayMorningBaseInDb } from "@/lib/trips/sync-morning-base-db";
@@ -148,6 +148,7 @@ export async function POST(request: Request, ctx: Ctx) {
       id: itineraryItems.id,
       type: itineraryItems.type,
       sortOrder: itineraryItems.sortOrder,
+      status: itineraryItems.status,
       name: itineraryItems.name,
       address: itineraryItems.address,
       latitude: itineraryItems.latitude,
@@ -159,9 +160,9 @@ export async function POST(request: Request, ctx: Ctx) {
     .where(eq(itineraryItems.dayId, day.id))
     .orderBy(asc(itineraryItems.sortOrder));
 
-  const previousOvernightItem = findOvernightHotel(dayItemsBefore);
-  const previousOvernight = previousOvernightItem
-    ? toOvernightPlaceFields(previousOvernightItem)
+  const previousDayEndItem = findDayEndStop(dayItemsBefore);
+  const previousDayEnd = previousDayEndItem
+    ? toDayEndPlaceFields(previousDayEndItem)
     : null;
 
   const [item] = await db
@@ -216,12 +217,13 @@ export async function POST(request: Request, ctx: Ctx) {
       });
     }
 
-    await syncNextDayMorningBaseInDb({
-      tripId,
-      dayId: day.id,
-      previousOvernight,
-    });
   }
+
+  await syncNextDayMorningBaseInDb({
+    tripId,
+    dayId: day.id,
+    previousDayEnd,
+  });
 
   return NextResponse.json({ item }, { status: 201 });
 }

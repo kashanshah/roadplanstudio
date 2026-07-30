@@ -2,22 +2,32 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { itineraryItems, tripDays } from "@/lib/db/schema";
 import {
-  findOvernightHotel,
+  findDayEndStop,
   isMorningBaseItem,
   MORNING_BASE_NOTE,
   placeFieldsMatch,
-  toOvernightPlaceFields,
-  type OvernightPlaceFields,
+  toDayEndPlaceFields,
+  type DayEndPlaceFields,
 } from "@/lib/trips/morning-base";
 
+function morningBaseType(sourceType: string | undefined): "hotel" | "attraction" | "custom" {
+  if (sourceType === "hotel") return "hotel";
+  if (sourceType === "custom") return "custom";
+  return "attraction";
+}
+
 /**
- * Persist Day N+1 morning-base sync after Day N overnight changes.
+ * Persist Day N+1 morning-base sync after Day N's last stop changes.
  */
 export async function syncNextDayMorningBaseInDb(opts: {
   tripId: string;
   dayId: string;
-  previousOvernight: OvernightPlaceFields | null;
+  previousDayEnd: DayEndPlaceFields | null;
+  /** @deprecated use previousDayEnd */
+  previousOvernight?: DayEndPlaceFields | null;
 }) {
+  const previousDayEnd = opts.previousDayEnd ?? opts.previousOvernight ?? null;
+
   const [day] = await db
     .select({
       id: tripDays.id,
@@ -50,6 +60,7 @@ export async function syncNextDayMorningBaseInDb(opts: {
       id: itineraryItems.id,
       type: itineraryItems.type,
       sortOrder: itineraryItems.sortOrder,
+      status: itineraryItems.status,
       name: itineraryItems.name,
       address: itineraryItems.address,
       latitude: itineraryItems.latitude,
@@ -62,10 +73,8 @@ export async function syncNextDayMorningBaseInDb(opts: {
     .where(eq(itineraryItems.dayId, day.id))
     .orderBy(asc(itineraryItems.sortOrder));
 
-  const overnightItem = findOvernightHotel(dayItems);
-  const overnight = overnightItem
-    ? toOvernightPlaceFields(overnightItem)
-    : null;
+  const endItem = findDayEndStop(dayItems);
+  const dayEnd = endItem ? toDayEndPlaceFields(endItem) : null;
 
   const nextItems = await db
     .select({
@@ -87,21 +96,21 @@ export async function syncNextDayMorningBaseInDb(opts: {
   const first = nextItems[0] ?? null;
   const linked =
     !!first &&
-    (isMorningBaseItem(first) ||
-      placeFieldsMatch(first, opts.previousOvernight));
+    (isMorningBaseItem(first) || placeFieldsMatch(first, previousDayEnd));
 
-  if (overnight) {
+  if (dayEnd) {
+    const baseType = morningBaseType(dayEnd.type);
     if (first && linked) {
       await db
         .update(itineraryItems)
         .set({
-          name: overnight.name,
-          address: overnight.address ?? null,
-          latitude: overnight.latitude ?? null,
-          longitude: overnight.longitude ?? null,
-          googlePlaceId: overnight.googlePlaceId ?? null,
-          googleMapsUri: overnight.googleMapsUri ?? null,
-          type: "hotel",
+          name: dayEnd.name,
+          address: dayEnd.address ?? null,
+          latitude: dayEnd.latitude ?? null,
+          longitude: dayEnd.longitude ?? null,
+          googlePlaceId: dayEnd.googlePlaceId ?? null,
+          googleMapsUri: dayEnd.googleMapsUri ?? null,
+          type: baseType,
           notes: MORNING_BASE_NOTE,
           durationMins: 0,
         })
@@ -113,13 +122,13 @@ export async function syncNextDayMorningBaseInDb(opts: {
       await db.insert(itineraryItems).values({
         dayId: nextDay.id,
         sortOrder: 0,
-        type: "hotel",
-        name: overnight.name,
-        address: overnight.address ?? null,
-        latitude: overnight.latitude ?? null,
-        longitude: overnight.longitude ?? null,
-        googlePlaceId: overnight.googlePlaceId ?? null,
-        googleMapsUri: overnight.googleMapsUri ?? null,
+        type: baseType,
+        name: dayEnd.name,
+        address: dayEnd.address ?? null,
+        latitude: dayEnd.latitude ?? null,
+        longitude: dayEnd.longitude ?? null,
+        googlePlaceId: dayEnd.googlePlaceId ?? null,
+        googleMapsUri: dayEnd.googleMapsUri ?? null,
         notes: MORNING_BASE_NOTE,
         durationMins: 0,
         status: "to_visit",

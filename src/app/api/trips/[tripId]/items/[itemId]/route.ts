@@ -6,8 +6,8 @@ import { db } from "@/lib/db";
 import { accommodations, itineraryItems, tripDays } from "@/lib/db/schema";
 import { assertCanEdit, getTripAccess } from "@/lib/trips/permissions";
 import {
-  findOvernightHotel,
-  toOvernightPlaceFields,
+  findDayEndStop,
+  toDayEndPlaceFields,
 } from "@/lib/trips/morning-base";
 import { demoteOtherOvernightHotels } from "@/lib/trips/overnight-hotel";
 import { syncNextDayMorningBaseInDb } from "@/lib/trips/sync-morning-base-db";
@@ -90,6 +90,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
       id: itineraryItems.id,
       type: itineraryItems.type,
       sortOrder: itineraryItems.sortOrder,
+      status: itineraryItems.status,
       name: itineraryItems.name,
       address: itineraryItems.address,
       latitude: itineraryItems.latitude,
@@ -101,9 +102,9 @@ export async function PATCH(request: Request, ctx: Ctx) {
     .where(eq(itineraryItems.dayId, item.dayId))
     .orderBy(asc(itineraryItems.sortOrder));
 
-  const previousOvernightItem = findOvernightHotel(dayItemsBefore);
-  const previousOvernight = previousOvernightItem
-    ? toOvernightPlaceFields(previousOvernightItem)
+  const previousDayEndItem = findDayEndStop(dayItemsBefore);
+  const previousDayEnd = previousDayEndItem
+    ? toDayEndPlaceFields(previousDayEndItem)
     : null;
 
   const [updated] = await db
@@ -174,8 +175,9 @@ export async function PATCH(request: Request, ctx: Ctx) {
     }
   }
 
-  const placeOrTypeChanged =
+  const mayChangeDayEnd =
     parsed.data.type != null ||
+    parsed.data.status != null ||
     parsed.data.name != null ||
     parsed.data.address !== undefined ||
     parsed.data.latitude !== undefined ||
@@ -183,11 +185,11 @@ export async function PATCH(request: Request, ctx: Ctx) {
     parsed.data.googlePlaceId !== undefined ||
     parsed.data.googleMapsUri !== undefined;
 
-  if (placeOrTypeChanged || item.type === "hotel" || nextType === "hotel") {
+  if (mayChangeDayEnd) {
     await syncNextDayMorningBaseInDb({
       tripId,
       dayId: item.dayId,
-      previousOvernight,
+      previousDayEnd,
     });
   }
 
@@ -235,6 +237,7 @@ export async function DELETE(_request: Request, ctx: Ctx) {
       id: itineraryItems.id,
       type: itineraryItems.type,
       sortOrder: itineraryItems.sortOrder,
+      status: itineraryItems.status,
       name: itineraryItems.name,
       address: itineraryItems.address,
       latitude: itineraryItems.latitude,
@@ -246,9 +249,9 @@ export async function DELETE(_request: Request, ctx: Ctx) {
     .where(eq(itineraryItems.dayId, item.dayId))
     .orderBy(asc(itineraryItems.sortOrder));
 
-  const previousOvernightItem = findOvernightHotel(dayItemsBefore);
-  const previousOvernight = previousOvernightItem
-    ? toOvernightPlaceFields(previousOvernightItem)
+  const previousDayEndItem = findDayEndStop(dayItemsBefore);
+  const previousDayEnd = previousDayEndItem
+    ? toDayEndPlaceFields(previousDayEndItem)
     : null;
 
   await db.delete(itineraryItems).where(eq(itineraryItems.id, itemId));
@@ -257,13 +260,11 @@ export async function DELETE(_request: Request, ctx: Ctx) {
     await db.delete(accommodations).where(eq(accommodations.dayId, item.dayId));
   }
 
-  if (item.type === "hotel" || previousOvernight) {
-    await syncNextDayMorningBaseInDb({
-      tripId,
-      dayId: item.dayId,
-      previousOvernight,
-    });
-  }
+  await syncNextDayMorningBaseInDb({
+    tripId,
+    dayId: item.dayId,
+    previousDayEnd,
+  });
 
   return NextResponse.json({ ok: true });
 }

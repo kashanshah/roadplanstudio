@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getSession } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 import { itineraryItems, tripDays } from "@/lib/db/schema";
+import {
+  findDayEndStop,
+  toDayEndPlaceFields,
+} from "@/lib/trips/morning-base";
 import { assertCanEdit, getTripAccess } from "@/lib/trips/permissions";
+import { syncNextDayMorningBaseInDb } from "@/lib/trips/sync-morning-base-db";
 
 type Ctx = { params: Promise<{ tripId: string }> };
 
@@ -46,12 +51,29 @@ export async function POST(request: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Day not found" }, { status: 404 });
   }
 
-  const existing = await db
-    .select({ id: itineraryItems.id })
+  const dayItemsBefore = await db
+    .select({
+      id: itineraryItems.id,
+      type: itineraryItems.type,
+      sortOrder: itineraryItems.sortOrder,
+      status: itineraryItems.status,
+      name: itineraryItems.name,
+      address: itineraryItems.address,
+      latitude: itineraryItems.latitude,
+      longitude: itineraryItems.longitude,
+      googlePlaceId: itineraryItems.googlePlaceId,
+      googleMapsUri: itineraryItems.googleMapsUri,
+    })
     .from(itineraryItems)
-    .where(eq(itineraryItems.dayId, dayId));
+    .where(eq(itineraryItems.dayId, dayId))
+    .orderBy(asc(itineraryItems.sortOrder));
 
-  const existingIds = new Set(existing.map((i) => i.id));
+  const previousDayEndItem = findDayEndStop(dayItemsBefore);
+  const previousDayEnd = previousDayEndItem
+    ? toDayEndPlaceFields(previousDayEndItem)
+    : null;
+
+  const existingIds = new Set(dayItemsBefore.map((i) => i.id));
   if (
     orderedItemIds.length !== existingIds.size ||
     orderedItemIds.some((id) => !existingIds.has(id))
@@ -72,6 +94,12 @@ export async function POST(request: Request, ctx: Ctx) {
         ),
     ),
   );
+
+  await syncNextDayMorningBaseInDb({
+    tripId,
+    dayId,
+    previousDayEnd,
+  });
 
   const items = await db
     .select()

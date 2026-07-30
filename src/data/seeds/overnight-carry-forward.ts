@@ -6,8 +6,8 @@ export { TRIP_START_NOTE, MORNING_BASE_NOTE };
 /**
  * Day openings:
  * - Day 1 opens at Trip Start (relabel existing first stop, or prepend `tripStart`)
- * - Later days open at the previous night's lodging (morning base)
- * Each day still ends with its own overnight when present.
+ * - Later days open at the previous day's last stop (overnight lodging preferred
+ *   when the seed sets `overnight`, else the last entry in `stops`)
  */
 export function withDayOpeningBases<
   TDay extends { overnight?: TStop | null; stops: TStop[] },
@@ -49,13 +49,18 @@ export function withDayOpeningBases<
       return day;
     }
 
-    const previousOvernight = days[index - 1]?.overnight ?? null;
-    if (!previousOvernight) return day;
+    const previous = days[index - 1];
+    const previousEnd =
+      previous?.overnight ??
+      (previous?.stops.length
+        ? previous.stops[previous.stops.length - 1]!
+        : null);
+    if (!previousEnd) return day;
 
     const morningBase = {
-      ...previousOvernight,
-      key: previousOvernight.key
-        ? `${previousOvernight.key}-morning`
+      ...previousEnd,
+      key: previousEnd.key
+        ? `${previousEnd.key}-morning`
         : `day-${index + 1}-morning-base`,
       notes: MORNING_BASE_NOTE,
     } as TStop;
