@@ -32,6 +32,7 @@ type Props = {
       Pick<PlannerItem, "status" | "durationMins" | "notes" | "travelMode">
     >,
   ) => Promise<void> | void;
+  onDeleteItem?: (itemId: string) => Promise<void> | void;
   onReorderDay: (dayId: string, orderedItemIds: string[]) => Promise<void> | void;
   onAddPlace?: (
     dayId: string,
@@ -72,6 +73,7 @@ export function ItineraryCanvas({
   isEditor,
   showTemplates,
   onUpdateItem,
+  onDeleteItem,
   onReorderDay,
   onAddPlace,
   onAddDay,
@@ -292,6 +294,14 @@ export function ItineraryCanvas({
             prev && prev.id === itemId ? { ...prev, ...patch } : prev,
           );
         }}
+        onDelete={
+          onDeleteItem
+            ? async (itemId) => {
+                await onDeleteItem(itemId);
+                setSelected(null);
+              }
+            : undefined
+        }
       />
     </div>
   );

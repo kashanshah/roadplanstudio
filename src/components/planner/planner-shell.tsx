@@ -348,6 +348,45 @@ export function PlannerShell({ tripId }: Props) {
     }
   }
 
+  async function deleteItem(itemId: string) {
+    if (!isEditor) return;
+
+    setFocusStopId((prev) => (prev === itemId ? null : prev));
+
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        days: current.days.map((day) => ({
+          ...day,
+          items: day.items
+            .filter((item) => item.id !== itemId)
+            .map((item, index) => ({ ...item, sortOrder: index })),
+        })),
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        days: prev.days.map((day) => ({
+          ...day,
+          items: day.items
+            .filter((item) => item.id !== itemId)
+            .map((item, index) => ({ ...item, sortOrder: index })),
+        })),
+      };
+    });
+
+    const res = await fetch(`/api/trips/${tripId}/items/${itemId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      console.error("Failed to delete item");
+    }
+  }
+
   async function reorderDay(dayId: string, orderedItemIds: string[]) {
     if (!isEditor) return;
 
@@ -678,6 +717,7 @@ export function PlannerShell({ tripId }: Props) {
                     isDraftRoute && !hasTimelineContent && dismissedStarter
                   }
                   onUpdateItem={updateItem}
+                  onDeleteItem={deleteItem}
                   onReorderDay={reorderDay}
                   onAddPlace={addPlace}
                   onAddDay={addDay}
