@@ -7,14 +7,14 @@ import { localeMetadataBase } from "@/lib/i18n/seo";
 export const metadata: Metadata = {
   ...localeMetadataBase(
     "en",
-    "/terms",
-    "Terms of Service",
-    "Terms governing use of RoadPlan Studio’s website, planner, templates, and collaboration features.",
+    "/copyright",
+    "Copyright & Intellectual Property",
+    "Ownership of RoadPlan Studio software, brand assets, and how to report infringement.",
   ),
 };
 
-export default function TermsPage() {
-  const page = getLegalPage("terms");
+export default function CopyrightPage() {
+  const page = getLegalPage("copyright");
   if (!page) notFound();
   return <LegalDocument page={page} locale="en" />;
 }

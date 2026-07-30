@@ -32,8 +32,12 @@ const marketingPaths = [
   "/about",
   "/contact",
   "/request-feature",
+  "/legal",
   "/privacy",
   "/terms",
+  "/cookies",
+  "/acceptable-use",
+  "/copyright",
 ] as const;
 
 function isoDate(value: string | Date) {

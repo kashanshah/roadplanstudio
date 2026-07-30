@@ -19,10 +19,16 @@ export type Dictionary = {
     tagline: string;
     product: string;
     company: string;
+    explore: string;
     legal: string;
     privacy: string;
     terms: string;
+    cookies: string;
+    acceptableUse: string;
+    copyright: string;
     language: string;
+    sitemap: string;
+    rights: string;
   };
   common: {
     startPlanning: string;
@@ -110,10 +116,16 @@ const en: Dictionary = {
       "Road trip planning for people who care how the route feels, not just how long it takes.",
     product: "Product",
     company: "Company",
+    explore: "Explore",
     legal: "Legal",
-    privacy: "Privacy",
-    terms: "Terms",
+    privacy: "Privacy Policy",
+    terms: "Terms of Service",
+    cookies: "Cookie Policy",
+    acceptableUse: "Acceptable Use",
+    copyright: "Copyright",
     language: "Language",
+    sitemap: "Sitemap",
+    rights: "All rights reserved.",
   },
   common: {
     startPlanning: "Start planning",
@@ -204,10 +216,16 @@ const fr: Dictionary = {
       "Le road trip pour ceux qui soignent le feeling de la route, pas seulement le kilométrage.",
     product: "Produit",
     company: "Entreprise",
-    legal: "Mentions",
-    privacy: "Confidentialité",
-    terms: "Conditions",
+    explore: "Explorer",
+    legal: "Mentions légales",
+    privacy: "Politique de confidentialité",
+    terms: "Conditions d’utilisation",
+    cookies: "Politique des cookies",
+    acceptableUse: "Usage acceptable",
+    copyright: "Droit d’auteur",
     language: "Langue",
+    sitemap: "Plan du site",
+    rights: "Tous droits réservés.",
   },
   common: {
     ...en.common,
@@ -298,10 +316,16 @@ const es: Dictionary = {
       "Planificación de road trips para quienes importan cómo se siente la ruta, no solo cuánto dura.",
     product: "Producto",
     company: "Empresa",
+    explore: "Explorar",
     legal: "Legal",
-    privacy: "Privacidad",
-    terms: "Términos",
+    privacy: "Política de privacidad",
+    terms: "Términos del servicio",
+    cookies: "Política de cookies",
+    acceptableUse: "Uso aceptable",
+    copyright: "Derechos de autor",
     language: "Idioma",
+    sitemap: "Mapa del sitio",
+    rights: "Todos los derechos reservados.",
   },
   common: {
     ...en.common,
@@ -392,10 +416,16 @@ const de: Dictionary = {
       "Roadtrip-Planung für Menschen, denen sich die Strecke anfühlen soll — nicht nur die Dauer.",
     product: "Produkt",
     company: "Unternehmen",
+    explore: "Entdecken",
     legal: "Rechtliches",
     privacy: "Datenschutz",
-    terms: "AGB",
+    terms: "Nutzungsbedingungen",
+    cookies: "Cookie-Richtlinie",
+    acceptableUse: "Nutzungsrichtlinie",
+    copyright: "Urheberrecht",
     language: "Sprache",
+    sitemap: "Sitemap",
+    rights: "Alle Rechte vorbehalten.",
   },
   common: {
     ...en.common,
@@ -486,10 +516,16 @@ const ja: Dictionary = {
       "所要時間だけでなく、道の手触りまで大切にする人のためのロードトリップ計画。",
     product: "プロダクト",
     company: "会社",
+    explore: "探す",
     legal: "法務",
-    privacy: "プライバシー",
+    privacy: "プライバシーポリシー",
     terms: "利用規約",
+    cookies: "クッキーポリシー",
+    acceptableUse: "利用ポリシー",
+    copyright: "著作権",
     language: "言語",
+    sitemap: "サイトマップ",
+    rights: "All rights reserved.",
   },
   common: {
     ...en.common,

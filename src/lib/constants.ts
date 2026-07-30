@@ -14,8 +14,12 @@ export const PUBLIC_ROUTES = [
   "/about",
   "/contact",
   "/request-feature",
+  "/legal",
   "/privacy",
   "/terms",
+  "/cookies",
+  "/acceptable-use",
+  "/copyright",
 ] as const;
 export const AUTH_ROUTES = [
   "/auth/login",

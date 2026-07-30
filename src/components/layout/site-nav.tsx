@@ -9,6 +9,7 @@ import { AccountMenu } from "@/components/auth/account-menu";
 import { Wordmark } from "@/components/brand/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { PreferencesMenu } from "@/components/layout/preferences-menu";
+import { SitePreFooter } from "@/components/layout/site-pre-footer";
 import { useSession } from "@/lib/auth-client";
 import {
   localizedPath,
@@ -204,12 +205,9 @@ export function SiteFooter() {
       title: dict.footer.product,
       links: [
         { href: localizedPath(locale, "/discover"), label: dict.nav.discover },
-        {
-          href: localizedPath(locale, "/destinations"),
-          label: dict.nav.destinations,
-        },
         { href: localizedPath(locale, "/features"), label: dict.nav.features },
         { href: localizedPath(locale, "/pricing"), label: dict.nav.pricing },
+        { href: "/planner/new", label: dict.common.startPlanning },
         {
           href: localizedPath(locale, "/request-feature"),
           label: dict.nav.requestFeature,
@@ -217,66 +215,137 @@ export function SiteFooter() {
       ],
     },
     {
+      title: dict.footer.explore,
+      links: [
+        {
+          href: localizedPath(locale, "/destinations"),
+          label: dict.nav.destinations,
+        },
+        {
+          href: localizedPath(locale, "/destinations/europe"),
+          label: "Europe",
+        },
+        {
+          href: localizedPath(locale, "/destinations/north-america"),
+          label: "North America",
+        },
+        {
+          href: localizedPath(locale, "/trips/western-canada-2026"),
+          label: "Western Canada 2026",
+        },
+        {
+          href: localizedPath(locale, "/trips/iceland-ring-road"),
+          label: "Iceland Ring Road",
+        },
+        { href: localizedPath(locale, "/blog"), label: dict.nav.blog },
+      ],
+    },
+    {
       title: dict.footer.company,
       links: [
         { href: localizedPath(locale, "/about"), label: dict.nav.about },
-        { href: localizedPath(locale, "/blog"), label: dict.nav.blog },
         { href: localizedPath(locale, "/contact"), label: dict.nav.contact },
         session
           ? { href: "/account", label: dict.nav.account }
           : { href: "/auth/login", label: dict.nav.signIn },
+        ...(session ? [{ href: "/planner", label: dict.nav.planner }] : []),
       ],
     },
     {
       title: dict.footer.legal,
       links: [
-        { href: localizedPath(locale, "/privacy"), label: dict.footer.privacy },
+        { href: localizedPath(locale, "/legal"), label: dict.footer.legal },
         { href: localizedPath(locale, "/terms"), label: dict.footer.terms },
-        { href: "/sitemap.xml", label: "Sitemap" },
+        { href: localizedPath(locale, "/privacy"), label: dict.footer.privacy },
+        { href: localizedPath(locale, "/cookies"), label: dict.footer.cookies },
+        {
+          href: localizedPath(locale, "/acceptable-use"),
+          label: dict.footer.acceptableUse,
+        },
+        {
+          href: localizedPath(locale, "/copyright"),
+          label: dict.footer.copyright,
+        },
+        { href: "/sitemap.xml", label: dict.footer.sitemap },
       ],
     },
   ];
 
   return (
-    <footer className="border-t border-border bg-background">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <div className="grid gap-10 md:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))]">
-          <div className="min-w-0">
-            <Wordmark size="sm" />
-            <p className="mt-3 max-w-sm text-sm text-muted-foreground">
-              {dict.footer.tagline}
-            </p>
-            <div className="mt-4 flex items-center gap-3">
-              <p className="text-sm text-muted-foreground">
-                {dict.footer.language}
+    <>
+      <SitePreFooter locale={locale} />
+      <footer className="border-t border-border bg-background">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_repeat(4,minmax(0,1fr))]">
+            <div className="min-w-0">
+              <Wordmark size="sm" />
+              <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                {dict.footer.tagline}
               </p>
-              <LanguageSwitcher align="start" />
+              <p className="mt-5 text-sm text-muted-foreground">
+                <Link
+                  href={localizedPath(locale, "/contact")}
+                  className="transition-colors hover:text-foreground"
+                >
+                  hello@roadplanstudio.com
+                </Link>
+              </p>
+              <div className="mt-5 flex items-center gap-3">
+                <p className="text-sm text-muted-foreground">
+                  {dict.footer.language}
+                </p>
+                <LanguageSwitcher align="start" />
+              </div>
+            </div>
+            {columns.map((col) => (
+              <div key={col.title}>
+                <p className="text-sm font-medium tracking-wide text-foreground">
+                  {col.title}
+                </p>
+                <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  {col.links.map((l) => (
+                    <li key={`${col.title}-${l.href}-${l.label}`}>
+                      <Link
+                        href={l.href}
+                        className="transition-colors hover:text-foreground"
+                      >
+                        {l.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              © {new Date().getFullYear()} RoadPlan Studio. {dict.footer.rights}
+            </p>
+            <div className="flex flex-wrap gap-x-5 gap-y-2">
+              <Link
+                href={localizedPath(locale, "/privacy")}
+                className="transition-colors hover:text-foreground"
+              >
+                {dict.footer.privacy}
+              </Link>
+              <Link
+                href={localizedPath(locale, "/terms")}
+                className="transition-colors hover:text-foreground"
+              >
+                {dict.footer.terms}
+              </Link>
+              <Link
+                href={localizedPath(locale, "/cookies")}
+                className="transition-colors hover:text-foreground"
+              >
+                {dict.footer.cookies}
+              </Link>
+              <span>www.roadplanstudio.com</span>
             </div>
           </div>
-          {columns.map((col) => (
-            <div key={col.title}>
-              <p className="text-sm font-medium tracking-wide text-foreground">
-                {col.title}
-              </p>
-              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                {col.links.map((l) => (
-                  <li key={l.href}>
-                    <Link
-                      href={l.href}
-                      className="transition-colors hover:text-foreground"
-                    >
-                      {l.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
         </div>
-        <p className="mt-10 border-t border-border pt-6 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} RoadPlan Studio · www.roadplanstudio.com
-        </p>
-      </div>
-    </footer>
+      </footer>
+    </>
   );
 }
