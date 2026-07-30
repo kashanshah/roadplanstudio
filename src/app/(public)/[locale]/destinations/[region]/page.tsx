@@ -5,21 +5,28 @@ import {
   destinationRegions,
   getDestinationRegion,
 } from "@/data/destinations/regions";
+import { locales } from "@/lib/i18n/config";
+import { resolveMarketingLocale } from "@/lib/i18n/resolve";
 import { localeMetadataBase } from "@/lib/i18n/seo";
 
-type Props = { params: Promise<{ region: string }> };
+type Props = { params: Promise<{ locale: string; region: string }> };
 
 export function generateStaticParams() {
-  return destinationRegions.map((r) => ({ region: r.slug }));
+  return locales
+    .filter((l) => l !== "en")
+    .flatMap((locale) =>
+      destinationRegions.map((r) => ({ locale, region: r.slug })),
+    );
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { region: slug } = await params;
+  const { locale: raw, region: slug } = await params;
+  const locale = resolveMarketingLocale(raw);
   const region = getDestinationRegion(slug);
   if (!region) return { title: "Not found", robots: { index: false } };
   return {
     ...localeMetadataBase(
-      "en",
+      locale,
       `/destinations/${region.slug}`,
       `${region.name} road trips`,
       region.description,
@@ -28,9 +35,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function DestinationRegionPage({ params }: Props) {
-  const { region: slug } = await params;
+export default async function LocalizedDestinationRegionPage({
+  params,
+}: Props) {
+  const { locale: raw, region: slug } = await params;
+  const locale = resolveMarketingLocale(raw);
   const region = getDestinationRegion(slug);
   if (!region) notFound();
-  return <DestinationRegionView region={region} locale="en" />;
+  return <DestinationRegionView region={region} locale={locale} />;
 }
