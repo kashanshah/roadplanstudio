@@ -3,9 +3,23 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useAuthGate } from "@/components/auth/auth-gate-provider";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
+
+type InviteDay = {
+  dayIndex: number;
+  title: string;
+  isRestDay: boolean;
+  routeSummary: string | null;
+  items: Array<{
+    name: string;
+    type: string;
+    address: string | null;
+    notes: string | null;
+  }>;
+};
 
 type LinkPreview = {
   link: {
@@ -23,6 +37,7 @@ type LinkPreview = {
     difficulty?: string;
   };
   canViewItinerary: boolean;
+  days?: InviteDay[];
   membership: {
     isOwner: boolean;
     isCollaborator: boolean;
@@ -31,11 +46,19 @@ type LinkPreview = {
   } | null;
 };
 
+function stopTypeLabel(type: string) {
+  if (type === "hotel") return "lodging";
+  if (type === "custom") return "custom";
+  return "stop";
+}
+
 function InviteLinkInner() {
   const router = useRouter();
   const params = useParams<{ token: string }>();
   const token = params.token || "";
   const { data: session, isPending: sessionPending } = useSession();
+  const { requireAuth } = useAuthGate();
+  const returnTo = `/invite/${token}`;
 
   const [preview, setPreview] = useState<LinkPreview | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -134,8 +157,15 @@ function InviteLinkInner() {
     router.push("/discover");
   }
 
-  const loginHref = `/auth/login?next=${encodeURIComponent(`/invite/${token}`)}`;
-  const registerHref = `/auth/register?next=${encodeURIComponent(`/invite/${token}`)}`;
+  function openAuth(preferredTab: "login" | "register") {
+    requireAuth("joinTrip", {
+      returnTo,
+      preferredTab,
+      onAuthenticated: () => {
+        router.refresh();
+      },
+    });
+  }
 
   if (resolvedLoadError) {
     return (
@@ -175,6 +205,9 @@ function InviteLinkInner() {
   const permissionLabel =
     preview.link.permission === "EDITOR" ? "Editor" : "Viewer";
   const isPrivate = preview.trip.visibility === "private";
+  const isPublic = preview.trip.visibility === "public";
+  const days = preview.days ?? [];
+  const showItinerary = isPublic && days.length > 0;
   const membership = preview.membership;
   const alreadyMember =
     membership?.isOwner || membership?.isCollaborator || false;
@@ -189,14 +222,17 @@ function InviteLinkInner() {
 
   return (
     <AuthShell
+      wide={showItinerary}
       eyebrow="Tripmate invite"
       title={`Join ${tripTitle}.`}
       subtitle={
         isPrivate
           ? `You've been invited as ${permissionLabel}. Accept to join — the itinerary stays private until you're a tripmate.`
-          : preview.link.requireApproval
-            ? `Request ${permissionLabel.toLowerCase()} access. The owner will approve before you can edit or view as a tripmate.`
-            : `Join as ${permissionLabel} and open the planner with your team.`
+          : isPublic
+            ? `You've been invited as ${permissionLabel}. Preview the full public itinerary below, then join to plan with the team.`
+            : preview.link.requireApproval
+              ? `Request ${permissionLabel.toLowerCase()} access. The owner will approve before you can edit or view as a tripmate.`
+              : `Join as ${permissionLabel} and open the planner with your team.`
       }
       footer={
         <Link
@@ -234,6 +270,12 @@ function InviteLinkInner() {
             <dd className="font-medium">Private</dd>
           </div>
         ) : null}
+        {isPublic ? (
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Visibility</dt>
+            <dd className="font-medium">Public</dd>
+          </div>
+        ) : null}
         {preview.canViewItinerary && preview.trip.description ? (
           <div className="border-t border-border pt-3">
             <dt className="text-muted-foreground">About</dt>
@@ -251,7 +293,7 @@ function InviteLinkInner() {
         </p>
       ) : null}
 
-      {publicTripHref ? (
+      {publicTripHref && !showItinerary ? (
         <Button asChild size="lg" variant="secondary" className="mt-4 w-full">
           <Link href={publicTripHref}>View trip</Link>
         </Button>
@@ -326,13 +368,24 @@ function InviteLinkInner() {
           <p className="text-base text-muted-foreground">
             Sign in or create an account to{" "}
             {preview.link.requireApproval ? "request access" : "join this trip"}
-            .
+            . You&apos;ll stay on this page.
           </p>
-          <Button asChild size="lg" className="w-full">
-            <Link href={loginHref}>Sign in</Link>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            onClick={() => openAuth("login")}
+          >
+            Sign in
           </Button>
-          <Button asChild size="lg" variant="secondary" className="w-full">
-            <Link href={registerHref}>Create account</Link>
+          <Button
+            type="button"
+            size="lg"
+            variant="secondary"
+            className="w-full"
+            onClick={() => openAuth("register")}
+          >
+            Create account
           </Button>
           <Button
             type="button"
@@ -346,6 +399,70 @@ function InviteLinkInner() {
           </Button>
         </div>
       )}
+
+      {showItinerary ? (
+        <section className="mt-10 border-t border-border pt-8">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="eyebrow text-primary">Itinerary</p>
+              <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight">
+                Day by day
+              </h2>
+            </div>
+            {publicTripHref ? (
+              <Link
+                href={publicTripHref}
+                className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Open public page
+              </Link>
+            ) : null}
+          </div>
+          <ol className="mt-6 space-y-6">
+            {days.map((day) => (
+              <li key={`${day.dayIndex}-${day.title}`} className="border-t border-border pt-5">
+                <p className="text-sm uppercase tracking-widest text-muted-foreground">
+                  Day {day.dayIndex}
+                  {day.isRestDay ? " · Rest day" : ""}
+                </p>
+                <h3 className="mt-1 text-lg font-semibold">{day.title}</h3>
+                {day.routeSummary ? (
+                  <p className="mt-1.5 text-sm text-muted-foreground">
+                    {day.routeSummary}
+                  </p>
+                ) : null}
+                {day.items.length ? (
+                  <ul className="mt-3 space-y-2">
+                    {day.items.map((stop, index) => (
+                      <li
+                        key={`${day.dayIndex}-${index}-${stop.name}`}
+                        className="text-sm leading-snug"
+                      >
+                        <span className="font-medium text-foreground">
+                          {stop.name}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {stopTypeLabel(stop.type)}
+                        </span>
+                        {stop.address ? (
+                          <span className="mt-0.5 block text-muted-foreground">
+                            {stop.address}
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    No stops yet.
+                  </p>
+                )}
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
     </AuthShell>
   );
 }

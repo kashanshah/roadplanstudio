@@ -9,6 +9,7 @@ import {
   SocialButtons,
 } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
+import { isInviteReturnPath, safeNextPath } from "@/lib/auth/safe-next";
 import { authClient } from "@/lib/auth-client";
 import { clearGuestTrip, readGuestTrip } from "@/lib/trips/guest-trip";
 
@@ -27,13 +28,15 @@ const STRENGTH_LABEL = ["Too short", "Weak", "Okay", "Good", "Strong"];
 export function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next");
+  const nextParam = searchParams.get("next");
+  const next = nextParam ? safeNextPath(nextParam, "/planner") : null;
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [password, setPassword] = useState("");
   const strength = useMemo(() => passwordStrength(password), [password]);
 
   async function claimIfNeeded() {
+    if (next && isInviteReturnPath(next)) return null;
     const draft = readGuestTrip();
     if (!draft) return null;
     const res = await fetch("/api/trips/claim", {
@@ -82,6 +85,13 @@ export function RegisterForm() {
 
     const tripId = await claimIfNeeded();
     setPending(false);
+
+    // Invite flows: return straight to the invite (don't lose the token).
+    if (next && isInviteReturnPath(next)) {
+      router.push(next);
+      router.refresh();
+      return;
+    }
 
     const verifyUrl = `/auth/verify-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(
       next || (tripId ? `/planner/${tripId}` : "/planner"),
@@ -199,7 +209,11 @@ export function RegisterForm() {
       <p className="mt-6 text-center text-base text-muted-foreground">
         Already have an account?{" "}
         <Link
-          href="/auth/login"
+          href={
+            next
+              ? `/auth/login?next=${encodeURIComponent(next)}`
+              : "/auth/login"
+          }
           className="text-primary underline-offset-4 hover:underline"
         >
           Sign in

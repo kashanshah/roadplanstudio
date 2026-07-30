@@ -8,10 +8,14 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { AuthGateModal, type AuthGateIntent } from "@/components/auth/auth-gate-modal";
+import {
+  AuthGateModal,
+  type AuthGateIntent,
+  type AuthGateOptions,
+} from "@/components/auth/auth-gate-modal";
 
 type AuthGateContextValue = {
-  requireAuth: (intent: AuthGateIntent) => void;
+  requireAuth: (intent: AuthGateIntent, options?: AuthGateOptions) => void;
   close: () => void;
 };
 
@@ -20,13 +24,21 @@ const AuthGateContext = createContext<AuthGateContextValue | null>(null);
 export function AuthGateProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [intent, setIntent] = useState<AuthGateIntent>("save");
+  const [options, setOptions] = useState<AuthGateOptions>({});
 
-  const requireAuth = useCallback((nextIntent: AuthGateIntent) => {
-    setIntent(nextIntent);
-    setOpen(true);
+  const requireAuth = useCallback(
+    (nextIntent: AuthGateIntent, nextOptions?: AuthGateOptions) => {
+      setIntent(nextIntent);
+      setOptions(nextOptions ?? {});
+      setOpen(true);
+    },
+    [],
+  );
+
+  const close = useCallback(() => {
+    setOpen(false);
+    setOptions({});
   }, []);
-
-  const close = useCallback(() => setOpen(false), []);
 
   const value = useMemo(
     () => ({ requireAuth, close }),
@@ -36,7 +48,14 @@ export function AuthGateProvider({ children }: { children: ReactNode }) {
   return (
     <AuthGateContext.Provider value={value}>
       {children}
-      <AuthGateModal open={open} intent={intent} onClose={close} />
+      <AuthGateModal
+        open={open}
+        intent={intent}
+        returnTo={options.returnTo}
+        preferredTab={options.preferredTab}
+        onAuthenticated={options.onAuthenticated}
+        onClose={close}
+      />
     </AuthGateContext.Provider>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useAuthGate } from "@/components/auth/auth-gate-provider";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
@@ -26,6 +27,8 @@ function AcceptInviteInner() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
   const { data: session, isPending: sessionPending } = useSession();
+  const { requireAuth } = useAuthGate();
+  const returnTo = `/auth/accept-invite?token=${encodeURIComponent(token)}`;
 
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -87,8 +90,15 @@ function AcceptInviteInner() {
     router.refresh();
   }
 
-  const loginHref = `/auth/login?next=${encodeURIComponent(`/auth/accept-invite?token=${token}`)}`;
-  const registerHref = `/auth/register?next=${encodeURIComponent(`/auth/accept-invite?token=${token}`)}`;
+  function openAuth(preferredTab: "login" | "register") {
+    requireAuth("joinTrip", {
+      returnTo,
+      preferredTab,
+      onAuthenticated: () => {
+        router.refresh();
+      },
+    });
+  }
 
   if (loadError) {
     return (
@@ -194,13 +204,24 @@ function AcceptInviteInner() {
         <div className="mt-6 space-y-3">
           <p className="text-base text-muted-foreground">
             Sign in with <strong>{preview.invite.email}</strong> to join this
-            trip.
+            trip. You&apos;ll stay on this page.
           </p>
-          <Button asChild size="lg" className="w-full">
-            <Link href={loginHref}>Sign in to accept</Link>
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            onClick={() => openAuth("login")}
+          >
+            Sign in to accept
           </Button>
-          <Button asChild size="lg" variant="secondary" className="w-full">
-            <Link href={registerHref}>Create account</Link>
+          <Button
+            type="button"
+            size="lg"
+            variant="secondary"
+            className="w-full"
+            onClick={() => openAuth("register")}
+          >
+            Create account
           </Button>
         </div>
       )}

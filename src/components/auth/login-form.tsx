@@ -9,17 +9,19 @@ import {
   SocialButtons,
 } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
+import { isInviteReturnPath, safeNextPath } from "@/lib/auth/safe-next";
 import { authClient } from "@/lib/auth-client";
 import { clearGuestTrip, readGuestTrip } from "@/lib/trips/guest-trip";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/planner/new";
+  const next = safeNextPath(searchParams.get("next"), "/planner/new");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function claimIfNeeded() {
+    if (isInviteReturnPath(next)) return null;
     const draft = readGuestTrip();
     if (!draft) return null;
     const res = await fetch("/api/trips/claim", {
@@ -56,7 +58,7 @@ export function LoginForm() {
 
     const tripId = await claimIfNeeded();
     setPending(false);
-    router.push(tripId ? `/planner/${tripId}` : next);
+    router.push(isInviteReturnPath(next) ? next : tripId ? `/planner/${tripId}` : next);
     router.refresh();
   }
 
@@ -120,7 +122,7 @@ export function LoginForm() {
       <p className="mt-6 text-center text-base text-muted-foreground">
         New here?{" "}
         <Link
-          href="/auth/register"
+          href={`/auth/register?next=${encodeURIComponent(next)}`}
           className="text-primary underline-offset-4 hover:underline"
         >
           Create an account

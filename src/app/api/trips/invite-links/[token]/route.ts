@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { getSession } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 import {
+  itineraryItems,
   tripCollaborators,
+  tripDays,
   tripInviteLinks,
   tripJoinRequests,
   trips,
@@ -13,8 +15,9 @@ type Ctx = { params: Promise<{ token: string }> };
 
 /**
  * Public preview of a shareable invite link.
- * Trip detail depth follows visibility: private trips expose title only
- * (accept/decline), never itinerary contents.
+ * - private: title only
+ * - unlisted: summary + link to view
+ * - public: full day-by-day itinerary on the invite page
  */
 export async function GET(_request: Request, ctx: Ctx) {
   const { token } = await ctx.params;
@@ -61,6 +64,7 @@ export async function GET(_request: Request, ctx: Ctx) {
 
   const isPrivate = trip.visibility === "private";
   const canPreviewTrip = !isPrivate;
+  const includeItinerary = trip.visibility === "public";
 
   const session = await getSession();
   let membership: {
@@ -104,6 +108,71 @@ export async function GET(_request: Request, ctx: Ctx) {
     };
   }
 
+  let days: Array<{
+    dayIndex: number;
+    title: string;
+    isRestDay: boolean;
+    routeSummary: string | null;
+    items: Array<{
+      name: string;
+      type: string;
+      address: string | null;
+      notes: string | null;
+    }>;
+  }> = [];
+
+  if (includeItinerary) {
+    const dayRows = await db
+      .select({
+        id: tripDays.id,
+        dayIndex: tripDays.dayIndex,
+        title: tripDays.title,
+        isRestDay: tripDays.isRestDay,
+        routeSummary: tripDays.routeSummary,
+      })
+      .from(tripDays)
+      .where(eq(tripDays.tripId, trip.id))
+      .orderBy(asc(tripDays.dayIndex));
+
+    const dayIds = dayRows.map((d) => d.id);
+    const items =
+      dayIds.length === 0
+        ? []
+        : await db
+            .select({
+              dayId: itineraryItems.dayId,
+              name: itineraryItems.name,
+              type: itineraryItems.type,
+              address: itineraryItems.address,
+              notes: itineraryItems.notes,
+              sortOrder: itineraryItems.sortOrder,
+              status: itineraryItems.status,
+            })
+            .from(itineraryItems)
+            .where(inArray(itineraryItems.dayId, dayIds))
+            .orderBy(asc(itineraryItems.sortOrder));
+
+    days = dayRows.map((d) => ({
+      dayIndex: d.dayIndex,
+      title: d.title,
+      isRestDay: d.isRestDay === "true",
+      routeSummary: d.routeSummary,
+      items: items
+        .filter(
+          (i) =>
+            i.dayId === d.id &&
+            i.status !== "cancelled" &&
+            i.status !== "skipped",
+        )
+        .map((i) => ({
+          name: i.name,
+          type: i.type,
+          address: i.address,
+          notes: i.notes,
+        })),
+    }));
+  }
+
   return NextResponse.json({
     link: {
       permission: link.permission,
@@ -124,6 +193,7 @@ export async function GET(_request: Request, ctx: Ctx) {
         : {}),
     },
     canViewItinerary: canPreviewTrip,
+    days,
     membership,
   });
 }

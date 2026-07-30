@@ -28,6 +28,7 @@ import {
   ChevronDown,
   ChevronUp,
   Footprints,
+  ExternalLink,
   GripVertical,
   Heart,
   MapPin,
@@ -47,6 +48,7 @@ import {
   type TimelineRow,
   type TravelLeg,
 } from "@/components/planner/use-day-timeline";
+import { googleMapsDirectionsUrl } from "@/lib/maps/google-maps-url";
 import {
   statusLabel,
   type PlaceDetailsPayload,
@@ -140,6 +142,7 @@ const MODE_ICON = {
 
 function TravelConnector({
   fromItem,
+  toItem,
   leg,
   loading,
   isEditor,
@@ -148,6 +151,7 @@ function TravelConnector({
   onCustomTravelChange,
 }: {
   fromItem: PlannerItem;
+  toItem: PlannerItem;
   leg: TravelLeg | null;
   loading: boolean;
   isEditor: boolean;
@@ -168,6 +172,11 @@ function TravelConnector({
     fromItem.customTravelDurationMins != null ||
     fromItem.customTravelDistanceKm != null;
   const Icon = hasCustom ? SlidersHorizontal : MODE_ICON[mode];
+  const mapsUrl = googleMapsDirectionsUrl({
+    origin: fromItem,
+    destination: toItem,
+    travelMode: mode,
+  });
   const [editingCustom, setEditingCustom] = useState(false);
   const [customDurationDraft, setCustomDurationDraft] = useState(
     fromItem.customTravelDurationMins != null
@@ -221,36 +230,78 @@ function TravelConnector({
         className="absolute left-1.5 top-0 bottom-0 w-px bg-map-route/50 sm:left-[3.375rem] sm:-translate-x-1/2"
       />
       <div className="flex max-w-full flex-wrap items-center gap-2">
-        <div className="inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground">
-          <Icon className="size-3.5 shrink-0 text-map-route" />
-          {loading && !leg && !hasCustom ? (
-            <span>Calculating route…</span>
-          ) : leg ? (
-            <>
-              <span className="font-medium text-foreground">
-                {formatDurationLabel(leg.durationMins)}{" "}
-                {hasCustom ? "custom" : travelModeLabel(mode)}
-              </span>
-              <span aria-hidden>·</span>
-              <span>
-                {leg.distanceKm >= 10
-                  ? `${Math.round(leg.distanceKm)} km`
-                  : `${leg.distanceKm} km`}
-              </span>
-              {overnightDrive ? (
-                <>
-                  <span aria-hidden>·</span>
-                  <span className="font-medium text-primary">overnight</span>
-                </>
-              ) : null}
-              {!hasCustom && leg.estimated ? (
-                <span className="text-xs">(est.)</span>
-              ) : null}
-            </>
-          ) : (
-            <span>No route data</span>
-          )}
-        </div>
+        {mapsUrl && leg ? (
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            {...tip("Open in Google Maps")}
+            className="inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-map-route hover:bg-secondary hover:text-foreground"
+          >
+            <Icon className="size-3.5 shrink-0 text-map-route" />
+            <span className="font-medium text-foreground">
+              {formatDurationLabel(leg.durationMins)}{" "}
+              {hasCustom ? "custom" : travelModeLabel(mode)}
+            </span>
+            <span aria-hidden>·</span>
+            <span>
+              {leg.distanceKm >= 10
+                ? `${Math.round(leg.distanceKm)} km`
+                : `${leg.distanceKm} km`}
+            </span>
+            {overnightDrive ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className="font-medium text-primary">overnight</span>
+              </>
+            ) : null}
+            {!hasCustom && leg.estimated ? (
+              <span className="text-xs">(est.)</span>
+            ) : null}
+            <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
+          </a>
+        ) : (
+          <div className="inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground">
+            <Icon className="size-3.5 shrink-0 text-map-route" />
+            {loading && !leg && !hasCustom ? (
+              <span>Calculating route…</span>
+            ) : leg ? (
+              <>
+                <span className="font-medium text-foreground">
+                  {formatDurationLabel(leg.durationMins)}{" "}
+                  {hasCustom ? "custom" : travelModeLabel(mode)}
+                </span>
+                <span aria-hidden>·</span>
+                <span>
+                  {leg.distanceKm >= 10
+                    ? `${Math.round(leg.distanceKm)} km`
+                    : `${leg.distanceKm} km`}
+                </span>
+                {overnightDrive ? (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span className="font-medium text-primary">overnight</span>
+                  </>
+                ) : null}
+                {!hasCustom && leg.estimated ? (
+                  <span className="text-xs">(est.)</span>
+                ) : null}
+              </>
+            ) : mapsUrl ? (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 font-medium text-foreground underline-offset-4 hover:underline"
+              >
+                Open route in Google Maps
+                <ExternalLink className="size-3 opacity-70" aria-hidden />
+              </a>
+            ) : (
+              <span>No route data</span>
+            )}
+          </div>
+        )}
 
         {isEditor && (onTravelModeChange || onCustomTravelChange) ? (
           <div
@@ -1163,6 +1214,7 @@ export function SortableDayStops({
                     <li className="list-none">
                       <TravelConnector
                         fromItem={item}
+                        toItem={localItems[index + 1]!}
                         leg={row.legAfter}
                         loading={loading}
                         isEditor={isEditor}

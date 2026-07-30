@@ -6,11 +6,25 @@ import { useEffect, useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
+import { isInviteReturnPath, safeNextPath } from "@/lib/auth/safe-next";
 import { authClient } from "@/lib/auth-client";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 import { clearGuestTrip, readGuestTrip } from "@/lib/trips/guest-trip";
 
-export type AuthGateIntent = "save" | "share" | "invite" | "publish";
+export type AuthGateIntent =
+  | "save"
+  | "share"
+  | "invite"
+  | "publish"
+  | "joinTrip";
+
+export type AuthGateOptions = {
+  /** Stay on / return to this path after auth (e.g. invite URL). */
+  returnTo?: string;
+  preferredTab?: "login" | "register";
+  /** Called after a successful auth when staying in-context (invite pages). */
+  onAuthenticated?: () => void;
+};
 
 const INTENT_COPY: Record<
   AuthGateIntent,
@@ -32,27 +46,46 @@ const INTENT_COPY: Record<
     title: "Publish your itinerary",
     body: "Sign in to publish a public, SEO-ready trip page.",
   },
+  joinTrip: {
+    title: "Join this trip",
+    body: "Sign in or create an account here — you'll stay on this invite page.",
+  },
 };
 
 type Props = {
   open: boolean;
   intent: AuthGateIntent;
+  returnTo?: string;
+  preferredTab?: "login" | "register";
+  onAuthenticated?: () => void;
   onClose: () => void;
 };
 
-export function AuthGateModal({ open, intent, onClose }: Props) {
+export function AuthGateModal({
+  open,
+  intent,
+  returnTo,
+  preferredTab,
+  onAuthenticated,
+  onClose,
+}: Props) {
   const router = useRouter();
   const { clearDraft } = useGuestTrip();
   const [tab, setTab] = useState<"login" | "register">("register");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  const stayOnReturn = Boolean(returnTo && isInviteReturnPath(returnTo));
+
   useEffect(() => {
     if (open) {
       setError(null);
-      setTab(intent === "save" ? "register" : "login");
+      setTab(
+        preferredTab ??
+          (intent === "save" || intent === "joinTrip" ? "register" : "login"),
+      );
     }
-  }, [open, intent]);
+  }, [open, intent, preferredTab]);
 
   useEffect(() => {
     if (!open) return;
@@ -68,6 +101,8 @@ export function AuthGateModal({ open, intent, onClose }: Props) {
   const copy = INTENT_COPY[intent];
 
   async function claimIfNeeded() {
+    // Never claim a guest draft over an invite return — that steals the flow.
+    if (stayOnReturn) return null;
     const draft = readGuestTrip();
     if (!draft) return null;
     const res = await fetch("/api/trips/claim", {
@@ -83,6 +118,14 @@ export function AuthGateModal({ open, intent, onClose }: Props) {
     clearGuestTrip();
     clearDraft();
     return data.tripId;
+  }
+
+  function finishWithReturnTo() {
+    const target = safeNextPath(returnTo, "/planner");
+    onClose();
+    onAuthenticated?.();
+    router.replace(target);
+    router.refresh();
   }
 
   async function onLogin(e: FormEvent<HTMLFormElement>) {
@@ -101,6 +144,10 @@ export function AuthGateModal({ open, intent, onClose }: Props) {
       return;
     }
     try {
+      if (stayOnReturn) {
+        finishWithReturnTo();
+        return;
+      }
       const tripId = await claimIfNeeded();
       onClose();
       router.push(tripId ? `/planner/${tripId}` : "/planner/new");
@@ -141,6 +188,11 @@ export function AuthGateModal({ open, intent, onClose }: Props) {
       return;
     }
     try {
+      if (stayOnReturn) {
+        // Keep the invite URL; verification can happen later via banner.
+        finishWithReturnTo();
+        return;
+      }
       const tripId = await claimIfNeeded();
       onClose();
       const email = String(form.get("email") || "");

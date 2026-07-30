@@ -16,6 +16,7 @@ export function AuthShell({
   children,
   footer,
   quote = "Thirteen days around Western Canada — one deliberate loop.",
+  wide = false,
 }: {
   eyebrow: string;
   title: string;
@@ -23,6 +24,8 @@ export function AuthShell({
   children: ReactNode;
   footer?: ReactNode;
   quote?: string;
+  /** Wider content column for invite previews with itineraries. */
+  wide?: boolean;
 }) {
   return (
     <div className="min-h-svh bg-background lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
@@ -38,7 +41,11 @@ export function AuthShell({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10"
+          className={
+            wide
+              ? "mx-auto flex w-full max-w-2xl flex-1 flex-col justify-start py-10"
+              : "mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10"
+          }
         >
           <p className="eyebrow text-primary">{eyebrow}</p>
           <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -50,7 +57,13 @@ export function AuthShell({
           <div className="mt-8">{children}</div>
         </motion.div>
 
-        <div className="mx-auto w-full max-w-sm text-xs text-muted-foreground">
+        <div
+          className={
+            wide
+              ? "mx-auto w-full max-w-2xl text-xs text-muted-foreground"
+              : "mx-auto w-full max-w-sm text-xs text-muted-foreground"
+          }
+        >
           {footer ?? (
             <span>
               Prefer not to sign up yet?{" "}
