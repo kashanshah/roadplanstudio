@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   BedDouble,
+  ChevronLeft,
   Clock,
   ExternalLink,
   MapPin,
@@ -182,6 +183,15 @@ export function PlaceDetailSheet({
               )}
             </div>
           )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute left-3 top-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-ink/55 px-3 text-sm font-medium text-snow backdrop-blur-sm sm:hidden"
+            aria-label="Back to planner"
+          >
+            <ChevronLeft className="size-4" />
+            Back
+          </button>
           <button
             type="button"
             onClick={onClose}
