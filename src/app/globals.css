@@ -137,6 +137,8 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 1.0625rem;
+    line-height: 1.65;
     transition:
       background-color 0.5s var(--ease-alpine),
       color 0.5s var(--ease-alpine);
@@ -167,7 +169,7 @@
 }
 
 @utility eyebrow {
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   font-weight: 500;

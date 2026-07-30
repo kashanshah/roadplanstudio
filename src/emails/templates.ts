@@ -69,6 +69,82 @@ function shell(opts: {
 const infoRow = (label: string, value: string) =>
   `<tr><td style="padding:6px 0;font-family:${font};font-size:13px;color:#8A9A94;">${label}</td><td align="right" style="padding:6px 0;font-family:${font};font-size:13px;color:${b.spruce};font-weight:600;">${value}</td></tr>`;
 
+export type RenderedEmail = {
+  subject: string;
+  html: string;
+};
+
+export function renderPasswordResetEmail(url: string): RenderedEmail {
+  return {
+    subject: "Reset your RoadPlan Studio password",
+    html: shell({
+      preview: "A secure link to set a new password — valid for 60 minutes.",
+      eyebrow: "Account recovery",
+      heading: "Set a new password.",
+      body: `<p style="margin:16px 0 0;">We received a request to reset your password. Use the button below within the next 60 minutes.</p>
+        ${button("Reset password", url)}
+        <p style="margin:14px 0 0;font-size:13px;color:#8A9A94;">Didn't request this? Your current password still works.</p>`,
+    }),
+  };
+}
+
+export function renderVerifyEmail(url: string): RenderedEmail {
+  return {
+    subject: "Confirm your email and start planning",
+    html: shell({
+      preview: "One tap to confirm your email and unlock cloud sync.",
+      eyebrow: "Welcome aboard",
+      heading: "Let's get your first route on the map.",
+      body: `<p style="margin:16px 0 0;">Thanks for joining RoadPlan Studio. Confirm your email and your trips will sync across every device.</p>
+        ${button("Confirm my email", url)}
+        <p style="margin:14px 0 0;font-size:13px;color:#8A9A94;">This link expires in 24 hours.</p>`,
+    }),
+  };
+}
+
+export function renderTripInviteEmail(opts: {
+  tripTitle: string;
+  acceptUrl: string;
+  permission: string;
+  durationDays?: number | null;
+  routeSummary?: string | null;
+}): RenderedEmail {
+  return {
+    subject: `You're invited to ${opts.tripTitle}`,
+    html: shell({
+      preview: `You've been invited to plan ${opts.tripTitle}.`,
+      eyebrow: "Tripmate invite",
+      heading: "You're on the trip.",
+      body: `<p style="margin:16px 0 0;">You've been invited to co-plan <strong style="color:${b.spruce};">${opts.tripTitle}</strong>.</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;border:1px solid ${b.hairline};border-radius:14px;background-color:${b.snow};">
+          <tr><td style="padding:18px 20px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              ${opts.routeSummary ? infoRow("Route", opts.routeSummary) : ""}
+              ${opts.durationDays != null ? infoRow("Days", String(opts.durationDays)) : ""}
+              ${infoRow("Access", opts.permission)}
+            </table>
+          </td></tr>
+        </table>
+        ${button("Accept invite", opts.acceptUrl, b.sandstone, b.ink)}`,
+      footerNote: "You received this because someone invited you to a shared trip.",
+    }),
+  };
+}
+
+export function renderGuestSyncedEmail(tripUrl: string): RenderedEmail {
+  return {
+    subject: "Your guest trip is now saved to the cloud",
+    html: shell({
+      preview: "Your trip is safely saved to your account.",
+      eyebrow: "Sync complete",
+      heading: "Your trip made it to the cloud.",
+      body: `<p style="margin:16px 0 0;">Everything you planned as a guest is now attached to your account.</p>
+        ${button("Open my trip", tripUrl)}
+        <p style="margin:14px 0 0;font-size:13px;color:#8A9A94;">Invite a tripmate any time from the trip menu.</p>`,
+    }),
+  };
+}
+
 export type EmailTemplate = {
   id: string;
   name: string;
@@ -77,70 +153,38 @@ export type EmailTemplate = {
   html: string;
 };
 
+/** Static previews for /emails */
 export const emailTemplates: EmailTemplate[] = [
   {
     id: "welcome",
     name: "Welcome / confirm email",
-    subject: "Confirm your email and start planning",
     description: "Sent immediately after sign-up.",
-    html: shell({
-      preview: "One tap to confirm your email and unlock cloud sync.",
-      eyebrow: "Welcome aboard",
-      heading: "Let's get your first route on the map.",
-      body: `<p style="margin:16px 0 0;">Thanks for joining RoadPlan Studio. Confirm your email and your trips will sync across every device.</p>
-        ${button("Confirm my email", "https://www.roadplanstudio.com/auth/callback")}
-        <p style="margin:14px 0 0;font-size:13px;color:#8A9A94;">This link expires in 24 hours.</p>`,
-    }),
+    ...renderVerifyEmail("https://www.roadplanstudio.com/auth/callback"),
   },
   {
     id: "reset",
     name: "Password reset",
-    subject: "Reset your RoadPlan Studio password",
     description: "Forgot-password flow. 60-minute single-use link.",
-    html: shell({
-      preview: "A secure link to set a new password — valid for 60 minutes.",
-      eyebrow: "Account recovery",
-      heading: "Set a new password.",
-      body: `<p style="margin:16px 0 0;">We received a request to reset your password. Use the button below within the next 60 minutes.</p>
-        ${button("Reset password", "https://www.roadplanstudio.com/auth/forgot-password")}
-        <p style="margin:14px 0 0;font-size:13px;color:#8A9A94;">Didn't request this? Your current password still works.</p>`,
-    }),
+    ...renderPasswordResetEmail(
+      "https://www.roadplanstudio.com/auth/reset-password?token=preview",
+    ),
   },
   {
     id: "invite",
     name: "Trip shared with tripmate",
-    subject: "You're invited to Western Canada 2026",
     description: "Collaborator invite with trip summary.",
-    html: shell({
-      preview: "You've been invited to plan Western Canada 2026.",
-      eyebrow: "Tripmate invite",
-      heading: "You're on the trip.",
-      body: `<p style="margin:16px 0 0;">You've been invited to co-plan <strong style="color:${b.spruce};">Western Canada 2026</strong>.</p>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;border:1px solid ${b.hairline};border-radius:14px;background-color:${b.snow};">
-          <tr><td style="padding:18px 20px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-              ${infoRow("Route", "Saskatoon → Banff → Vancouver → home")}
-              ${infoRow("Days", "13")}
-              ${infoRow("Access", "EDITOR")}
-            </table>
-          </td></tr>
-        </table>
-        ${button("Accept invite", "https://www.roadplanstudio.com/trips/western-canada-2026", b.sandstone, b.ink)}`,
-      footerNote: "You received this because someone invited you to a shared trip.",
+    ...renderTripInviteEmail({
+      tripTitle: "Western Canada 2026",
+      acceptUrl: "https://www.roadplanstudio.com/auth/accept-invite?token=preview",
+      permission: "EDITOR",
+      durationDays: 13,
+      routeSummary: "Saskatoon → Banff → Vancouver → home",
     }),
   },
   {
     id: "sync",
     name: "Guest → cloud sync success",
-    subject: "Your guest trip is now saved to the cloud",
     description: "Confirmation after guest itinerary migrates to an account.",
-    html: shell({
-      preview: "Your trip is safely saved to your account.",
-      eyebrow: "Sync complete",
-      heading: "Your trip made it to the cloud.",
-      body: `<p style="margin:16px 0 0;">Everything you planned as a guest is now attached to your account.</p>
-        ${button("Open my trip", "https://www.roadplanstudio.com/planner/new")}
-        <p style="margin:14px 0 0;font-size:13px;color:#8A9A94;">Invite a tripmate any time from the trip menu.</p>`,
-    }),
+    ...renderGuestSyncedEmail("https://www.roadplanstudio.com/planner/new"),
   },
 ];

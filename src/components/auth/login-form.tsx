@@ -10,6 +10,7 @@ import {
 } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { clearGuestTrip, readGuestTrip } from "@/lib/trips/guest-trip";
 
 export function LoginForm() {
   const router = useRouter();
@@ -18,6 +19,20 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  async function claimIfNeeded() {
+    const draft = readGuestTrip();
+    if (!draft) return null;
+    const res = await fetch("/api/trips/claim", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(draft),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { tripId: string };
+    clearGuestTrip();
+    return data.tripId;
+  }
+
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -25,20 +40,23 @@ export function LoginForm() {
     const form = new FormData(e.currentTarget);
     const email = String(form.get("email") || "");
     const password = String(form.get("password") || "");
+    const rememberMe = form.get("rememberMe") === "on";
 
     const { error: signInError } = await authClient.signIn.email({
       email,
       password,
+      rememberMe,
     });
 
-    setPending(false);
-
     if (signInError) {
+      setPending(false);
       setError(signInError.message || "Unable to sign in");
       return;
     }
 
-    router.push(next);
+    const tripId = await claimIfNeeded();
+    setPending(false);
+    router.push(tripId ? `/planner/${tripId}` : next);
     router.refresh();
   }
 
@@ -51,7 +69,7 @@ export function LoginForm() {
       <SocialButtons />
       <Divider />
       <form className="space-y-4" onSubmit={onSubmit}>
-        <label className="block space-y-2 text-sm">
+        <label className="block space-y-2 text-base">
           <span className="font-medium">Email</span>
           <input
             name="email"
@@ -59,15 +77,15 @@ export function LoginForm() {
             required
             autoComplete="email"
             placeholder="you@example.com"
-            className="h-10 w-full rounded-full border border-input bg-background px-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-12 w-full rounded-full border border-input bg-background px-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </label>
-        <label className="block space-y-2 text-sm">
+        <label className="block space-y-2 text-base">
           <div className="flex items-center justify-between">
             <span className="font-medium">Password</span>
             <Link
               href="/auth/forgot-password"
-              className="text-xs text-primary underline-offset-4 hover:underline"
+              className="text-sm text-primary underline-offset-4 hover:underline"
             >
               Forgot?
             </Link>
@@ -78,11 +96,20 @@ export function LoginForm() {
             required
             autoComplete="current-password"
             placeholder="••••••••"
-            className="h-10 w-full rounded-full border border-input bg-background px-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-12 w-full rounded-full border border-input bg-background px-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </label>
+        <label className="flex items-center gap-2 text-base text-muted-foreground">
+          <input
+            name="rememberMe"
+            type="checkbox"
+            defaultChecked
+            className="size-4 rounded border-input"
+          />
+          Remember me
+        </label>
         {error ? (
-          <p className="text-sm text-destructive" role="alert">
+          <p className="text-base text-destructive" role="alert">
             {error}
           </p>
         ) : null}
@@ -90,7 +117,7 @@ export function LoginForm() {
           {pending ? "Signing in…" : "Sign in"}
         </Button>
       </form>
-      <p className="mt-6 text-center text-sm text-muted-foreground">
+      <p className="mt-6 text-center text-base text-muted-foreground">
         New here?{" "}
         <Link
           href="/auth/register"
