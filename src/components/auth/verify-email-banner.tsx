@@ -45,7 +45,7 @@ export function VerifyEmailBanner() {
           <button
             type="button"
             onClick={() => setDismissed(true)}
-            className="px-2 text-sm text-muted-foreground hover:text-foreground"
+            className="min-h-10 px-3 text-sm text-muted-foreground hover:text-foreground"
           >
             Later
           </button>

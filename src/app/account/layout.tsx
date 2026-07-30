@@ -28,7 +28,8 @@ export default async function AccountLayout({
           Settings
         </h1>
         <p className="mt-2 text-base text-muted-foreground sm:text-lg">
-          Signed in as {session.user.email}
+          Signed in as{" "}
+          <span className="break-all">{session.user.email}</span>
         </p>
         <div className="mt-6">
           <AccountNavBridge />

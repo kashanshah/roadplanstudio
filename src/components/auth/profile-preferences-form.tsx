@@ -129,7 +129,7 @@ export function ProfilePreferencesForm({ email, initial }: Props) {
             <option value="fr">Français</option>
           </select>
         </label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="block space-y-2 text-base">
             <span className="font-medium">Distance</span>
             <select

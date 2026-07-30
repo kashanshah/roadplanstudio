@@ -10,6 +10,39 @@ import {
   renderOtpEmail,
   renderPasswordResetEmail,
 } from "@/emails/templates";
+import { SITE_URL } from "@/lib/constants";
+
+const authBaseURL =
+  process.env.BETTER_AUTH_URL ||
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  SITE_URL;
+
+/** Local + production hosts browsers may send as Origin (localhost ≠ 127.0.0.1). */
+function defaultTrustedOrigins() {
+  const origins = new Set<string>([
+    authBaseURL,
+    SITE_URL,
+    "https://www.roadplanstudio.com",
+    "https://roadplanstudio.com",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+  ]);
+
+  for (const raw of (process.env.BETTER_AUTH_TRUSTED_ORIGINS || "").split(",")) {
+    const trimmed = raw.trim();
+    if (trimmed) origins.add(trimmed);
+  }
+
+  return [...origins].map((value) => {
+    try {
+      return new URL(value).origin;
+    } catch {
+      return value.replace(/\/$/, "");
+    }
+  });
+}
 
 /**
  * Better Auth server instance.
@@ -17,6 +50,8 @@ import {
  * Transactional mail goes through Resend (OTP verification + password reset).
  */
 export const auth = betterAuth({
+  baseURL: authBaseURL,
+  trustedOrigins: defaultTrustedOrigins(),
   database: new Pool({
     connectionString: process.env.DATABASE_URL,
   }),
@@ -77,7 +112,6 @@ export const auth = betterAuth({
     },
   },
   plugins: [
-    nextCookies(),
     emailOTP({
       otpLength: 6,
       expiresIn: 60 * 10,
@@ -94,6 +128,8 @@ export const auth = betterAuth({
         }).catch((err) => console.error("[emailOTP] send failed", err));
       },
     }),
+    // Must be last so Set-Cookie from other plugins is forwarded.
+    nextCookies(),
   ],
   session: {
     expiresIn: 60 * 60 * 24 * 7,

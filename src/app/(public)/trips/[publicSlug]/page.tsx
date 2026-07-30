@@ -236,24 +236,24 @@ export default async function PublicTripPage({ params }: Props) {
           </h2>
           {days.map((day) => (
             <article key={day.id} className="border-t border-border pt-8">
-              <p className="text-sm tracking-widest text-muted-foreground uppercase">
+              <p className="break-words text-sm tracking-widest text-muted-foreground uppercase">
                 {day.date}
                 {day.routeSummary ? ` · ${day.routeSummary}` : ""}
               </p>
-              <h3 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">
+              <h3 className="mt-2 break-words font-display text-2xl font-semibold sm:text-3xl">
                 {day.title}
               </h3>
               {day.notes ? (
-                <p className="mt-2 text-base text-muted-foreground">{day.notes}</p>
+                <p className="mt-2 break-words text-base text-muted-foreground">{day.notes}</p>
               ) : null}
               <ul className="mt-5 space-y-3">
                 {day.items.map((item) => (
                   <li key={item.id} className="flex gap-3 text-base sm:text-lg">
                     <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
-                    <div>
-                      <p className="font-medium">{item.name}</p>
+                    <div className="min-w-0">
+                      <p className="break-words font-medium">{item.name}</p>
                       {item.address ? (
-                        <p className="text-sm text-muted-foreground sm:text-base">
+                        <p className="break-words text-sm text-muted-foreground sm:text-base">
                           {item.address}
                         </p>
                       ) : null}

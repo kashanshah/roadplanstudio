@@ -51,11 +51,11 @@ export function ShareSheet({ tripId, onClose }: Props) {
         aria-label="Close"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-elevated sm:p-8">
+      <div className="relative z-10 max-h-[min(92dvh,720px)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-border bg-card p-6 shadow-elevated sm:p-8">
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 rounded-full p-2 text-muted-foreground hover:bg-muted"
+          className="sticky top-0 float-right z-10 -mr-1 -mt-1 grid size-10 place-items-center rounded-full text-muted-foreground hover:bg-muted"
           aria-label="Close"
         >
           <X className="h-5 w-5" />
@@ -92,13 +92,13 @@ export function ShareSheet({ tripId, onClose }: Props) {
           ))}
         </div>
 
-        <div className="mt-6 flex gap-2">
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row">
           <input
             readOnly
             value={shareUrl}
-            className="h-12 flex-1 truncate rounded-full border border-input bg-background px-4 text-sm"
+            className="h-12 min-w-0 w-full flex-1 truncate rounded-full border border-input bg-background px-4 text-sm"
           />
-          <Button type="button" onClick={copyLink} className="shrink-0">
+          <Button type="button" onClick={copyLink} className="w-full shrink-0 sm:w-auto">
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? "Copied" : "Copy"}
           </Button>

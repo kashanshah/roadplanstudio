@@ -130,7 +130,7 @@ export function AddStopSearch({ dayId, disabled, bias, onAdd }: Props) {
                 disabled={!!addingId}
                 onClick={() => void addPlace(place, false)}
                 className={cn(
-                  "rounded-full bg-primary px-3 py-1 text-sm text-primary-foreground",
+                  "rounded-full bg-primary px-3 py-2 text-sm text-primary-foreground min-h-10",
                   addingId === place.placeId && "opacity-70",
                 )}
               >
@@ -140,7 +140,7 @@ export function AddStopSearch({ dayId, disabled, bias, onAdd }: Props) {
                 type="button"
                 disabled={!!addingId}
                 onClick={() => void addPlace(place, true)}
-                className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm text-secondary-foreground"
+                className="inline-flex min-h-10 items-center gap-1 rounded-full bg-secondary px-3 py-2 text-sm text-secondary-foreground"
               >
                 <BedDouble className="size-3.5" />
                 As hotel

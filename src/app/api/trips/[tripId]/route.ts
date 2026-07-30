@@ -66,6 +66,7 @@ export async function GET(_request: Request, ctx: Ctx) {
     },
     days: days.map((d) => ({
       ...d,
+      isRestDay: d.isRestDay === "true",
       items: items.filter((i) => i.dayId === d.id),
     })),
     accommodations: lodging,

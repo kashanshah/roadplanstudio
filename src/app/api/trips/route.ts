@@ -20,14 +20,9 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { desc, eq } = await import("drizzle-orm");
-  const owned = await db
-    .select()
-    .from(trips)
-    .where(eq(trips.ownerId, session.user.id))
-    .orderBy(desc(trips.updatedAt));
-
-  return NextResponse.json({ trips: owned });
+  const { listUserTrips } = await import("@/lib/trips/list-user-trips");
+  const trips = await listUserTrips(session.user.id);
+  return NextResponse.json({ trips });
 }
 
 export async function POST(request: Request) {

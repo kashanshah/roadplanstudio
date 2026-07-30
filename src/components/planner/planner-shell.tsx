@@ -29,10 +29,12 @@ import type {
 import { Button } from "@/components/ui/button";
 import { ShareSheet } from "@/components/trips/share-sheet";
 import { TripmatesPanel } from "@/components/trips/tripmates-panel";
+import { TripNotesPanel } from "@/components/planner/trip-notes-panel";
 import { useSession } from "@/lib/auth-client";
 import { SITE_URL } from "@/lib/constants";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 import type { GuestStopStatus } from "@/lib/trips/guest-trip";
+import { cn } from "@/lib/utils/cn";
 
 const TripMapPanel = dynamic(
   () =>
@@ -103,6 +105,9 @@ export function PlannerShell({ tripId }: Props) {
   const [focusStopId, setFocusStopId] = useState<string | null>(null);
   const [activeDayId, setActiveDayId] = useState<string | null>(null);
   const [dismissedStarter, setDismissedStarter] = useState(false);
+  const [mobilePane, setMobilePane] = useState<"itinerary" | "map">(
+    "itinerary",
+  );
 
   // Blank /planner/new always gets a local draft so users can plan without a template.
   useEffect(() => {
@@ -136,6 +141,9 @@ export function PlannerShell({ tripId }: Props) {
           ...data,
           days: (data.days ?? []).map((d) => ({
             ...d,
+            isRestDay:
+              d.isRestDay === true ||
+              (d as { isRestDay?: unknown }).isRestDay === "true",
             items: (d.items ?? []).map((i) => ({
               ...i,
               status: normalizeStatus(i.status),
@@ -198,6 +206,7 @@ export function PlannerShell({ tripId }: Props) {
         date: d.date ?? null,
         routeSummary: d.routeSummary ?? null,
         notes: d.notes ?? null,
+        isRestDay: !!d.isRestDay,
         items: d.items
           .slice()
           .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -353,6 +362,45 @@ export function PlannerShell({ tripId }: Props) {
     }
   }
 
+  async function deleteItem(itemId: string) {
+    if (!isEditor) return;
+
+    setFocusStopId((prev) => (prev === itemId ? null : prev));
+
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        days: current.days.map((day) => ({
+          ...day,
+          items: day.items
+            .filter((item) => item.id !== itemId)
+            .map((item, index) => ({ ...item, sortOrder: index })),
+        })),
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        days: prev.days.map((day) => ({
+          ...day,
+          items: day.items
+            .filter((item) => item.id !== itemId)
+            .map((item, index) => ({ ...item, sortOrder: index })),
+        })),
+      };
+    });
+
+    const res = await fetch(`/api/trips/${tripId}/items/${itemId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      console.error("Failed to delete item");
+    }
+  }
+
   async function reorderDay(dayId: string, orderedItemIds: string[]) {
     if (!isEditor) return;
 
@@ -487,8 +535,9 @@ export function PlannerShell({ tripId }: Props) {
     });
   }
 
-  async function addDay() {
+  async function addDay(opts?: { isRestDay?: boolean }) {
     if (!isEditor) return;
+    const isRestDay = opts?.isRestDay === true;
 
     if (isDraftRoute) {
       updateDraft((current) => {
@@ -496,7 +545,8 @@ export function PlannerShell({ tripId }: Props) {
         const day = {
           id: crypto.randomUUID(),
           dayIndex,
-          title: `Day ${dayIndex}`,
+          title: isRestDay ? "Rest day" : `Day ${dayIndex}`,
+          isRestDay,
           items: [],
         };
         return {
@@ -516,7 +566,7 @@ export function PlannerShell({ tripId }: Props) {
     const res = await fetch(`/api/trips/${tripId}/days`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ isRestDay }),
     });
     if (!res.ok) return;
     const data = (await res.json()) as {
@@ -530,6 +580,7 @@ export function PlannerShell({ tripId }: Props) {
           ...prev.days,
           {
             ...data.day,
+            isRestDay: !!data.day.isRestDay,
             items: data.day.items ?? [],
           },
         ],
@@ -538,35 +589,166 @@ export function PlannerShell({ tripId }: Props) {
     setActiveDayId(data.day.id);
   }
 
+  async function updateTripNotes(notes: string | null) {
+    if (!isEditor) return;
+
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        description: notes ?? "",
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        trip: { ...prev.trip, description: notes },
+      };
+    });
+
+    const res = await fetch(`/api/trips/${tripId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: notes }),
+    });
+    if (!res.ok) {
+      // reload to recover
+      const refresh = await fetch(`/api/trips/${tripId}`);
+      if (refresh.ok) {
+        const data = (await refresh.json()) as CloudTripPayload;
+        setCloud(data);
+      }
+    }
+  }
+
+  async function updateDay(
+    dayId: string,
+    patch: Partial<
+      Pick<PlannerDay, "title" | "notes" | "date" | "routeSummary" | "isRestDay">
+    >,
+  ) {
+    if (!isEditor) return;
+
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        days: current.days.map((day) =>
+          day.id === dayId ? { ...day, ...patch } : day,
+        ),
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        days: prev.days.map((day) =>
+          day.id === dayId ? { ...day, ...patch } : day,
+        ),
+      };
+    });
+
+    const res = await fetch(`/api/trips/${tripId}/days/${dayId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      console.error("Failed to update day");
+    }
+  }
+
+  async function deleteDay(dayId: string) {
+    if (!isEditor) return;
+    if (days.length <= 1) return;
+
+    if (isDraftRoute) {
+      updateDraft((current) => {
+        const nextDays = current.days
+          .filter((day) => day.id !== dayId)
+          .map((day, index) => ({
+            ...day,
+            dayIndex: index + 1,
+          }));
+        return {
+          ...current,
+          durationDays: Math.max(1, nextDays.length),
+          days: nextDays,
+        };
+      });
+      setActiveDayId((prev) => (prev === dayId ? null : prev));
+      return;
+    }
+
+    const previous = cloud;
+    setCloud((prev) => {
+      if (!prev) return prev;
+      const nextDays = prev.days
+        .filter((day) => day.id !== dayId)
+        .map((day, index) => ({
+          ...day,
+          dayIndex: index + 1,
+        }));
+      return { ...prev, days: nextDays };
+    });
+    setActiveDayId((prev) => (prev === dayId ? null : prev));
+
+    const res = await fetch(`/api/trips/${tripId}/days/${dayId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      console.error("Failed to delete day");
+      if (previous) setCloud(previous);
+    }
+  }
+
   return (
     <div className="flex min-h-full flex-col bg-background text-[17px]">
       {isAnonymous ? <GuestBanner /> : null}
       {!isAnonymous ? <VerifyEmailBanner /> : null}
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link href="/" aria-label="RoadPlan Studio home">
-              <LogoMark className="h-9 w-9" />
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:h-16 sm:gap-3 sm:px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <Link
+              href={isLoggedIn ? "/planner" : "/"}
+              aria-label={isLoggedIn ? "Your trips" : "RoadPlan Studio home"}
+              className="shrink-0"
+            >
+              <LogoMark className="h-8 w-8 sm:h-9 sm:w-9" />
             </Link>
             <div className="min-w-0">
-              <p className="truncate text-base font-medium text-foreground sm:text-lg">
+              <p className="truncate text-sm font-medium text-foreground sm:text-lg">
                 {title}
               </p>
-              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <p className="hidden truncate text-sm text-muted-foreground sm:flex sm:items-center sm:gap-1.5">
                 {!isDraftRoute && cloud && !isEditor ? (
                   <Lock className="h-3.5 w-3.5 shrink-0" />
+                ) : null}
+                {isLoggedIn ? (
+                  <>
+                    <Link
+                      href="/planner"
+                      className="hover:text-foreground hover:underline hover:underline-offset-2"
+                    >
+                      Your trips
+                    </Link>
+                    <span aria-hidden>·</span>
+                  </>
                 ) : null}
                 {roleLabel}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
             {isDraftRoute ? (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="hidden text-base sm:inline-flex"
+                className="hidden text-base md:inline-flex"
                 onClick={onSave}
                 disabled={saving || (isLoggedIn && !draft)}
               >
@@ -601,9 +783,10 @@ export function PlannerShell({ tripId }: Props) {
               type="button"
               variant="ghost"
               size="sm"
-              className="text-base"
+              className="min-h-10 min-w-10 px-2 text-base sm:px-3.5"
               onClick={onShare}
               disabled={!isDraftRoute && !!cloud && !canManage}
+              aria-label="Share"
             >
               <Share2 className="h-4 w-4" />
               <span className="hidden sm:inline">Share</span>
@@ -612,21 +795,64 @@ export function PlannerShell({ tripId }: Props) {
               type="button"
               variant="ghost"
               size="sm"
-              className="text-base"
+              className="min-h-10 min-w-10 px-2 text-base sm:px-3.5"
               onClick={onTripmates}
               disabled={!isDraftRoute && !!cloud && !canManage}
+              aria-label="Tripmates"
             >
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Tripmates</span>
             </Button>
             <PreferencesMenu />
-            <AccountMenu />
+            <AccountMenu compact />
           </div>
         </div>
       </header>
 
+      <div className="sticky top-14 z-30 border-b border-border bg-background/95 px-3 py-2 backdrop-blur-md sm:top-16 lg:hidden">
+        <div
+          role="tablist"
+          aria-label="Planner view"
+          className="mx-auto flex max-w-7xl rounded-full border border-border bg-card p-1"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobilePane === "itinerary"}
+            onClick={() => setMobilePane("itinerary")}
+            className={cn(
+              "min-h-10 flex-1 rounded-full px-3 text-sm font-medium transition-colors",
+              mobilePane === "itinerary"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Itinerary
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobilePane === "map"}
+            onClick={() => setMobilePane("map")}
+            className={cn(
+              "min-h-10 flex-1 rounded-full px-3 text-sm font-medium transition-colors",
+              mobilePane === "map"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Map
+          </button>
+        </div>
+      </div>
+
       <main className="mx-auto grid w-full max-w-7xl flex-1 gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start">
-        <section className="min-w-0">
+        <section
+          className={cn(
+            "min-w-0",
+            mobilePane !== "itinerary" && "hidden lg:block",
+          )}
+        >
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-sm font-medium uppercase tracking-[0.14em] text-primary">
@@ -682,15 +908,26 @@ export function PlannerShell({ tripId }: Props) {
                   />
                 </div>
               ) : null}
-              {cloud?.trip.description ||
-              (isDraftRoute &&
-                (draft?.startLocation || draft?.endLocation)) ? (
+              {isDraftRoute &&
+              (draft?.startLocation || draft?.endLocation) ? (
                 <p className="mb-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-                  {isDraftRoute &&
-                  (draft?.startLocation || draft?.endLocation)
-                    ? `Route sketch: ${[draft?.startLocation, draft?.endLocation].filter(Boolean).join(" → ")}.`
-                    : cloud?.trip.description}
+                  Route sketch:{" "}
+                  {[draft?.startLocation, draft?.endLocation]
+                    .filter(Boolean)
+                    .join(" → ")}
+                  .
                 </p>
+              ) : null}
+              {!loadingCloud && (isDraftRoute ? hydrated : !!cloud) ? (
+                <TripNotesPanel
+                  notes={
+                    isDraftRoute
+                      ? draft?.description ?? null
+                      : cloud?.trip.description
+                  }
+                  isEditor={isEditor}
+                  onSave={updateTripNotes}
+                />
               ) : null}
               {!isDraftRoute && cloud && !isEditor ? (
                 <p className="mb-4 rounded-2xl bg-secondary px-4 py-3 text-base text-muted-foreground">
@@ -706,10 +943,16 @@ export function PlannerShell({ tripId }: Props) {
                     isDraftRoute && !hasTimelineContent && dismissedStarter
                   }
                   onUpdateItem={updateItem}
+                  onDeleteItem={deleteItem}
+                  onUpdateDay={updateDay}
+                  onDeleteDay={deleteDay}
                   onReorderDay={reorderDay}
                   onAddPlace={addPlace}
                   onAddDay={addDay}
-                  onFocusStop={(item) => setFocusStopId(item.id)}
+                  onFocusStop={(item) => {
+                    setFocusStopId(item.id);
+                    setMobilePane("map");
+                  }}
                   onSelectDay={setActiveDayId}
                 />
               ) : (
@@ -721,7 +964,12 @@ export function PlannerShell({ tripId }: Props) {
           )}
         </section>
 
-        <section className="min-w-0 lg:sticky lg:top-20">
+        <section
+          className={cn(
+            "min-w-0 lg:sticky lg:top-20",
+            mobilePane !== "map" && "hidden lg:block",
+          )}
+        >
           <div className="mb-3 px-1">
             <h2 className="font-display text-3xl font-semibold sm:text-4xl">
               Maps

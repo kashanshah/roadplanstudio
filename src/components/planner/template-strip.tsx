@@ -48,7 +48,7 @@ export function TemplateStrip({ compact }: Props) {
         {TEMPLATES.map((trip) => (
           <li
             key={trip.slug}
-            className="min-w-[260px] flex-1 rounded-2xl border border-border bg-background p-4"
+            className="min-w-[min(260px,100%)] w-full flex-1 rounded-2xl border border-border bg-background p-4 sm:min-w-[260px]"
           >
             <span className="grid size-10 place-items-center rounded-xl bg-secondary text-primary">
               <Route className="size-5" />

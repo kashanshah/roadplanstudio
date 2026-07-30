@@ -159,37 +159,45 @@ export function SiteNav({ overlay = false }: { overlay?: boolean }) {
       </nav>
 
       {open ? (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mx-4 mb-4 rounded-2xl border border-border bg-popover p-2 shadow-elevated lg:hidden"
-        >
-          {mobileLinks.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              onClick={() => setOpen(false)}
-              className="block rounded-xl px-4 py-3 text-sm text-popover-foreground transition-colors hover:bg-secondary"
-            >
-              {l.label}
-            </Link>
-          ))}
-          <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-3">
-            <span className="text-sm text-muted-foreground">
-              {dict.footer.language}
-            </span>
-            <LanguageSwitcher align="end" />
-          </div>
-          {session ? (
-            <Link
-              href="/account/sessions"
-              onClick={() => setOpen(false)}
-              className="block rounded-xl px-4 py-3 text-sm text-destructive transition-colors hover:bg-secondary"
-            >
-              Log out
-            </Link>
-          ) : null}
-        </motion.div>
+        <>
+          <button
+            type="button"
+            aria-label="Close menu"
+            className="fixed inset-0 z-40 bg-ink/40 lg:hidden"
+            onClick={() => setOpen(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative z-50 mx-4 mb-4 rounded-2xl border border-border bg-popover p-2 shadow-elevated lg:hidden"
+          >
+            {mobileLinks.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className="block rounded-xl px-4 py-3 text-base text-popover-foreground transition-colors hover:bg-secondary"
+              >
+                {l.label}
+              </Link>
+            ))}
+            <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-3">
+              <span className="text-sm text-muted-foreground">
+                {dict.footer.language}
+              </span>
+              <LanguageSwitcher align="end" />
+            </div>
+            {session ? (
+              <Link
+                href="/account/sessions"
+                onClick={() => setOpen(false)}
+                className="block rounded-xl px-4 py-3 text-base text-destructive transition-colors hover:bg-secondary"
+              >
+                Log out
+              </Link>
+            ) : null}
+          </motion.div>
+        </>
       ) : null}
     </motion.header>
   );

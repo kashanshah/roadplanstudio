@@ -63,3 +63,35 @@ export async function PATCH(request: Request, ctx: Ctx) {
 
   return NextResponse.json({ item: updated });
 }
+
+export async function DELETE(_request: Request, ctx: Ctx) {
+  const { tripId, itemId } = await ctx.params;
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const access = await getTripAccess(tripId, session.user.id);
+  try {
+    assertCanEdit(access);
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const [item] = await db
+    .select({
+      id: itineraryItems.id,
+    })
+    .from(itineraryItems)
+    .innerJoin(tripDays, eq(tripDays.id, itineraryItems.dayId))
+    .where(and(eq(itineraryItems.id, itemId), eq(tripDays.tripId, tripId)))
+    .limit(1);
+
+  if (!item) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await db.delete(itineraryItems).where(eq(itineraryItems.id, itemId));
+
+  return NextResponse.json({ ok: true });
+}

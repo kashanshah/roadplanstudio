@@ -56,6 +56,7 @@ export function templateToGuestDraft(
     title: day.title,
     notes: day.notes,
     routeSummary: day.routeSummary,
+    isRestDay: day.isRestDay === "true",
     items: day.items.map((item, index) => ({
       id: crypto.randomUUID(),
       sortOrder: item.sortOrder ?? index,
@@ -120,6 +121,7 @@ export async function duplicateTemplateForUser(opts: {
         title: day.title,
         notes: day.notes,
         routeSummary: day.routeSummary,
+        isRestDay: day.isRestDay ?? "false",
       })
       .returning();
 

@@ -8,6 +8,7 @@ import {
   MapPin,
   Phone,
   Star,
+  Trash2,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ type Props = {
       Pick<PlannerItem, "status" | "durationMins" | "notes" | "travelMode">
     >,
   ) => Promise<void> | void;
+  onDelete?: (itemId: string) => Promise<void> | void;
 };
 
 const STATUSES: StopStatus[] = [
@@ -44,6 +46,7 @@ export function PlaceDetailSheet({
   isEditor,
   onClose,
   onUpdate,
+  onDelete,
 }: Props) {
   const [details, setDetails] = useState<PlaceDetailsPayload | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,6 +54,8 @@ export function PlaceDetailSheet({
   const [notes, setNotes] = useState("");
   const [duration, setDuration] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!item) {
@@ -62,6 +67,7 @@ export function PlaceDetailSheet({
     setDuration(
       item.durationMins != null ? String(item.durationMins) : "",
     );
+    setConfirmDelete(false);
 
     if (!item.googlePlaceId) {
       setDetails(null);
@@ -130,6 +136,18 @@ export function PlaceDetailSheet({
       });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!item || !isEditor || !onDelete) return;
+    setDeleting(true);
+    try {
+      await onDelete(item.id);
+      onClose();
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
     }
   }
 
@@ -229,7 +247,7 @@ export function PlaceDetailSheet({
                 disabled={!isEditor}
                 onClick={() => void onUpdate(item.id, { status })}
                 className={cn(
-                  "rounded-full px-3 py-1.5 text-sm transition-colors",
+                  "min-h-10 rounded-full px-4 py-2 text-sm transition-colors",
                   item.status === status
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/70",
@@ -327,15 +345,61 @@ export function PlaceDetailSheet({
         </div>
 
         {isEditor ? (
-          <div className="shrink-0 border-t border-border p-4">
+          <div className="shrink-0 space-y-3 border-t border-border p-4">
             <Button
               type="button"
               className="w-full text-base"
               onClick={() => void saveMeta()}
-              disabled={saving}
+              disabled={saving || deleting}
             >
               {saving ? "Saving…" : "Save schedule & notes"}
             </Button>
+
+            {onDelete ? (
+              confirmDelete ? (
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-3">
+                  <p className="text-sm text-foreground">
+                    Remove{" "}
+                    <span className="font-medium">
+                      {details?.name || item.name}
+                    </span>{" "}
+                    from this day? This can&apos;t be undone.
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="flex-1"
+                      disabled={deleting}
+                      onClick={() => void handleDelete()}
+                    >
+                      <Trash2 className="size-4" />
+                      {deleting ? "Removing…" : "Remove stop"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="flex-1"
+                      disabled={deleting}
+                      onClick={() => setConfirmDelete(false)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={saving || deleting}
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 className="size-4" />
+                  Remove from itinerary
+                </Button>
+              )
+            ) : null}
           </div>
         ) : null}
       </aside>
