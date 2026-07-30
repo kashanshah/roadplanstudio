@@ -28,6 +28,85 @@ async function resolveUserId(input: {
   return (users[0] as { id: string } | undefined)?.id ?? null;
 }
 
+export async function GET(_request: Request, ctx: Ctx) {
+  const { tripId } = await ctx.params;
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const access = await getTripAccess(tripId, session.user.id);
+  try {
+    assertIsOwner(access);
+  } catch {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const collaborators = await db
+    .select({
+      id: tripCollaborators.id,
+      userId: tripCollaborators.userId,
+      permission: tripCollaborators.permission,
+      joinedAt: tripCollaborators.joinedAt,
+      fullName: profiles.fullName,
+      avatarUrl: profiles.avatarUrl,
+    })
+    .from(tripCollaborators)
+    .leftJoin(profiles, eq(profiles.userId, tripCollaborators.userId))
+    .where(eq(tripCollaborators.tripId, tripId));
+
+  let authUsers: Array<{ id: string; email: string; name: string | null }> = [];
+  if (collaborators.length > 0 && process.env.DATABASE_URL) {
+    const sql = neon(process.env.DATABASE_URL);
+    const userIds = collaborators.map((c) => c.userId);
+    authUsers = (await sql`
+      SELECT id, email, name FROM "user" WHERE id = ANY(${userIds})
+    `) as Array<{ id: string; email: string; name: string | null }>;
+  }
+
+  const ownerProfile = await db
+    .select({
+      fullName: profiles.fullName,
+      avatarUrl: profiles.avatarUrl,
+    })
+    .from(profiles)
+    .where(eq(profiles.userId, access.trip.ownerId))
+    .limit(1);
+
+  let ownerAuth: { email: string; name: string | null } | null = null;
+  if (process.env.DATABASE_URL) {
+    const sql = neon(process.env.DATABASE_URL);
+    const rows = await sql`
+      SELECT email, name FROM "user" WHERE id = ${access.trip.ownerId} LIMIT 1
+    `;
+    ownerAuth = (rows[0] as { email: string; name: string | null } | undefined) ?? null;
+  }
+
+  return NextResponse.json({
+    owner: {
+      userId: access.trip.ownerId,
+      fullName: ownerProfile[0]?.fullName || ownerAuth?.name || null,
+      email: ownerAuth?.email ?? null,
+      avatarUrl: ownerProfile[0]?.avatarUrl ?? null,
+      permission: "EDITOR" as const,
+      isOwner: true,
+    },
+    collaborators: collaborators.map((c) => {
+      const auth = authUsers.find((u) => u.id === c.userId);
+      return {
+        id: c.id,
+        userId: c.userId,
+        permission: c.permission,
+        joinedAt: c.joinedAt,
+        fullName: c.fullName || auth?.name || null,
+        email: auth?.email ?? null,
+        avatarUrl: c.avatarUrl,
+        isOwner: false,
+      };
+    }),
+  });
+}
+
 export async function POST(request: Request, ctx: Ctx) {
   const { tripId } = await ctx.params;
   const session = await getSession();

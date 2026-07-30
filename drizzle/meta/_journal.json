@@ -36,6 +36,13 @@
       "when": 1785396400000,
       "tag": "0004_custom_travel_leg_overrides",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785396500000,
+      "tag": "0005_trip_invite_links",
+      "breakpoints": true
     }
   ]
 }
