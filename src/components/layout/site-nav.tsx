@@ -137,10 +137,7 @@ export function SiteNav({ overlay = false }: { overlay?: boolean }) {
               </Link>
             ) : null}
           </div>
-          <LanguageSwitcher
-            className="hidden xl:flex"
-            tone={overlay ? "onDark" : "default"}
-          />
+          <LanguageSwitcher tone={overlay ? "onDark" : "default"} />
           <PreferencesMenu tone={overlay ? "onDark" : "default"} />
           <AccountMenu
             tone={overlay ? "onDark" : "default"}
@@ -176,8 +173,11 @@ export function SiteNav({ overlay = false }: { overlay?: boolean }) {
               {l.label}
             </Link>
           ))}
-          <div className="border-t border-border px-3 py-3">
-            <LanguageSwitcher />
+          <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-3">
+            <span className="text-sm text-muted-foreground">
+              {dict.footer.language}
+            </span>
+            <LanguageSwitcher align="end" />
           </div>
           {session ? (
             <Link
@@ -246,10 +246,12 @@ export function SiteFooter() {
             <p className="mt-3 max-w-sm text-sm text-muted-foreground">
               {dict.footer.tagline}
             </p>
-            <p className="mt-4 text-sm text-muted-foreground">
-              {dict.footer.language}
-            </p>
-            <LanguageSwitcher className="mt-2" />
+            <div className="mt-4 flex items-center gap-3">
+              <p className="text-sm text-muted-foreground">
+                {dict.footer.language}
+              </p>
+              <LanguageSwitcher align="start" />
+            </div>
           </div>
           {columns.map((col) => (
             <div key={col.title}>
