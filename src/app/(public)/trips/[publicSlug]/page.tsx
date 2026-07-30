@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ExportPdfButton } from "@/components/planner/export-pdf-button";
 import { TripTemplatePage } from "@/components/trips/trip-template-page";
 import { SiteFooter, SiteNav } from "@/components/layout/site-nav";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { RemixTripButton } from "@/components/trips/remix-trip-button";
 import { getTripTemplate, tripTemplates } from "@/data/trips/templates";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import { tripShareMetadata } from "@/lib/i18n/seo";
+import { plannerPayloadFromPublicTrip } from "@/lib/pdf/public-trip-export";
 import { formatDayHeading } from "@/lib/trips/format-day-label";
 import { getPublicTripBySlug } from "@/lib/trips/public";
 
@@ -89,6 +91,7 @@ export default async function PublicTripPage({ params }: Props) {
 
   const { trip, owner, days, accommodations } = data;
   const template = getTripTemplate(publicSlug);
+  const pdfPayload = plannerPayloadFromPublicTrip(days, accommodations);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -212,6 +215,21 @@ export default async function PublicTripPage({ params }: Props) {
           {trip.slug ? (
             <RemixTripButton slug={trip.slug} fullWidthOnMobile />
           ) : null}
+          <ExportPdfButton
+            title={trip.title}
+            description={trip.description}
+            days={pdfPayload.days}
+            accommodations={pdfPayload.accommodations}
+            durationDays={trip.durationDays}
+            totalDistanceKm={trip.totalDistanceKm}
+            difficulty={trip.difficulty}
+            visibility={trip.visibility}
+            plannerUrl={`${SITE_URL}/trips/${trip.slug}`}
+            size="lg"
+            variant="outline"
+            label="Download PDF"
+            shortLabel="PDF"
+          />
           <Button asChild size="lg" variant="secondary" className="text-base">
             <Link href="/discover">More trips</Link>
           </Button>

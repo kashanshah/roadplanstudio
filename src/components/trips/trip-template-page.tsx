@@ -2,12 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import type { TripTemplate } from "@/data/trips/templates";
 import { SITE_URL } from "@/lib/constants";
+import { ExportPdfButton } from "@/components/planner/export-pdf-button";
 import { SiteFooter, SiteNav } from "@/components/layout/site-nav";
 import { RemixTripButton } from "@/components/trips/remix-trip-button";
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/lib/i18n/config";
 import { localizedPath } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
+import { plannerDaysFromTripTemplate } from "@/lib/pdf/public-trip-export";
 
 export function TripTemplatePage({
   trip,
@@ -17,6 +19,7 @@ export function TripTemplatePage({
   locale?: Locale;
 }) {
   const dict = getDictionary(locale);
+  const pdfDays = plannerDaysFromTripTemplate(trip);
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -166,6 +169,20 @@ export function TripTemplatePage({
                 additionalClasses={{
                   buttonClasses: "w-full sm:w-full"
                 }}
+              />
+              <ExportPdfButton
+                title={trip.title}
+                description={trip.description}
+                days={pdfDays}
+                durationDays={trip.durationDays}
+                totalDistanceKm={trip.totalDistanceKm}
+                difficulty={trip.difficulty}
+                plannerUrl={`${SITE_URL}${localizedPath(locale, `/trips/${trip.slug}`)}`}
+                size="lg"
+                variant="outline"
+                label="Download PDF"
+                shortLabel="PDF"
+                className="w-full [&>button]:w-full"
               />
               <Button asChild size="lg" variant="outline" className="text-base">
                 <Link href={localizedPath(locale, "/discover")}>

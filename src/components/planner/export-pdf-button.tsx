@@ -29,6 +29,10 @@ type Props = {
   className?: string;
   size?: "sm" | "default" | "lg";
   variant?: "ghost" | "outline" | "secondary" | "default";
+  /** Idle label (desktop). Defaults to "Export PDF". */
+  label?: string;
+  /** Idle short label (mobile). Defaults to "PDF". */
+  shortLabel?: string;
 };
 
 function slugify(value: string) {
@@ -57,6 +61,8 @@ export function ExportPdfButton({
   className,
   size = "sm",
   variant = "ghost",
+  label = "Export PDF",
+  shortLabel = "PDF",
 }: Props) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,17 +121,17 @@ export function ExportPdfButton({
         onClick={() => void onExport()}
         disabled={pending || !canExport}
         aria-label={
-          canExport ? "Export PDF itinerary" : "Add days before exporting"
+          canExport ? `${label} itinerary` : "Add days before exporting"
         }
         {...tip(
-          canExport ? "Export PDF itinerary" : "Add days before exporting",
+          canExport ? `${label} itinerary` : "Add days before exporting",
         )}
       >
         <FileDown className="h-4 w-4" />
         <span className="hidden sm:inline">
-          {pending ? "Exporting…" : "Export PDF"}
+          {pending ? "Preparing…" : label}
         </span>
-        <span className="sm:hidden">{pending ? "…" : "PDF"}</span>
+        <span className="sm:hidden">{pending ? "…" : shortLabel}</span>
       </Button>
       {error ? (
         <p
