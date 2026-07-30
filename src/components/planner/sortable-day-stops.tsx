@@ -27,7 +27,6 @@ import {
   Car,
   ChevronDown,
   ChevronUp,
-  Clock,
   Footprints,
   GripVertical,
   Heart,
@@ -168,11 +167,11 @@ function TravelConnector({
   }
 
   return (
-    <div className="relative py-2 pl-4 sm:pl-[5.75rem]">
-      {/* Spine continues the stop-row timeline gutter (center of sm:w-[4.25rem] + px-3). */}
+    <div className="relative py-2 pl-4 sm:pl-[6.75rem]">
+      {/* Spine continues the stop-row timeline gutter (center of sm:w-[5.25rem] + px-3). */}
       <span
         aria-hidden
-        className="absolute left-1.5 top-0 bottom-0 w-px bg-map-route/50 sm:left-[2.875rem] sm:-translate-x-1/2"
+        className="absolute left-1.5 top-0 bottom-0 w-px bg-map-route/50 sm:left-[3.375rem] sm:-translate-x-1/2"
       />
       <div className="flex max-w-full flex-wrap items-center gap-2">
         <div className="inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground">
@@ -404,15 +403,61 @@ function SortableStopRow({
         )}
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-          {/* Status + timeline gutter: checkbox → arrive/depart → spine */}
-          <div className="flex items-center gap-3 sm:w-[4.5rem] sm:shrink-0 sm:flex-col sm:items-center sm:gap-1 sm:pt-0.5">
+          {/* Status + timeline gutter: checkbox → arrive → stay → depart */}
+          <div className="flex items-start gap-3 sm:w-[5.25rem] sm:shrink-0 sm:flex-col sm:items-center sm:gap-1.5 sm:pt-0.5">
             <Checkbox
               checked={checked}
               disabled={!isEditor}
               onCheckedChange={() => onToggleVisited(item)}
               aria-label={`Mark ${item.name} visited`}
             />
-            <div className="min-w-0 text-left sm:text-center">
+
+            {/* Mobile: compact Arrive → stay → Depart row */}
+            <div className="flex min-w-0 flex-1 flex-wrap items-end gap-x-2 gap-y-1 sm:hidden">
+              <div>
+                <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                  Arrive
+                </p>
+                <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-primary">
+                  {formatClock(row.arriveMins, timeFormat)}
+                </p>
+              </div>
+              {!isHotel ? (
+                <>
+                  <div className="mb-0.5 flex flex-col items-center px-0.5">
+                    <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                      {row.stayMins > 0
+                        ? formatDurationLabel(row.stayMins)
+                        : "—"}
+                    </span>
+                    <span
+                      aria-hidden
+                      className="mt-0.5 h-px w-6 bg-border"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                      Depart
+                    </p>
+                    <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-foreground">
+                      {formatClock(row.departMins, timeFormat)}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <span className="mb-0.5 text-xs text-muted-foreground">
+                  Overnight
+                </span>
+              )}
+              {overnight ? (
+                <span className="mb-0.5 text-[10px] uppercase tracking-wide text-destructive">
+                  +day
+                </span>
+              ) : null}
+            </div>
+
+            {/* Desktop: stacked Arrive → stay → Depart */}
+            <div className="hidden w-full flex-col items-center text-center sm:flex">
               <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                 Arrive
               </p>
@@ -421,24 +466,41 @@ function SortableStopRow({
               </p>
               {!isHotel ? (
                 <>
-                  <p className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                  <div
+                    aria-hidden
+                    className="my-1 h-3 w-px bg-border"
+                  />
+                  <p className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                    {row.stayMins > 0
+                      ? formatDurationLabel(row.stayMins)
+                      : "—"}
+                  </p>
+                  <div
+                    aria-hidden
+                    className="my-1 h-3 w-px bg-border"
+                  />
+                  <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                     Depart
                   </p>
                   <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-foreground">
                     {formatClock(row.departMins, timeFormat)}
                   </p>
                 </>
+              ) : (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Overnight
+                </p>
+              )}
+              {overnight ? (
+                <span className="mt-1 text-[10px] uppercase tracking-wide text-destructive">
+                  +day
+                </span>
               ) : null}
+              <span
+                aria-hidden
+                className="mt-1.5 size-2.5 shrink-0 rounded-full bg-primary ring-[3px] ring-background"
+              />
             </div>
-            {overnight ? (
-              <span className="text-[10px] uppercase tracking-wide text-destructive">
-                +day
-              </span>
-            ) : null}
-            <span
-              aria-hidden
-              className="mt-0.5 hidden size-2.5 shrink-0 rounded-full bg-primary ring-[3px] ring-background sm:block"
-            />
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start sm:gap-2">
@@ -487,11 +549,6 @@ function SortableStopRow({
                     <span className="inline-flex items-center gap-1 text-foreground/80">
                       <BedDouble className="size-3.5" />
                       Overnight stay
-                    </span>
-                  ) : row.stayMins > 0 ? (
-                    <span className="inline-flex items-center gap-1 text-foreground/80">
-                      <Clock className="size-3.5 text-primary" />
-                      {formatDurationLabel(row.stayMins)} stay
                     </span>
                   ) : null}
                   {item.address ? (
