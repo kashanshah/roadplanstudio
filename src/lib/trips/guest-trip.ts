@@ -1,3 +1,5 @@
+import { createDefaultPackingItems } from "@/lib/packing/defaults";
+
 export type GuestStopStatus =
   | "to_visit"
   | "visited"
@@ -34,6 +36,14 @@ export type GuestDay = {
   items: GuestItineraryItem[];
 };
 
+export type GuestPackingItem = {
+  id: string;
+  label: string;
+  packed: boolean;
+  sortOrder: number;
+  category?: string | null;
+};
+
 export type GuestTripDraft = {
   guestToken: string;
   title: string;
@@ -46,10 +56,18 @@ export type GuestTripDraft = {
   endLocation?: string;
   durationDays: number;
   days: GuestDay[];
+  packingItems?: GuestPackingItem[];
   updatedAt: string;
 };
 
 export const GUEST_TRIP_STORAGE_KEY = "roadplan:guest-trip";
+
+function defaultPacking(): GuestPackingItem[] {
+  return createDefaultPackingItems((item) => ({
+    id: crypto.randomUUID(),
+    ...item,
+  }));
+}
 
 export function createEmptyGuestTrip(
   partial?: Partial<
@@ -91,6 +109,7 @@ export function createEmptyGuestTrip(
         items: [],
       },
     ],
+    packingItems: defaultPacking(),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -100,7 +119,12 @@ export function readGuestTrip(): GuestTripDraft | null {
   try {
     const raw = localStorage.getItem(GUEST_TRIP_STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as GuestTripDraft;
+    const draft = JSON.parse(raw) as GuestTripDraft;
+    if (!draft.packingItems) {
+      draft.packingItems = defaultPacking();
+      writeGuestTrip(draft);
+    }
+    return draft;
   } catch {
     return null;
   }
