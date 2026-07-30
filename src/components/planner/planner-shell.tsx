@@ -1064,7 +1064,11 @@ export function PlannerShell({ tripId }: Props) {
 
     if (isDraftRoute) {
       updateDraft((current) => {
-        const dayIndex = current.days.length + 1;
+        const ordered = [...current.days].sort(
+          (a, b) => a.dayIndex - b.dayIndex,
+        );
+        const prevDay = ordered[ordered.length - 1] ?? null;
+        const dayIndex = ordered.length + 1;
         const day = {
           id: crypto.randomUUID(),
           dayIndex,
@@ -1072,10 +1076,19 @@ export function PlannerShell({ tripId }: Props) {
           isRestDay,
           items: [],
         };
+        let nextDays = [...current.days, day];
+        // Seed stop 1 from the previous day's last active location.
+        if (prevDay) {
+          nextDays = applyMorningBaseSync(
+            nextDays,
+            prevDay.id,
+            dayEndSnapshot(prevDay.items),
+          );
+        }
         return {
           ...current,
           durationDays: dayIndex,
-          days: [...current.days, day],
+          days: nextDays,
         };
       });
       return;
@@ -1085,6 +1098,9 @@ export function PlannerShell({ tripId }: Props) {
       requireAuth("save");
       return;
     }
+
+    const prevDay = [...days].sort((a, b) => a.dayIndex - b.dayIndex).at(-1);
+    const previousDayEnd = prevDay ? dayEndSnapshot(prevDay.items) : null;
 
     const res = await fetch(`/api/trips/${tripId}/days`, {
       method: "POST",
@@ -1097,19 +1113,28 @@ export function PlannerShell({ tripId }: Props) {
     };
     setCloud((prev) => {
       if (!prev) return prev;
+      let nextDays = [
+        ...prev.days,
+        {
+          ...data.day,
+          isRestDay: !!data.day.isRestDay,
+          items: data.day.items ?? [],
+        },
+      ];
+      if (prevDay) {
+        nextDays = applyMorningBaseSync(
+          nextDays,
+          prevDay.id,
+          previousDayEnd,
+        );
+      }
       return {
         ...prev,
-        days: [
-          ...prev.days,
-          {
-            ...data.day,
-            isRestDay: !!data.day.isRestDay,
-            items: data.day.items ?? [],
-          },
-        ],
+        days: nextDays,
       };
     });
     setActiveDayId(data.day.id);
+    await refreshCloudTrip();
   }
 
   async function updateTripStart(
