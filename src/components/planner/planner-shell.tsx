@@ -428,7 +428,13 @@ export function PlannerShell({ tripId }: Props) {
     isDraftRoute && !hasTimelineContent && !dismissedStarter && !!draft;
 
   useEffect(() => {
-    if (!activeDayId && days[0]?.id) setActiveDayId(days[0].id);
+    if (!days.length) {
+      setActiveDayId(null);
+      return;
+    }
+    // Keep selection if still valid; otherwise fall back to the first day.
+    if (activeDayId && days.some((d) => d.id === activeDayId)) return;
+    setActiveDayId(days[0]!.id);
   }, [days, activeDayId]);
 
   async function claimDraft() {
@@ -1956,6 +1962,7 @@ export function PlannerShell({ tripId }: Props) {
                     setFocusStopId(item.id);
                     setMobilePane("map");
                   }}
+                  activeDayId={activeDayId}
                   onSelectDay={setActiveDayId}
                 />
               ) : (
@@ -1987,7 +1994,10 @@ export function PlannerShell({ tripId }: Props) {
               days={days}
               focusStopId={focusStopId}
               activeDayId={activeDayId}
-              onActiveDayChange={setActiveDayId}
+              onActiveDayChange={(dayId) => {
+                setActiveDayId(dayId);
+                setMobilePane("itinerary");
+              }}
             />
           )}
         </section>

@@ -94,6 +94,8 @@ type Props = {
   ) => Promise<void> | void;
   onAddDay?: (opts?: { isRestDay?: boolean }) => Promise<void> | void;
   onFocusStop?: (item: PlannerItem) => void;
+  /** Shared with map day selection — opening a day updates this, and vice versa. */
+  activeDayId?: string | null;
   onSelectDay?: (dayId: string) => void;
 };
 
@@ -313,11 +315,13 @@ export function ItineraryCanvas({
   onAddCustomPlace,
   onAddDay,
   onFocusStop,
+  activeDayId = null,
   onSelectDay,
 }: Props) {
-  const [openDays, setOpenDays] = useState<Record<string, boolean>>({});
   const [selected, setSelected] = useState<PlannerItem | null>(null);
   const { timeFormat } = useDisplayPrefs();
+  const dayRefs = useRef<Map<string, HTMLLIElement>>(new Map());
+  const skipDayScrollRef = useRef(true);
 
   const selectedDay = useMemo(
     () =>
@@ -337,13 +341,54 @@ export function ItineraryCanvas({
     selected && selectedDay?.items[0]?.id === selected.id,
   );
 
+  // Accordion open state is controlled by shared map/itinerary day selection.
+  const openDayId =
+    activeDayId && days.some((d) => d.id === activeDayId) ? activeDayId : null;
+
   useEffect(() => {
-    if (!days.length) return;
-    setOpenDays((prev) => {
-      if (Object.keys(prev).length) return prev;
-      return Object.fromEntries(days.slice(0, 2).map((d) => [d.id, true]));
-    });
-  }, [days]);
+    if (!openDayId) return;
+    // Skip the initial seed so the page doesn't jump on load.
+    if (skipDayScrollRef.current) {
+      skipDayScrollRef.current = false;
+      return;
+    }
+    const el = dayRefs.current.get(openDayId);
+    if (!el) return;
+
+    let cancelled = false;
+    let correctTimer: number | undefined;
+
+    // Match sticky planner header + scroll-mt-* on day cards.
+    function headerOffset() {
+      return window.matchMedia("(min-width: 640px)").matches ? 112 : 96;
+    }
+
+    function alignDay(behavior: ScrollBehavior) {
+      if (cancelled) return;
+      const top =
+        window.scrollY + el.getBoundingClientRect().top - headerOffset();
+      window.scrollTo({ top: Math.max(0, top), behavior });
+    }
+
+    // Accordion height animates ~280ms; scrolling earlier lands on the wrong Y.
+    // Wait for expand/collapse to finish, then align — and nudge once more
+    // after layout fully settles (closing previous day still changes height).
+    const openTimer = window.setTimeout(() => {
+      alignDay("smooth");
+      correctTimer = window.setTimeout(() => {
+        const drift = Math.abs(
+          el.getBoundingClientRect().top - headerOffset(),
+        );
+        if (drift > 8) alignDay("auto");
+      }, 340);
+    }, 320);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(openTimer);
+      if (correctTimer != null) window.clearTimeout(correctTimer);
+    };
+  }, [openDayId]);
 
   const progress = useMemo(() => {
     const all = days.flatMap((d) => d.items);
@@ -353,11 +398,10 @@ export function ItineraryCanvas({
   }, [days]);
 
   function toggleDay(id: string) {
-    setOpenDays((prev) => {
-      const nextOpen = !prev[id];
-      if (nextOpen) onSelectDay?.(id);
-      return { ...prev, [id]: nextOpen };
-    });
+    // Accordion: opening another day closes this one. Keep one day open so
+    // map ↔ itinerary selection stays aligned.
+    if (openDayId === id) return;
+    onSelectDay?.(id);
   }
 
   async function toggleVisited(item: PlannerItem) {
@@ -402,14 +446,18 @@ export function ItineraryCanvas({
 
       <ul className="space-y-4">
         {days.map((day) => {
-          const open = openDays[day.id] ?? false;
+          const open = openDayId === day.id;
           const isRest = !!day.isRestDay;
 
           return (
             <li
               key={day.id}
+              ref={(node) => {
+                if (node) dayRefs.current.set(day.id, node);
+                else dayRefs.current.delete(day.id);
+              }}
               className={cn(
-                "overflow-hidden rounded-2xl border shadow-soft",
+                "scroll-mt-24 overflow-hidden rounded-2xl border shadow-soft sm:scroll-mt-28",
                 isRest
                   ? "border-sandstone/50 bg-sandstone/10"
                   : "border-border bg-card",
