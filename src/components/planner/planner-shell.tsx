@@ -21,6 +21,10 @@ import { ItineraryCanvas } from "@/components/planner/itinerary-canvas";
 import { PackingListPanel } from "@/components/planner/packing-list-panel";
 import { PlannerEmptyState } from "@/components/planner/planner-empty-state";
 import type {
+  StopTimingInput,
+  CustomStopInput,
+} from "@/components/planner/add-stop-search";
+import type {
   PlaceDetailsPayload,
   PlannerAccommodation,
   PlannerDay,
@@ -160,6 +164,8 @@ export function PlannerShell({ tripId }: Props) {
               googlePlaceId: i.googlePlaceId ?? null,
               googleMapsUri: i.googleMapsUri ?? null,
               durationMins: i.durationMins ?? null,
+              timingMode: i.timingMode ?? null,
+              timingMins: i.timingMins ?? null,
               travelMode: i.travelMode ?? "driving",
               latitude: i.latitude ?? null,
               longitude: i.longitude ?? null,
@@ -239,6 +245,8 @@ export function PlannerShell({ tripId }: Props) {
           googlePlaceId: i.googlePlaceId ?? null,
           googleMapsUri: null,
           durationMins: i.durationMins ?? null,
+          timingMode: i.timingMode ?? null,
+          timingMins: i.timingMins ?? null,
           travelMode: i.travelMode ?? "driving",
           status: normalizeStatus(i.status),
         })),
@@ -489,6 +497,7 @@ export function PlannerShell({ tripId }: Props) {
     dayId: string,
     place: PlaceDetailsPayload,
     asHotel: boolean,
+    timing: StopTimingInput,
   ) {
     if (!isEditor) return;
     const type = asHotel ? "hotel" : "attraction";
@@ -513,6 +522,8 @@ export function PlannerShell({ tripId }: Props) {
                 longitude: place.longitude,
                 googlePlaceId: place.placeId,
                 durationMins: place.estimatedDurationMins || null,
+                timingMode: timing.timingMode,
+                timingMins: timing.timingMins,
                 travelMode: "driving" as const,
                 status: "to_visit" as const,
                 notes: null,
@@ -537,6 +548,8 @@ export function PlannerShell({ tripId }: Props) {
         googlePlaceId: place.placeId,
         type,
         durationMins: place.estimatedDurationMins,
+        timingMode: timing.timingMode,
+        timingMins: timing.timingMins,
       }),
     });
     if (!res.ok) return;
@@ -566,12 +579,7 @@ export function PlannerShell({ tripId }: Props) {
 
   async function addCustomPlace(
     dayId: string,
-    input: {
-      name: string;
-      address?: string | null;
-      notes?: string | null;
-      asHotel?: boolean;
-    },
+    input: CustomStopInput,
   ) {
     if (!isEditor) return;
     const type = input.asHotel ? "hotel" : "custom";
@@ -596,6 +604,8 @@ export function PlannerShell({ tripId }: Props) {
                 longitude: null,
                 googlePlaceId: null,
                 durationMins: null,
+                timingMode: input.timing?.timingMode ?? null,
+                timingMins: input.timing?.timingMins ?? null,
                 travelMode: "driving" as const,
                 status: "to_visit" as const,
                 notes: input.notes ?? null,
@@ -621,6 +631,8 @@ export function PlannerShell({ tripId }: Props) {
         address: input.address ?? null,
         notes: input.notes ?? null,
         type,
+        timingMode: input.timing?.timingMode ?? null,
+        timingMins: input.timing?.timingMins ?? null,
       }),
     });
     if (!res.ok) return;

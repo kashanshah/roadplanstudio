@@ -6,18 +6,28 @@ import { Button } from "@/components/ui/button";
 import type { PlaceDetailsPayload } from "@/components/planner/planner-types";
 import { cn } from "@/lib/utils/cn";
 
+export type StopTimingInput = {
+  timingMode: "arrive_by" | "depart_at" | null;
+  timingMins: number | null;
+};
+
 export type CustomStopInput = {
   name: string;
   address?: string | null;
   notes?: string | null;
   asHotel?: boolean;
+  timing?: StopTimingInput;
 };
 
 type Props = {
   dayId: string;
   disabled?: boolean;
   bias?: { lat: number; lng: number } | null;
-  onAdd: (place: PlaceDetailsPayload, asHotel: boolean) => Promise<void> | void;
+  onAdd: (
+    place: PlaceDetailsPayload,
+    asHotel: boolean,
+    timing: StopTimingInput,
+  ) => Promise<void> | void;
   onAddCustom: (input: CustomStopInput) => Promise<void> | void;
 };
 
@@ -44,6 +54,24 @@ export function AddStopSearch({
   const [customNotes, setCustomNotes] = useState("");
   const [customAsHotel, setCustomAsHotel] = useState(false);
   const [savingCustom, setSavingCustom] = useState(false);
+  const [timingMode, setTimingMode] = useState<"" | "arrive_by" | "depart_at">("");
+  const [timingTime, setTimingTime] = useState("");
+
+  function parseTimeToMins(value: string): number | null {
+    if (!value) return null;
+    const [h, m] = value.split(":");
+    const hour = Number.parseInt(h ?? "", 10);
+    const minute = Number.parseInt(m ?? "", 10);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return hour * 60 + minute;
+  }
+
+  const parsedTimingMins = timingMode ? parseTimeToMins(timingTime) : null;
+  const timingInput: StopTimingInput = {
+    timingMode: timingMode && parsedTimingMins != null ? timingMode : null,
+    timingMins: parsedTimingMins,
+  };
 
   function resetAndClose() {
     setOpen(false);
@@ -55,6 +83,8 @@ export function AddStopSearch({
     setCustomAddress("");
     setCustomNotes("");
     setCustomAsHotel(false);
+    setTimingMode("");
+    setTimingTime("");
   }
 
   useEffect(() => {
@@ -103,7 +133,7 @@ export function AddStopSearch({
   async function addPlace(place: PlaceDetailsPayload, asHotel: boolean) {
     setAddingId(place.placeId);
     try {
-      await onAdd(place, asHotel);
+      await onAdd(place, asHotel, timingInput);
       resetAndClose();
     } finally {
       setAddingId(null);
@@ -121,6 +151,7 @@ export function AddStopSearch({
         address: customAddress.trim() || null,
         notes: customNotes.trim() || null,
         asHotel: customAsHotel,
+        timing: timingInput,
       });
       resetAndClose();
     } finally {
@@ -299,6 +330,43 @@ export function AddStopSearch({
           </Button>
         </form>
       )}
+
+      <div className="mt-3 rounded-xl border border-border bg-card/70 p-3">
+        <p className="text-sm font-medium text-foreground">Time anchor (optional)</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Set an arrive/depart target and the day schedule shifts around it.
+        </p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              Anchor type
+            </span>
+            <select
+              value={timingMode}
+              onChange={(e) =>
+                setTimingMode(e.target.value as "" | "arrive_by" | "depart_at")
+              }
+              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">No time anchor</option>
+              <option value="arrive_by">Arrive by</option>
+              <option value="depart_at">Depart at</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              Time
+            </span>
+            <input
+              type="time"
+              value={timingTime}
+              disabled={!timingMode}
+              onChange={(e) => setTimingTime(e.target.value)}
+              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+            />
+          </label>
+        </div>
+      </div>
 
       <button
         type="button"

@@ -8,6 +8,7 @@ export type GuestStopStatus =
   | "favorite";
 
 export type GuestItemType = "attraction" | "hotel" | "custom";
+export type GuestStopTimingMode = "arrive_by" | "depart_at";
 
 export type GuestItineraryItem = {
   id: string;
@@ -19,6 +20,8 @@ export type GuestItineraryItem = {
   longitude?: number | null;
   googlePlaceId?: string | null;
   durationMins?: number | null;
+  timingMode?: GuestStopTimingMode | null;
+  timingMins?: number | null;
   /** Mode used to travel from this stop to the next. Defaults to driving. */
   travelMode?: "driving" | "walking" | "bicycling" | "transit";
   status: GuestStopStatus;

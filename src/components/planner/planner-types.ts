@@ -8,6 +8,7 @@ export type StopStatus =
   | "favorite";
 
 export type { TravelMode };
+export type StopTimingMode = "arrive_by" | "depart_at";
 
 export type PlannerItem = {
   id: string;
@@ -21,6 +22,10 @@ export type PlannerItem = {
   googlePlaceId: string | null;
   googleMapsUri: string | null;
   durationMins: number | null;
+  /** Optional time anchor used to shift the day timeline. */
+  timingMode: StopTimingMode | null;
+  /** Minutes from local midnight (0-1439) for arrive/depart anchor. */
+  timingMins: number | null;
   /** Mode used to travel from this stop to the next. */
   travelMode: TravelMode;
   status: StopStatus;

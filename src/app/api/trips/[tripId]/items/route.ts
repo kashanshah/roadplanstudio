@@ -16,6 +16,8 @@ const createSchema = z.object({
   type: z.enum(["attraction", "hotel", "custom"]).default("attraction"),
   notes: z.string().max(4000).nullable().optional(),
   durationMins: z.number().int().min(0).max(24 * 60).nullable().optional(),
+  timingMode: z.enum(["arrive_by", "depart_at"]).nullable().optional(),
+  timingMins: z.number().int().min(0).max(24 * 60 - 1).nullable().optional(),
   address: z.string().max(500).nullable().optional(),
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
@@ -60,6 +62,8 @@ export async function POST(request: Request, ctx: Ctx) {
     longitude: number | null;
     googleMapsUri: string | null;
     durationMins: number | null;
+    timingMode: "arrive_by" | "depart_at" | null;
+    timingMins: number | null;
   } = {
     googlePlaceId: parsed.data.googlePlaceId ?? null,
     name: parsed.data.name || "New stop",
@@ -68,6 +72,8 @@ export async function POST(request: Request, ctx: Ctx) {
     longitude: parsed.data.longitude ?? null,
     googleMapsUri: parsed.data.googleMapsUri ?? null,
     durationMins: parsed.data.durationMins ?? null,
+    timingMode: parsed.data.timingMode ?? null,
+    timingMins: parsed.data.timingMins ?? null,
   };
 
   if (parsed.data.googlePlaceId) {
@@ -83,6 +89,8 @@ export async function POST(request: Request, ctx: Ctx) {
           googleMapsUri: details.googleMapsUri,
           durationMins:
             parsed.data.durationMins ?? details.estimatedDurationMins,
+          timingMode: parsed.data.timingMode ?? null,
+          timingMins: parsed.data.timingMins ?? null,
         };
       }
     } catch {

@@ -12,7 +12,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { AddStopSearch } from "@/components/planner/add-stop-search";
-import type { CustomStopInput } from "@/components/planner/add-stop-search";
+import type {
+  CustomStopInput,
+  StopTimingInput,
+} from "@/components/planner/add-stop-search";
 import { PlaceDetailSheet } from "@/components/planner/place-detail-sheet";
 import { SortableDayStops } from "@/components/planner/sortable-day-stops";
 import { TemplateStrip } from "@/components/planner/template-strip";
@@ -49,6 +52,7 @@ type Props = {
     dayId: string,
     place: PlaceDetailsPayload,
     asHotel: boolean,
+    timing: StopTimingInput,
   ) => Promise<void> | void;
   onAddCustomPlace?: (
     dayId: string,
@@ -515,8 +519,8 @@ export function ItineraryCanvas({
                         <AddStopSearch
                           dayId={day.id}
                           bias={biasForDay(day)}
-                          onAdd={(place, asHotel) =>
-                            onAddPlace(day.id, place, asHotel)
+                          onAdd={(place, asHotel, timing) =>
+                            onAddPlace(day.id, place, asHotel, timing)
                           }
                           onAddCustom={(input) =>
                             onAddCustomPlace(day.id, input)
