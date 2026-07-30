@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, X } from "lucide-react";
+import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -57,6 +58,7 @@ export function ShareSheet({ tripId, onClose }: Props) {
           onClick={onClose}
           className="sticky top-0 float-right z-10 -mr-1 -mt-1 grid size-10 place-items-center rounded-full text-muted-foreground hover:bg-muted"
           aria-label="Close"
+          {...tip("Close")}
         >
           <X className="h-5 w-5" />
         </button>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { X } from "lucide-react";
+import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
@@ -173,7 +174,8 @@ export function AuthGateModal({ open, intent, onClose }: Props) {
           type="button"
           onClick={onClose}
           className="sticky top-0 float-right z-10 -mr-1 -mt-1 grid size-10 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-          aria-label="Close dialog"
+          aria-label="Close"
+          {...tip("Close")}
         >
           <X className="h-5 w-5" />
         </button>

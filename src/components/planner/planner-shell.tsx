@@ -32,6 +32,7 @@ import type {
   PlannerPackingItem,
   StopStatus,
 } from "@/components/planner/planner-types";
+import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
 import { ShareSheet } from "@/components/trips/share-sheet";
 import { TripmatesPanel } from "@/components/trips/tripmates-panel";
@@ -1054,6 +1055,7 @@ export function PlannerShell({ tripId }: Props) {
             <Link
               href={isLoggedIn ? "/planner" : "/"}
               aria-label={isLoggedIn ? "Your trips" : "RoadPlan Studio home"}
+              {...tip(isLoggedIn ? "Your trips" : "Home")}
               className="shrink-0"
             >
               <LogoMark className="h-8 w-8 sm:h-9 sm:w-9" />
@@ -1126,7 +1128,8 @@ export function PlannerShell({ tripId }: Props) {
               className="min-h-10 min-w-10 px-2 text-base sm:px-3.5"
               onClick={onShare}
               disabled={!isDraftRoute && !!cloud && !canManage}
-              aria-label="Share"
+              aria-label="Share trip"
+              {...tip("Share trip")}
             >
               <Share2 className="h-4 w-4" />
               <span className="hidden sm:inline">Share</span>
@@ -1138,7 +1141,8 @@ export function PlannerShell({ tripId }: Props) {
               className="min-h-10 min-w-10 px-2 text-base sm:px-3.5"
               onClick={onTripmates}
               disabled={!isDraftRoute && !!cloud && !canManage}
-              aria-label="Tripmates"
+              aria-label="Invite tripmates"
+              {...tip("Invite tripmates")}
             >
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Tripmates</span>

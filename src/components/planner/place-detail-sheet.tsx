@@ -12,6 +12,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
 import {
   formatDurationLabel,
@@ -283,6 +284,7 @@ export function PlaceDetailSheet({
             onClick={onClose}
             className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-ink/55 text-snow backdrop-blur-sm"
             aria-label="Close"
+            {...tip("Close")}
           >
             <X className="size-4" />
           </button>
