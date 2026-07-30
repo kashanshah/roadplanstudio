@@ -9,6 +9,10 @@ import { ArrowRight, Compass, Map, Route as RouteIcon, Share2 } from "lucide-rea
 import { GuestBanner } from "@/components/layout/guest-banner";
 import { SiteFooter, SiteNav } from "@/components/layout/site-nav";
 import { Button } from "@/components/ui/button";
+import { tripTemplates } from "@/data/trips/templates";
+import type { Locale } from "@/lib/i18n/config";
+import { localizedPath } from "@/lib/i18n/config";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 
 const fadeUp = {
@@ -16,28 +20,45 @@ const fadeUp = {
   show: { opacity: 1, y: 0 },
 };
 
-const steps = [
-  {
-    icon: Map,
-    title: "Drop the anchors",
-    body: "Start with the places you refuse to miss. Everything else arranges itself around them.",
-  },
-  {
-    icon: RouteIcon,
-    title: "Pace the drive",
-    body: "Live drive times, daylight windows and elevation so no day turns into eight hours of highway.",
-  },
-  {
-    icon: Share2,
-    title: "Share the plan",
-    body: "Invite tripmates to comment, vote on stops and keep the itinerary honest while you travel.",
-  },
-];
-
-export function LandingPage() {
+export function LandingPage({ locale = "en" }: { locale?: Locale }) {
   const router = useRouter();
   const { startPlanning } = useGuestTrip();
   const [pending, setPending] = useState(false);
+  const dict = getDictionary(locale);
+  const featured = tripTemplates.slice(0, 6);
+
+  const steps = [
+    {
+      icon: Map,
+      title: locale === "fr" ? "Posez les ancres" : locale === "es" ? "Fija los anclajes" : locale === "de" ? "Anker setzen" : locale === "ja" ? "拠点を置く" : "Drop the anchors",
+      body:
+        locale === "fr"
+          ? "Commencez par les lieux incontournables. Le reste s’organise autour."
+          : locale === "es"
+            ? "Empieza por los lugares imprescindibles. El resto se ordena alrededor."
+            : locale === "de"
+              ? "Beginne mit den Orten, die du nicht verpassen willst."
+              : locale === "ja"
+                ? "外せない場所から。残りはその周りに収まる。"
+                : "Start with the places you refuse to miss. Everything else arranges itself around them.",
+    },
+    {
+      icon: RouteIcon,
+      title: locale === "fr" ? "Rythmez la route" : locale === "es" ? "Marca el ritmo" : locale === "de" ? "Tempo setzen" : locale === "ja" ? "運転のペース" : "Pace the drive",
+      body:
+        locale === "en"
+          ? "Live drive times, daylight windows and elevation so no day turns into eight hours of highway."
+          : dict.home.howTitle,
+    },
+    {
+      icon: Share2,
+      title: locale === "fr" ? "Partagez le plan" : locale === "es" ? "Comparte el plan" : locale === "de" ? "Plan teilen" : locale === "ja" ? "計画を共有" : "Share the plan",
+      body:
+        locale === "en"
+          ? "Invite tripmates to comment, vote on stops and keep the itinerary honest while you travel."
+          : "Tripmates · VIEWER / EDITOR",
+    },
+  ];
 
   function onStartPlanning(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -75,7 +96,7 @@ export function LandingPage() {
             transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
             className="eyebrow text-accent"
           >
-            Pacific Northwest · Est. 2026
+            {dict.home.eyebrow}
           </motion.p>
 
           <motion.h1
@@ -84,7 +105,7 @@ export function LandingPage() {
             transition={{ duration: 0.9, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
             className="mt-4 max-w-3xl font-display text-[clamp(3rem,10vw,6rem)] font-semibold leading-[0.95] tracking-tight text-snow"
           >
-            RoadPlan Studio
+            {dict.home.headline}
           </motion.h1>
 
           <motion.p
@@ -93,8 +114,7 @@ export function LandingPage() {
             transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="mt-5 max-w-xl text-lg leading-relaxed text-snow/80 sm:text-xl"
           >
-            Plan the drive like a designer: real distances, honest daylight, and
-            a map that finally matches the trip in your head.
+            {dict.home.subhead}
           </motion.p>
 
           <motion.form
@@ -132,19 +152,15 @@ export function LandingPage() {
                 className="group text-base"
                 disabled={pending}
               >
-                {pending ? "Opening planner…" : "Start planning"}
+                {pending ? "…" : dict.common.startPlanning}
                 <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
               </Button>
               <Button asChild size="lg" variant="onDark" className="text-base">
-                <Link href="/discover">
-                  <Compass /> Discover trips
+                <Link href={localizedPath(locale, "/discover")}>
+                  <Compass /> {dict.common.discoverTrips}
                 </Link>
               </Button>
             </div>
-            <p className="pt-1 text-base text-snow/65">
-              No account needed to plan. Sign in later to save across devices and
-              share with tripmates.
-            </p>
           </motion.form>
         </div>
       </section>
@@ -157,9 +173,9 @@ export function LandingPage() {
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="eyebrow text-primary">How it works</p>
+          <p className="eyebrow text-primary">{dict.home.howBody}</p>
           <h2 className="mt-3 max-w-2xl font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-            Three moves between a vague idea and a trip you can actually drive.
+            {dict.home.howTitle}
           </h2>
         </motion.div>
 
@@ -197,51 +213,56 @@ export function LandingPage() {
           whileInView="show"
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="grid overflow-hidden md:grid-cols-2 md:gap-10"
         >
-          <div className="relative h-72 md:h-auto md:min-h-[400px]">
-            <Image
-              src="/images/trip-western-canada.jpg"
-              alt="Turquoise glacier lake framed by snowy peaks in Western Canada"
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
-          </div>
-          <div className="flex flex-col justify-center py-8 md:py-4">
-            <p className="eyebrow text-primary">Featured trip</p>
-            <h3 className="mt-3 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-              Western Canada 2026
-            </h3>
-            <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Thirteen days from Saskatoon through Calgary, Banff, Jasper,
-              Vancouver, Clearwater and Edmonton — a circular loop with lodging
-              and attractions ready to remix.
-            </p>
-            <dl className="mt-8 grid grid-cols-3 gap-4 border-t border-border pt-6">
-              {[
-                ["Distance", "~4,200 km"],
-                ["Days", "13"],
-                ["Stops", "Seeded"],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <dt className="text-sm tracking-widest text-muted-foreground uppercase">
-                    {k}
-                  </dt>
-                  <dd className="mt-1 font-display text-2xl font-semibold">
-                    {v}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <Button asChild className="group mt-8 w-fit text-base" size="lg">
-              <Link href="/trips/western-canada-2026">
-                Open the itinerary
-                <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
-            </Button>
-          </div>
+          <p className="eyebrow text-primary">{dict.nav.discover}</p>
+          <h2 className="mt-3 max-w-2xl font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+            {dict.discover.title}
+          </h2>
         </motion.div>
+
+        <div className="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+          {featured.map((trip, i) => (
+            <motion.div
+              key={trip.slug}
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.55, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Link
+                href={localizedPath(locale, `/trips/${trip.slug}`)}
+                className="group block"
+              >
+                <div className="relative aspect-[16/10] overflow-hidden">
+                  <Image
+                    src={trip.coverImage}
+                    alt={trip.coverAlt}
+                    fill
+                    className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                </div>
+                <p className="mt-4 text-sm tracking-widest text-muted-foreground uppercase">
+                  {trip.country} · {trip.durationDays} {dict.common.days.toLowerCase()}
+                </p>
+                <h3 className="mt-2 font-display text-2xl font-semibold group-hover:text-primary">
+                  {trip.title}
+                </h3>
+                <p className="mt-2 text-base text-muted-foreground">{trip.tagline}</p>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="mt-10">
+          <Button asChild size="lg" variant="outline" className="group text-base">
+            <Link href={localizedPath(locale, "/discover")}>
+              {dict.common.discoverTrips}
+              <ArrowRight className="transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
+          </Button>
+        </div>
       </section>
 
       <section className="px-4 pb-20 sm:px-6 sm:pb-28">
@@ -254,17 +275,17 @@ export function LandingPage() {
           className="mx-auto max-w-6xl gradient-dawn rounded-3xl px-6 py-16 text-center sm:px-12 sm:py-20"
         >
           <h2 className="mx-auto max-w-2xl font-display text-4xl font-semibold tracking-tight text-snow sm:text-5xl">
-            Your next drive deserves better than a spreadsheet.
+            {dict.home.ctaTitle}
           </h2>
           <p className="mx-auto mt-5 max-w-lg text-lg text-snow/75">
-            Start as a guest. Save it to the cloud when it starts feeling real.
+            {dict.home.ctaBody}
           </p>
           <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" variant="accent" className="text-base">
-              <Link href="/planner/new">Start planning</Link>
+              <Link href="/planner/new">{dict.common.startPlanning}</Link>
             </Button>
             <Button asChild size="lg" variant="onDark" className="text-base">
-              <Link href="/discover">Discover trips</Link>
+              <Link href={localizedPath(locale, "/blog")}>{dict.nav.blog}</Link>
             </Button>
           </div>
         </motion.div>
