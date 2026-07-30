@@ -16,6 +16,7 @@ import { PreferencesMenu } from "@/components/layout/preferences-menu";
 import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { useAuthGate } from "@/components/auth/auth-gate-provider";
 import { GuestBanner } from "@/components/layout/guest-banner";
+import { ExportPdfButton } from "@/components/planner/export-pdf-button";
 import { ItineraryCanvas } from "@/components/planner/itinerary-canvas";
 import { PlannerEmptyState } from "@/components/planner/planner-empty-state";
 import type {
@@ -29,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { ShareSheet } from "@/components/trips/share-sheet";
 import { TripmatesPanel } from "@/components/trips/tripmates-panel";
 import { useSession } from "@/lib/auth-client";
+import { SITE_URL } from "@/lib/constants";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 import type { GuestStopStatus } from "@/lib/trips/guest-trip";
 
@@ -53,6 +55,9 @@ type CloudTripPayload = {
     durationDays: number;
     visibility: string;
     ownerId: string;
+    totalDistanceKm?: number | null;
+    difficulty?: string | null;
+    slug?: string | null;
   };
   access: {
     isOwner: boolean;
@@ -569,6 +574,29 @@ export function PlannerShell({ tripId }: Props) {
                 {saving ? "Saving…" : isLoggedIn ? "Save trip" : "Save"}
               </Button>
             ) : null}
+            <ExportPdfButton
+              title={title}
+              description={
+                isDraftRoute
+                  ? (draft?.description ?? null)
+                  : (cloud?.trip.description ?? null)
+              }
+              days={days}
+              accommodations={accommodations}
+              durationDays={
+                isDraftRoute
+                  ? (draft?.durationDays ?? days.length)
+                  : cloud?.trip.durationDays
+              }
+              totalDistanceKm={cloud?.trip.totalDistanceKm ?? null}
+              difficulty={cloud?.trip.difficulty ?? null}
+              visibility={cloud?.trip.visibility ?? null}
+              plannerUrl={
+                isDraftRoute ? null : `${SITE_URL}/planner/${tripId}`
+              }
+              startLocation={draft?.startLocation ?? null}
+              endLocation={draft?.endLocation ?? null}
+            />
             <Button
               type="button"
               variant="ghost"
