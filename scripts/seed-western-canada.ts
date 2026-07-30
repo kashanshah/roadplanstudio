@@ -168,21 +168,42 @@ async function main() {
       })
       .returning();
 
-    const itemRows = day.stops.map((stop, index) => ({
-      dayId: createdDay.id,
-      sortOrder: index,
-      type: mapItemType(stop.type),
-      googlePlaceId: stop.resolved?.placeId ?? null,
-      name: stop.resolved?.name ?? stop.query,
-      address: stop.resolved?.formattedAddress ?? null,
-      latitude: stop.resolved?.latitude ?? null,
-      longitude: stop.resolved?.longitude ?? null,
-      status: "to_visit" as const,
-      notes: [stop.notes, stop.optional ? "optional" : null]
-        .filter(Boolean)
-        .join(" · ") || null,
-      googleMapsUri: stop.resolved?.googleMapsUri ?? null,
-    }));
+    const itemRows = day.stops.map((stop, index) => {
+      const types = stop.resolved?.types ?? [];
+      const durationMins =
+        stop.type === "hotel"
+          ? 0
+          : types.includes("museum") || types.includes("art_gallery")
+            ? 120
+            : types.includes("park") || types.includes("national_park")
+              ? 150
+              : types.includes("shopping_mall")
+                ? 90
+                : types.includes("restaurant") || types.includes("cafe")
+                  ? 75
+                  : types.includes("tourist_attraction")
+                    ? 90
+                    : stop.type === "custom"
+                      ? 30
+                      : 60;
+
+      return {
+        dayId: createdDay.id,
+        sortOrder: index,
+        type: mapItemType(stop.type),
+        googlePlaceId: stop.resolved?.placeId ?? null,
+        name: stop.resolved?.name ?? stop.query,
+        address: stop.resolved?.formattedAddress ?? null,
+        latitude: stop.resolved?.latitude ?? null,
+        longitude: stop.resolved?.longitude ?? null,
+        durationMins,
+        status: "to_visit" as const,
+        notes: [stop.notes, stop.optional ? "optional" : null]
+          .filter(Boolean)
+          .join(" · ") || null,
+        googleMapsUri: stop.resolved?.googleMapsUri ?? null,
+      };
+    });
 
     if (itemRows.length) {
       await db.insert(schema.itineraryItems).values(itemRows);

@@ -102,6 +102,98 @@ export function renderVerifyEmail(url: string): RenderedEmail {
   };
 }
 
+export function renderChangeEmailConfirmEmail(opts: {
+  url: string;
+  newEmail: string;
+}): RenderedEmail {
+  return {
+    subject: "Approve your email change",
+    html: shell({
+      preview: `Confirm you want to change your RoadPlan email to ${opts.newEmail}.`,
+      eyebrow: "Security check",
+      heading: "Approve this email change?",
+      body: `<p style="margin:16px 0 0;">Someone requested changing your RoadPlan Studio email to <strong style="color:${b.spruce};">${opts.newEmail}</strong>.</p>
+        <p style="margin:12px 0 0;">If that was you, approve the change below. We'll then send a verification link to the new address.</p>
+        ${button("Approve email change", opts.url)}
+        <p style="margin:14px 0 0;font-size:13px;color:#8A9A94;">Didn't request this? Ignore the email — your address stays the same.</p>`,
+    }),
+  };
+}
+
+export function renderChangeEmailVerifyEmail(opts: {
+  url: string;
+}): RenderedEmail {
+  return {
+    subject: "Verify your new RoadPlan email",
+    html: shell({
+      preview: "Confirm your new email to finish updating your account.",
+      eyebrow: "Email change",
+      heading: "Verify your new email.",
+      body: `<p style="margin:16px 0 0;">You're almost done. Confirm this inbox to finish updating the email on your RoadPlan Studio account.</p>
+        ${button("Verify new email", opts.url)}
+        <p style="margin:14px 0 0;font-size:13px;color:#8A9A94;">This link expires soon. If you didn't request a change, you can ignore this message.</p>`,
+    }),
+  };
+}
+
+export function renderDeleteAccountEmail(opts: { url: string }): RenderedEmail {
+  return {
+    subject: "Confirm account deletion",
+    html: shell({
+      preview: "Confirm if you want to permanently delete your RoadPlan account.",
+      eyebrow: "Danger zone",
+      heading: "Delete your account?",
+      body: `<p style="margin:16px 0 0;">This permanently removes your RoadPlan Studio account and owned trips. Click below only if you meant to delete everything.</p>
+        ${button("Yes, delete my account", opts.url, "#B4533A")}
+        <p style="margin:14px 0 0;font-size:13px;color:#8A9A94;">If you didn't request this, ignore the email — your account stays intact.</p>`,
+    }),
+  };
+}
+
+export function renderOtpEmail(opts: {
+  otp: string;
+  type: "sign-in" | "email-verification" | "forget-password" | "change-email";
+}): RenderedEmail {
+  const headings: Record<typeof opts.type, { subject: string; heading: string; body: string }> = {
+    "email-verification": {
+      subject: "Your RoadPlan verification code",
+      heading: "Confirm it's you.",
+      body: "Enter this code in RoadPlan Studio to verify your email and unlock sharing.",
+    },
+    "sign-in": {
+      subject: "Your RoadPlan sign-in code",
+      heading: "Your sign-in code.",
+      body: "Use this one-time code to sign in to RoadPlan Studio.",
+    },
+    "forget-password": {
+      subject: "Your RoadPlan password reset code",
+      heading: "Reset your password.",
+      body: "Use this code to choose a new password.",
+    },
+    "change-email": {
+      subject: "Confirm your new email",
+      heading: "Confirm your new email.",
+      body: "Use this code to finish changing your email address.",
+    },
+  };
+  const copy = headings[opts.type];
+
+  return {
+    subject: copy.subject,
+    html: shell({
+      preview: `Your code is ${opts.otp}. It expires in 10 minutes.`,
+      eyebrow: "Verification code",
+      heading: copy.heading,
+      body: `<p style="margin:16px 0 0;">${copy.body}</p>
+        <div style="margin:28px 0;padding:22px;border-radius:16px;background-color:${b.snow};border:1px solid ${b.hairline};text-align:center;">
+          <div style="font-family:${serif};font-size:36px;letter-spacing:0.28em;font-weight:600;color:${b.spruce};">${opts.otp}</div>
+          <p style="margin:12px 0 0;font-family:${font};font-size:13px;color:#8A9A94;">Expires in 10 minutes</p>
+        </div>
+        <p style="margin:0;font-size:13px;color:#8A9A94;">Didn't request this? You can ignore the email.</p>`,
+    }),
+  };
+}
+
 export function renderTripInviteEmail(opts: {
   tripTitle: string;
   acceptUrl: string;
@@ -156,9 +248,15 @@ export type EmailTemplate = {
 /** Static previews for /emails */
 export const emailTemplates: EmailTemplate[] = [
   {
+    id: "otp",
+    name: "Email verification OTP",
+    description: "6-digit code sent on sign-up and resend.",
+    ...renderOtpEmail({ otp: "482913", type: "email-verification" }),
+  },
+  {
     id: "welcome",
-    name: "Welcome / confirm email",
-    description: "Sent immediately after sign-up.",
+    name: "Welcome / confirm email (link)",
+    description: "Legacy magic-link style confirmation.",
     ...renderVerifyEmail("https://www.roadplanstudio.com/auth/callback"),
   },
   {
@@ -179,6 +277,31 @@ export const emailTemplates: EmailTemplate[] = [
       permission: "EDITOR",
       durationDays: 13,
       routeSummary: "Saskatoon → Banff → Vancouver → home",
+    }),
+  },
+  {
+    id: "change-email-confirm",
+    name: "Approve email change",
+    description: "Sent to the current inbox before switching emails.",
+    ...renderChangeEmailConfirmEmail({
+      url: "https://www.roadplanstudio.com/api/auth/verify-email?token=preview",
+      newEmail: "new@example.com",
+    }),
+  },
+  {
+    id: "change-email-verify",
+    name: "Verify new email",
+    description: "Sent to the new inbox to finish the change.",
+    ...renderChangeEmailVerifyEmail({
+      url: "https://www.roadplanstudio.com/api/auth/verify-email?token=preview",
+    }),
+  },
+  {
+    id: "delete-account",
+    name: "Delete account confirmation",
+    description: "Final confirmation before account deletion.",
+    ...renderDeleteAccountEmail({
+      url: "https://www.roadplanstudio.com/api/auth/delete-user/callback?token=preview",
     }),
   },
   {

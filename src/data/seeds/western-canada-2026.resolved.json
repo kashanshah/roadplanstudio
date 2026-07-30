@@ -9,7 +9,7 @@
     "difficulty": "moderate",
     "visibility": "public"
   },
-  "enrichedAt": "2026-07-30T07:23:03.222Z",
+  "enrichedAt": "2026-07-30T07:30:25.965Z",
   "days": [
     {
       "dayIndex": 1,
@@ -99,22 +99,23 @@
       ],
       "overnight": {
         "key": "d1-hotel",
-        "query": "Calgary downtown hotels, Calgary, AB",
+        "query": "Calgary Tower, Calgary, AB, Canada",
         "type": "city_overnight",
-        "notes": "City overnight — Calgary",
+        "notes": "City overnight — Calgary (lodging TBD)",
         "resolved": {
-          "placeId": "ChIJN4GJIuBvcVMRHesDje4UjjI",
-          "name": "Best Western Plus Suites Downtown",
-          "formattedAddress": "1330 8 Street SW, Calgary, AB T2R 1B6",
-          "latitude": 51.040297599999995,
-          "longitude": -114.08138969999999,
+          "placeId": "ChIJJzJsi_1vcVMRgZd7NwckWfE",
+          "name": "Calgary Tower",
+          "formattedAddress": "101 9 Ave SW, Calgary, AB T2P 1J9",
+          "latitude": 51.04430800000001,
+          "longitude": -114.06309139999999,
           "types": [
-            "hotel",
-            "lodging",
+            "tourist_attraction",
+            "gift_shop",
+            "store",
             "point_of_interest",
             "establishment"
           ],
-          "googleMapsUri": "https://maps.google.com/?cid=3642872163389926173&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          "googleMapsUri": "https://maps.google.com/?cid=17390971049482098561&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
         }
       }
     },
@@ -296,22 +297,23 @@
       ],
       "overnight": {
         "key": "d2-hotel",
-        "query": "Calgary downtown hotels, Calgary, AB",
+        "query": "Calgary Tower, Calgary, AB, Canada",
         "type": "city_overnight",
-        "notes": "City overnight — Calgary",
+        "notes": "City overnight — Calgary (lodging TBD)",
         "resolved": {
-          "placeId": "ChIJN4GJIuBvcVMRHesDje4UjjI",
-          "name": "Best Western Plus Suites Downtown",
-          "formattedAddress": "1330 8 Street SW, Calgary, AB T2R 1B6",
-          "latitude": 51.040297599999995,
-          "longitude": -114.08138969999999,
+          "placeId": "ChIJJzJsi_1vcVMRgZd7NwckWfE",
+          "name": "Calgary Tower",
+          "formattedAddress": "101 9 Ave SW, Calgary, AB T2P 1J9",
+          "latitude": 51.04430800000001,
+          "longitude": -114.06309139999999,
           "types": [
-            "hotel",
-            "lodging",
+            "tourist_attraction",
+            "gift_shop",
+            "store",
             "point_of_interest",
             "establishment"
           ],
-          "googleMapsUri": "https://maps.google.com/?cid=3642872163389926173&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          "googleMapsUri": "https://maps.google.com/?cid=17390971049482098561&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
         }
       }
     },
@@ -471,22 +473,23 @@
       ],
       "overnight": {
         "key": "d3-hotel",
-        "query": "Calgary downtown hotels, Calgary, AB",
+        "query": "Calgary Tower, Calgary, AB, Canada",
         "type": "city_overnight",
-        "notes": "City overnight — Calgary",
+        "notes": "City overnight — Calgary (lodging TBD)",
         "resolved": {
-          "placeId": "ChIJN4GJIuBvcVMRHesDje4UjjI",
-          "name": "Best Western Plus Suites Downtown",
-          "formattedAddress": "1330 8 Street SW, Calgary, AB T2R 1B6",
-          "latitude": 51.040297599999995,
-          "longitude": -114.08138969999999,
+          "placeId": "ChIJJzJsi_1vcVMRgZd7NwckWfE",
+          "name": "Calgary Tower",
+          "formattedAddress": "101 9 Ave SW, Calgary, AB T2P 1J9",
+          "latitude": 51.04430800000001,
+          "longitude": -114.06309139999999,
           "types": [
-            "hotel",
-            "lodging",
+            "tourist_attraction",
+            "gift_shop",
+            "store",
             "point_of_interest",
             "establishment"
           ],
-          "googleMapsUri": "https://maps.google.com/?cid=3642872163389926173&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          "googleMapsUri": "https://maps.google.com/?cid=17390971049482098561&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
         }
       }
     },
@@ -557,16 +560,22 @@
           "query": "Columbia Icefield, Jasper National Park, AB",
           "type": "attraction",
           "resolved": {
-            "placeId": "ChIJVaomLeX-d1MRZ9IZJSjcXTw",
-            "name": "Athabasca Glacier",
-            "formattedAddress": "Athabasca Glacier, Improvement District No. 12, AB T0E 0A8",
-            "latitude": 52.1897234,
-            "longitude": -117.2578206,
+            "placeId": "ChIJk1r-ySH_d1MROEVapKmwG00",
+            "name": "Jasper National Park Icefield Information Centre and Glacier Gallery",
+            "formattedAddress": "AB-93, Jasper, AB T0E 1E0",
+            "latitude": 52.2203483,
+            "longitude": -117.2242371,
             "types": [
-              "natural_feature",
+              "visitor_center",
+              "tourist_attraction",
+              "tourist_information_center",
+              "tour_agency",
+              "travel_agency",
+              "service",
+              "point_of_interest",
               "establishment"
             ],
-            "googleMapsUri": "https://maps.google.com/?cid=4349874880089018983&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+            "googleMapsUri": "https://maps.google.com/?cid=5556228807944979768&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
         },
         {
@@ -1071,14 +1080,14 @@
               "tourist_attraction",
               "hiking_area",
               "wedding_venue",
+              "event_venue",
+              "sports_activity_location",
               "food_store",
               "store",
-              "sports_activity_location",
-              "event_venue",
-              "service",
               "restaurant",
               "food",
               "point_of_interest",
+              "service",
               "establishment"
             ],
             "googleMapsUri": "https://maps.google.com/?cid=12085332079591147527&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
@@ -1441,20 +1450,20 @@
       ],
       "overnight": {
         "key": "d11-hotel",
-        "query": "Downtown Edmonton, AB",
+        "query": "Alberta Legislature Building, Edmonton, AB, Canada",
         "type": "city_overnight",
-        "notes": "City overnight — Edmonton",
+        "notes": "City overnight — Edmonton (lodging TBD)",
         "resolved": {
-          "placeId": "ChIJadNyskcioFMRRolJXjgkKGE",
-          "name": "Downtown",
-          "formattedAddress": "Downtown, Edmonton, AB",
-          "latitude": 53.5409352,
-          "longitude": -113.508449,
+          "placeId": "ChIJ45SDFDwioFMR7X728p0WXtY",
+          "name": "Legislature Building",
+          "formattedAddress": "Legislature Building, 10800 97 Ave NW, Edmonton, AB T5K 2B6",
+          "latitude": 53.5334764,
+          "longitude": -113.5066378,
           "types": [
-            "neighborhood",
-            "political"
+            "premise",
+            "street_address"
           ],
-          "googleMapsUri": "https://maps.google.com/?cid=7000885445266082118&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          "googleMapsUri": "https://maps.google.com/?cid=15446808639569297133&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
         }
       }
     },
@@ -1506,20 +1515,31 @@
       ],
       "overnight": {
         "key": "d12-hotel",
-        "query": "Saskatoon, SK",
+        "query": "Remai Modern, Saskatoon, SK, Canada",
         "type": "city_overnight",
-        "notes": "City overnight — Saskatoon",
+        "notes": "City overnight — Saskatoon (lodging TBD)",
         "resolved": {
-          "placeId": "ChIJK5ntR7_2BFMRkCZ3lTKeBAU",
-          "name": "Saskatoon",
-          "formattedAddress": "Saskatoon, SK",
-          "latitude": 52.129728199999995,
-          "longitude": -106.65963719999999,
+          "placeId": "ChIJUVbhEir3BFMRRghiouuHigM",
+          "name": "Remai Modern",
+          "formattedAddress": "102 Spadina Crescent E, Saskatoon, SK S7K 0L3",
+          "latitude": 52.122878,
+          "longitude": -106.6670178,
           "types": [
-            "locality",
-            "political"
+            "gift_shop",
+            "art_museum",
+            "tourist_attraction",
+            "wedding_venue",
+            "art_gallery",
+            "store",
+            "museum",
+            "event_venue",
+            "service",
+            "restaurant",
+            "food",
+            "point_of_interest",
+            "establishment"
           ],
-          "googleMapsUri": "https://maps.google.com/?cid=361587810189649552&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          "googleMapsUri": "https://maps.google.com/?cid=255165775011252294&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
         }
       }
     },

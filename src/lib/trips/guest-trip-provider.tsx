@@ -24,6 +24,7 @@ type GuestTripContextValue = {
     startLocation?: string;
     endLocation?: string;
   }) => GuestTripDraft;
+  loadDraft: (draft: GuestTripDraft) => void;
   updateDraft: (updater: (current: GuestTripDraft) => GuestTripDraft) => void;
   clearDraft: () => void;
 };
@@ -53,6 +54,11 @@ export function GuestTripProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const loadDraft = useCallback((next: GuestTripDraft) => {
+    writeGuestTrip(next);
+    setDraft(next);
+  }, []);
+
   const updateDraft = useCallback(
     (updater: (current: GuestTripDraft) => GuestTripDraft) => {
       setDraft((current) => {
@@ -72,7 +78,14 @@ export function GuestTripProvider({ children }: { children: ReactNode }) {
 
   return (
     <GuestTripContext.Provider
-      value={{ draft, hydrated, startPlanning, updateDraft, clearDraft }}
+      value={{
+        draft,
+        hydrated,
+        startPlanning,
+        loadDraft,
+        updateDraft,
+        clearDraft,
+      }}
     >
       {children}
     </GuestTripContext.Provider>

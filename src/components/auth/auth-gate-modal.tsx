@@ -142,7 +142,11 @@ export function AuthGateModal({ open, intent, onClose }: Props) {
     try {
       const tripId = await claimIfNeeded();
       onClose();
-      router.push(tripId ? `/planner/${tripId}` : "/planner/new");
+      const email = String(form.get("email") || "");
+      const nextPath = tripId ? `/planner/${tripId}` : "/planner";
+      router.push(
+        `/auth/verify-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(nextPath)}`,
+      );
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

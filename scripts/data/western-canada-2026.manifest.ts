@@ -62,9 +62,9 @@ export const WESTERN_CANADA_DAYS: ManifestDay[] = [
     ],
     overnight: {
       key: "d1-hotel",
-      query: "Downtown Calgary, Calgary, AB, Canada",
+      query: "Calgary Tower, Calgary, AB, Canada",
       type: "city_overnight",
-      notes: "City overnight — Calgary",
+      notes: "City overnight — Calgary (lodging TBD)",
     },
   },
   {
@@ -85,9 +85,9 @@ export const WESTERN_CANADA_DAYS: ManifestDay[] = [
     ],
     overnight: {
       key: "d2-hotel",
-      query: "Downtown Calgary, Calgary, AB, Canada",
+      query: "Calgary Tower, Calgary, AB, Canada",
       type: "city_overnight",
-      notes: "City overnight — Calgary",
+      notes: "City overnight — Calgary (lodging TBD)",
     },
   },
   {
@@ -107,9 +107,9 @@ export const WESTERN_CANADA_DAYS: ManifestDay[] = [
     ],
     overnight: {
       key: "d3-hotel",
-      query: "Downtown Calgary, Calgary, AB, Canada",
+      query: "Calgary Tower, Calgary, AB, Canada",
       type: "city_overnight",
-      notes: "City overnight — Calgary",
+      notes: "City overnight — Calgary (lodging TBD)",
     },
   },
   {
@@ -257,9 +257,9 @@ export const WESTERN_CANADA_DAYS: ManifestDay[] = [
     ],
     overnight: {
       key: "d11-hotel",
-      query: "Downtown Edmonton, AB",
+      query: "Alberta Legislature Building, Edmonton, AB, Canada",
       type: "city_overnight",
-      notes: "City overnight — Edmonton",
+      notes: "City overnight — Edmonton (lodging TBD)",
     },
   },
   {
@@ -274,9 +274,9 @@ export const WESTERN_CANADA_DAYS: ManifestDay[] = [
     ],
     overnight: {
       key: "d12-hotel",
-      query: "Saskatoon, SK",
+      query: "Remai Modern, Saskatoon, SK, Canada",
       type: "city_overnight",
-      notes: "City overnight — Saskatoon",
+      notes: "City overnight — Saskatoon (lodging TBD)",
     },
   },
   {

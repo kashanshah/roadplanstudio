@@ -6,6 +6,7 @@ import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import { getPublicTripBySlug } from "@/lib/trips/public";
 import { SiteFooter, SiteNav } from "@/components/layout/site-nav";
 import { Button } from "@/components/ui/button";
+import { RemixTripButton } from "@/components/trips/remix-trip-button";
 
 type Props = {
   params: Promise<{ publicSlug: string }>;
@@ -178,10 +179,8 @@ export default async function PublicTripPage({ params }: Props) {
           ))}
         </dl>
 
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Button asChild size="lg" className="text-base">
-            <Link href="/planner/new">Remix in planner</Link>
-          </Button>
+        <div className="mt-8 flex flex-wrap items-start gap-3">
+          {trip.slug ? <RemixTripButton slug={trip.slug} /> : null}
           <Button asChild size="lg" variant="secondary" className="text-base">
             <Link href="/discover">More trips</Link>
           </Button>

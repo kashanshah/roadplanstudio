@@ -5,21 +5,30 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Menu } from "lucide-react";
 import { useState } from "react";
+import { AccountMenu } from "@/components/auth/account-menu";
 import { Wordmark } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { Button } from "@/components/ui/button";
+import { useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils/cn";
 
-const links = [
+const publicLinks = [
   { href: "/", label: "Home" },
   { href: "/discover", label: "Discover" },
   { href: "/emails", label: "Emails" },
-  { href: "/auth/login", label: "Sign in" },
 ] as const;
 
 export function SiteNav({ overlay = false }: { overlay?: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const { data: session } = useSession();
+
+  const mobileLinks = [
+    ...publicLinks,
+    session
+      ? { href: "/account", label: "Account" }
+      : { href: "/auth/login", label: "Sign in" },
+    ...(session ? [{ href: "/planner", label: "Planner" }] : []),
+  ];
 
   return (
     <motion.header
@@ -42,7 +51,7 @@ export function SiteNav({ overlay = false }: { overlay?: boolean }) {
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           <div className="hidden items-center gap-1 md:flex">
-            {links.slice(0, 3).map((l) => (
+            {publicLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
@@ -60,18 +69,27 @@ export function SiteNav({ overlay = false }: { overlay?: boolean }) {
                 {l.label}
               </Link>
             ))}
+            {session ? (
+              <Link
+                href="/planner"
+                className={cn(
+                  "rounded-full px-3 py-2 text-sm transition-colors",
+                  overlay
+                    ? "text-snow/75 hover:text-snow"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Planner
+              </Link>
+            ) : null}
           </div>
           <ThemeToggle
             className={overlay ? "border-snow/25 bg-snow/10 text-snow" : ""}
           />
-          <Button
-            asChild
-            size="sm"
-            variant={overlay ? "onDark" : "default"}
-            className="hidden sm:inline-flex"
-          >
-            <Link href="/auth/login">Sign in</Link>
-          </Button>
+          <AccountMenu
+            tone={overlay ? "onDark" : "default"}
+            className="hidden sm:block"
+          />
           <button
             type="button"
             aria-label="Open menu"
@@ -92,7 +110,7 @@ export function SiteNav({ overlay = false }: { overlay?: boolean }) {
           animate={{ opacity: 1, y: 0 }}
           className="mx-4 mb-4 rounded-2xl border border-border bg-popover p-2 shadow-elevated md:hidden"
         >
-          {links.map((l) => (
+          {mobileLinks.map((l) => (
             <Link
               key={l.href}
               href={l.href}
@@ -102,6 +120,15 @@ export function SiteNav({ overlay = false }: { overlay?: boolean }) {
               {l.label}
             </Link>
           ))}
+          {session ? (
+            <Link
+              href="/account/sessions"
+              onClick={() => setOpen(false)}
+              className="block rounded-xl px-4 py-3 text-sm text-destructive transition-colors hover:bg-secondary"
+            >
+              Log out
+            </Link>
+          ) : null}
         </motion.div>
       ) : null}
     </motion.header>
@@ -109,6 +136,8 @@ export function SiteNav({ overlay = false }: { overlay?: boolean }) {
 }
 
 export function SiteFooter() {
+  const { data: session } = useSession();
+
   return (
     <footer className="border-t border-border bg-background">
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:px-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
@@ -126,12 +155,21 @@ export function SiteFooter() {
           <Link href="/emails" className="transition-colors hover:text-foreground">
             Emails
           </Link>
-          <Link
-            href="/auth/login"
-            className="transition-colors hover:text-foreground"
-          >
-            Sign in
-          </Link>
+          {session ? (
+            <Link
+              href="/account"
+              className="transition-colors hover:text-foreground"
+            >
+              Account
+            </Link>
+          ) : (
+            <Link
+              href="/auth/login"
+              className="transition-colors hover:text-foreground"
+            >
+              Sign in
+            </Link>
+          )}
           <span>www.roadplanstudio.com</span>
         </div>
       </div>

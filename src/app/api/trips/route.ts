@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getSession } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 import { activityLogs, tripDays, trips } from "@/lib/db/schema";
+import { duplicateTemplateForUser } from "@/lib/trips/duplicate";
 import { ensureProfile } from "@/lib/trips/ensure-profile";
 
 const createSchema = z.object({
-  title: z.string().min(1).max(200),
+  title: z.string().min(1).max(200).optional(),
   description: z.string().max(5000).optional(),
   durationDays: z.number().int().positive().max(60).default(1),
   visibility: z.enum(["private", "unlisted", "public"]).default("private"),
@@ -20,6 +20,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { desc, eq } = await import("drizzle-orm");
   const owned = await db
     .select()
     .from(trips)
@@ -44,8 +45,30 @@ export async function POST(request: Request) {
     );
   }
 
-  await ensureProfile(session.user);
   const input = parsed.data;
+
+  if (input.templateSlug) {
+    try {
+      const trip = await duplicateTemplateForUser({
+        slug: input.templateSlug,
+        userId: session.user.id,
+        userName: session.user.name,
+      });
+      return NextResponse.json({ trip }, { status: 201 });
+    } catch (err) {
+      if (err instanceof Error && err.message === "TEMPLATE_NOT_FOUND") {
+        return NextResponse.json({ error: "Template not found" }, { status: 404 });
+      }
+      console.error("duplicate template failed", err);
+      return NextResponse.json({ error: "Failed to duplicate" }, { status: 500 });
+    }
+  }
+
+  if (!input.title) {
+    return NextResponse.json({ error: "title is required" }, { status: 400 });
+  }
+
+  await ensureProfile(session.user);
 
   const [trip] = await db
     .insert(trips)

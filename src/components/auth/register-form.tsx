@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import {
   AuthShell,
@@ -26,6 +26,8 @@ const STRENGTH_LABEL = ["Too short", "Weak", "Okay", "Good", "Strong"];
 
 export function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [password, setPassword] = useState("");
@@ -80,7 +82,11 @@ export function RegisterForm() {
 
     const tripId = await claimIfNeeded();
     setPending(false);
-    router.push(tripId ? `/planner/${tripId}` : "/planner/new");
+
+    const verifyUrl = `/auth/verify-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(
+      next || (tripId ? `/planner/${tripId}` : "/planner"),
+    )}`;
+    router.push(verifyUrl);
     router.refresh();
   }
 

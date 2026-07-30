@@ -15,7 +15,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/auth/forgot-password") ||
     pathname.startsWith("/auth/reset-password");
 
-  const requiresAuth = pathname.startsWith("/auth/profile");
+  const requiresAuth =
+    pathname.startsWith("/account") || pathname.startsWith("/auth/profile");
 
   if (!sessionCookie && requiresAuth) {
     const url = request.nextUrl.clone();
@@ -26,7 +27,7 @@ export async function middleware(request: NextRequest) {
 
   if (sessionCookie && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/planner/new";
+    url.pathname = "/planner";
     return NextResponse.redirect(url);
   }
 

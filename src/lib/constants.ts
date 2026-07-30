@@ -9,4 +9,4 @@ export const AUTH_ROUTES = [
   "/auth/register",
   "/auth/forgot-password",
 ] as const;
-export const PROTECTED_ROUTES = ["/auth/profile", "/planner"] as const;
+export const PROTECTED_ROUTES = ["/account", "/auth/profile", "/planner"] as const;

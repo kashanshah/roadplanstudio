@@ -13,27 +13,72 @@ export type PlaceResult = {
   googleMapsUri: string | null;
 };
 
-type TextSearchResponse = {
-  places?: Array<{
-    id?: string;
-    displayName?: { text?: string };
-    formattedAddress?: string;
-    location?: { latitude?: number; longitude?: number };
-    types?: string[];
-    googleMapsUri?: string;
-  }>;
-  error?: { message?: string; status?: string };
+export type PlaceDetails = PlaceResult & {
+  rating: number | null;
+  userRatingCount: number | null;
+  editorialSummary: string | null;
+  websiteUri: string | null;
+  nationalPhoneNumber: string | null;
+  regularOpeningHours: string[] | null;
+  photoNames: string[];
+  priceLevel: string | null;
+  estimatedDurationMins: number;
 };
 
-type PlaceDetailsResponse = {
+type PlacePayload = {
   id?: string;
   displayName?: { text?: string };
   formattedAddress?: string;
   location?: { latitude?: number; longitude?: number };
   types?: string[];
   googleMapsUri?: string;
+  rating?: number;
+  userRatingCount?: number;
+  editorialSummary?: { text?: string };
+  websiteUri?: string;
+  nationalPhoneNumber?: string;
+  regularOpeningHours?: { weekdayDescriptions?: string[] };
+  photos?: Array<{ name?: string }>;
+  priceLevel?: string;
+};
+
+type TextSearchResponse = {
+  places?: PlacePayload[];
+  error?: { message?: string; status?: string };
+};
+
+type PlaceDetailsResponse = PlacePayload & {
   error?: { message?: string };
 };
+
+const SEARCH_FIELD_MASK = [
+  "places.id",
+  "places.displayName",
+  "places.formattedAddress",
+  "places.location",
+  "places.types",
+  "places.googleMapsUri",
+  "places.rating",
+  "places.userRatingCount",
+  "places.photos",
+].join(",");
+
+const DETAILS_FIELD_MASK = [
+  "id",
+  "displayName",
+  "formattedAddress",
+  "location",
+  "types",
+  "googleMapsUri",
+  "rating",
+  "userRatingCount",
+  "editorialSummary",
+  "websiteUri",
+  "nationalPhoneNumber",
+  "regularOpeningHours",
+  "photos",
+  "priceLevel",
+].join(",");
 
 function getApiKey() {
   const key = process.env.GOOGLE_MAPS_SERVER_API_KEY;
@@ -43,14 +88,24 @@ function getApiKey() {
   return key;
 }
 
-function mapPlace(p: {
-  id?: string;
-  displayName?: { text?: string };
-  formattedAddress?: string;
-  location?: { latitude?: number; longitude?: number };
-  types?: string[];
-  googleMapsUri?: string;
-}): PlaceResult | null {
+/** Heuristic visit duration when Places has no dwell-time field. */
+export function estimateDurationFromTypes(types: string[]): number {
+  const set = new Set(types);
+  if (set.has("lodging") || set.has("hotel")) return 0;
+  if (set.has("museum") || set.has("art_gallery")) return 120;
+  if (set.has("amusement_park") || set.has("zoo") || set.has("aquarium"))
+    return 180;
+  if (set.has("national_park") || set.has("park")) return 150;
+  if (set.has("hiking_area") || set.has("campground")) return 180;
+  if (set.has("shopping_mall") || set.has("department_store")) return 90;
+  if (set.has("restaurant") || set.has("cafe") || set.has("bakery")) return 75;
+  if (set.has("spa") || set.has("hot_spring")) return 120;
+  if (set.has("tourist_attraction") || set.has("point_of_interest")) return 90;
+  if (set.has("locality") || set.has("route")) return 30;
+  return 60;
+}
+
+function mapPlace(p: PlacePayload): PlaceResult | null {
   if (
     !p.id ||
     p.location?.latitude == null ||
@@ -69,18 +124,40 @@ function mapPlace(p: {
   };
 }
 
-/** Places API (New) Text Search — returns best match or null. */
-export async function searchPlace(
+function mapPlaceDetails(p: PlacePayload): PlaceDetails | null {
+  const base = mapPlace(p);
+  if (!base) return null;
+  const types = p.types ?? [];
+  return {
+    ...base,
+    rating: p.rating ?? null,
+    userRatingCount: p.userRatingCount ?? null,
+    editorialSummary: p.editorialSummary?.text ?? null,
+    websiteUri: p.websiteUri ?? null,
+    nationalPhoneNumber: p.nationalPhoneNumber ?? null,
+    regularOpeningHours: p.regularOpeningHours?.weekdayDescriptions ?? null,
+    photoNames: (p.photos ?? [])
+      .map((photo) => photo.name)
+      .filter((name): name is string => !!name)
+      .slice(0, 4),
+    priceLevel: p.priceLevel ?? null,
+    estimatedDurationMins: estimateDurationFromTypes(types),
+  };
+}
+
+/** Places API (New) Text Search — returns ranked matches. */
+export async function searchPlaces(
   query: string,
   opts?: {
     latitude?: number;
     longitude?: number;
     radiusMeters?: number;
+    pageSize?: number;
   },
-): Promise<PlaceResult | null> {
+): Promise<PlaceDetails[]> {
   const body: Record<string, unknown> = {
     textQuery: query,
-    pageSize: 5,
+    pageSize: Math.min(opts?.pageSize ?? 8, 10),
     languageCode: "en",
     regionCode: "CA",
   };
@@ -104,8 +181,7 @@ export async function searchPlace(
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": getApiKey(),
-        "X-Goog-FieldMask":
-          "places.id,places.displayName,places.formattedAddress,places.location,places.types,places.googleMapsUri",
+        "X-Goog-FieldMask": SEARCH_FIELD_MASK,
       },
       body: JSON.stringify(body),
     },
@@ -118,19 +194,32 @@ export async function searchPlace(
     );
   }
 
-  const first = data.places?.[0];
-  return first ? mapPlace(first) : null;
+  return (data.places ?? [])
+    .map(mapPlaceDetails)
+    .filter((p): p is PlaceDetails => p != null);
+}
+
+/** Places API (New) Text Search — returns best match or null. */
+export async function searchPlace(
+  query: string,
+  opts?: {
+    latitude?: number;
+    longitude?: number;
+    radiusMeters?: number;
+  },
+): Promise<PlaceResult | null> {
+  const results = await searchPlaces(query, { ...opts, pageSize: 1 });
+  return results[0] ?? null;
 }
 
 export async function getPlaceDetails(
   placeId: string,
-): Promise<PlaceResult | null> {
+): Promise<PlaceDetails | null> {
   const id = placeId.startsWith("places/") ? placeId : `places/${placeId}`;
   const res = await fetch(`https://places.googleapis.com/v1/${id}`, {
     headers: {
       "X-Goog-Api-Key": getApiKey(),
-      "X-Goog-FieldMask":
-        "id,displayName,formattedAddress,location,types,googleMapsUri",
+      "X-Goog-FieldMask": DETAILS_FIELD_MASK,
     },
   });
 
@@ -141,7 +230,18 @@ export async function getPlaceDetails(
     );
   }
 
-  return mapPlace(data);
+  return mapPlaceDetails(data);
+}
+
+/** Proxy a Places photo media URL (server-side key). */
+export function buildPlacePhotoUrl(
+  photoName: string,
+  maxWidthPx = 800,
+): string {
+  const name = photoName.startsWith("places/")
+    ? photoName
+    : photoName;
+  return `https://places.googleapis.com/v1/${name}/media?maxWidthPx=${maxWidthPx}&key=${getApiKey()}`;
 }
 
 export async function geocodeAddress(
@@ -191,5 +291,5 @@ export async function resolvePlace(
 }
 
 export function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+  return new Promise<void>((r) => setTimeout(r, ms));
 }

@@ -8,11 +8,11 @@ import { useAuthGate } from "@/components/auth/auth-gate-provider";
 import { useSession } from "@/lib/auth-client";
 
 export function GuestBanner() {
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const { requireAuth } = useAuthGate();
   const [dismissed, setDismissed] = useState(false);
 
-  if (session || dismissed) return null;
+  if (isPending || session || dismissed) return null;
 
   return (
     <AnimatePresence>
