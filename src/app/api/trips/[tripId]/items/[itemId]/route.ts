@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { getSession } from "@/lib/auth-server";
 import { db } from "@/lib/db";
-import { itineraryItems, tripDays } from "@/lib/db/schema";
+import { accommodations, itineraryItems, tripDays } from "@/lib/db/schema";
 import { assertCanEdit, getTripAccess } from "@/lib/trips/permissions";
+import { demoteOtherOvernightHotels } from "@/lib/trips/overnight-hotel";
 
 type Ctx = { params: Promise<{ tripId: string; itemId: string }> };
 
@@ -61,6 +62,14 @@ export async function PATCH(request: Request, ctx: Ctx) {
     .select({
       id: itineraryItems.id,
       dayId: itineraryItems.dayId,
+      type: itineraryItems.type,
+      sortOrder: itineraryItems.sortOrder,
+      name: itineraryItems.name,
+      address: itineraryItems.address,
+      latitude: itineraryItems.latitude,
+      longitude: itineraryItems.longitude,
+      googlePlaceId: itineraryItems.googlePlaceId,
+      googleMapsUri: itineraryItems.googleMapsUri,
     })
     .from(itineraryItems)
     .innerJoin(tripDays, eq(tripDays.id, itineraryItems.dayId))
@@ -76,6 +85,68 @@ export async function PATCH(request: Request, ctx: Ctx) {
     .set(parsed.data)
     .where(eq(itineraryItems.id, itemId))
     .returning();
+
+  const nextType = parsed.data.type ?? item.type;
+  if (nextType === "hotel") {
+    const dayItems = await db
+      .select({
+        id: itineraryItems.id,
+        type: itineraryItems.type,
+        sortOrder: itineraryItems.sortOrder,
+      })
+      .from(itineraryItems)
+      .where(eq(itineraryItems.dayId, item.dayId))
+      .orderBy(asc(itineraryItems.sortOrder));
+
+    const demoted = demoteOtherOvernightHotels(dayItems, itemId);
+    for (const row of demoted) {
+      if (
+        row.type !== "hotel" &&
+        dayItems.some((d) => d.id === row.id && d.type === "hotel")
+      ) {
+        await db
+          .update(itineraryItems)
+          .set({ type: "attraction" })
+          .where(
+            and(eq(itineraryItems.id, row.id), ne(itineraryItems.id, itemId)),
+          );
+      }
+    }
+
+    const keepIndex = dayItems.findIndex((row) => row.id === itemId);
+    if (keepIndex > 0) {
+      await db
+        .delete(accommodations)
+        .where(eq(accommodations.dayId, item.dayId));
+      await db.insert(accommodations).values({
+        tripId,
+        dayId: item.dayId,
+        googlePlaceId: updated.googlePlaceId,
+        name: updated.name,
+        address: updated.address,
+        latitude: updated.latitude,
+        longitude: updated.longitude,
+        googleMapsUri: updated.googleMapsUri,
+        isConfirmed: "false",
+      });
+    }
+  } else if (item.type === "hotel" && parsed.data.type && parsed.data.type !== "hotel") {
+    const remainingHotels = await db
+      .select({ id: itineraryItems.id, sortOrder: itineraryItems.sortOrder })
+      .from(itineraryItems)
+      .where(
+        and(
+          eq(itineraryItems.dayId, item.dayId),
+          eq(itineraryItems.type, "hotel"),
+        ),
+      );
+    const hasOvernight = remainingHotels.some((row) => row.sortOrder > 0);
+    if (!hasOvernight) {
+      await db
+        .delete(accommodations)
+        .where(eq(accommodations.dayId, item.dayId));
+    }
+  }
 
   return NextResponse.json({ item: updated });
 }
@@ -97,6 +168,9 @@ export async function DELETE(_request: Request, ctx: Ctx) {
   const [item] = await db
     .select({
       id: itineraryItems.id,
+      dayId: itineraryItems.dayId,
+      type: itineraryItems.type,
+      sortOrder: itineraryItems.sortOrder,
     })
     .from(itineraryItems)
     .innerJoin(tripDays, eq(tripDays.id, itineraryItems.dayId))
@@ -108,6 +182,10 @@ export async function DELETE(_request: Request, ctx: Ctx) {
   }
 
   await db.delete(itineraryItems).where(eq(itineraryItems.id, itemId));
+
+  if (item.type === "hotel" && item.sortOrder > 0) {
+    await db.delete(accommodations).where(eq(accommodations.dayId, item.dayId));
+  }
 
   return NextResponse.json({ ok: true });
 }

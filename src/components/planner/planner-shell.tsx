@@ -37,7 +37,8 @@ import { useSession } from "@/lib/auth-client";
 import { SITE_URL } from "@/lib/constants";
 import { createDefaultPackingItems } from "@/lib/packing/defaults";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
-import type { GuestStopStatus } from "@/lib/trips/guest-trip";
+import type { GuestItemType, GuestStopStatus } from "@/lib/trips/guest-trip";
+import { demoteOtherOvernightHotels } from "@/lib/trips/overnight-hotel";
 import {
   isTripStartItem,
   pinTripStartFirst,
@@ -366,6 +367,7 @@ export function PlannerShell({ tripId }: Props) {
         | "timingMins"
         | "customTravelDurationMins"
         | "customTravelDistanceKm"
+        | "type"
       >
     >,
   ) {
@@ -382,6 +384,7 @@ export function PlannerShell({ tripId }: Props) {
                   ...item,
                   ...patch,
                   status: (patch.status ?? item.status) as GuestStopStatus,
+                  type: (patch.type ?? item.type) as GuestItemType,
                 }
               : item,
           ),
@@ -496,12 +499,19 @@ export function PlannerShell({ tripId }: Props) {
     if (isDraftRoute) {
       updateDraft((current) => ({
         ...current,
-        days: current.days.map((day) => ({
-          ...day,
-          items: day.items.map((item) =>
+        days: current.days.map((day) => {
+          if (!day.items.some((item) => item.id === itemId)) return day;
+          const nextItems = day.items.map((item) =>
             item.id === itemId ? { ...item, ...patch } : item,
-          ),
-        })),
+          );
+          return {
+            ...day,
+            items:
+              next.type === "hotel"
+                ? demoteOtherOvernightHotels(nextItems, itemId)
+                : nextItems,
+          };
+        }),
       }));
       return;
     }
@@ -510,12 +520,19 @@ export function PlannerShell({ tripId }: Props) {
       if (!prev) return prev;
       return {
         ...prev,
-        days: prev.days.map((day) => ({
-          ...day,
-          items: day.items.map((item) =>
+        days: prev.days.map((day) => {
+          if (!day.items.some((item) => item.id === itemId)) return day;
+          const nextItems = day.items.map((item) =>
             item.id === itemId ? { ...item, ...patch } : item,
-          ),
-        })),
+          );
+          return {
+            ...day,
+            items:
+              next.type === "hotel"
+                ? demoteOtherOvernightHotels(nextItems, itemId)
+                : nextItems,
+          };
+        }),
       };
     });
 
@@ -602,7 +619,7 @@ export function PlannerShell({ tripId }: Props) {
     timing: StopTimingInput,
   ) {
     if (!isEditor) return;
-    const type = asHotel ? "hotel" : "attraction";
+    const type: GuestItemType = asHotel ? "hotel" : "attraction";
     const targetDay = days.find((day) => day.id === dayId);
     const shouldBecomeTripStart =
       targetDay?.dayIndex === 1 &&
@@ -627,30 +644,35 @@ export function PlannerShell({ tripId }: Props) {
         days: current.days.map((day) => {
           if (day.id !== dayId) return day;
           const sortOrder = day.items.length;
+          const newId = crypto.randomUUID();
+          const nextItems = [
+            ...day.items,
+            {
+              id: newId,
+              sortOrder,
+              type,
+              name: place.name,
+              address: place.formattedAddress,
+              latitude: place.latitude,
+              longitude: place.longitude,
+              googlePlaceId: place.placeId,
+              durationMins:
+                timing.durationMins ?? place.estimatedDurationMins ?? null,
+              timingMode: timing.timingMode,
+              timingMins: timing.timingMins,
+              customTravelDurationMins: null,
+              customTravelDistanceKm: null,
+              travelMode: "driving" as const,
+              status: "to_visit" as const,
+              notes: null,
+            },
+          ];
           return {
             ...day,
-            items: [
-              ...day.items,
-              {
-                id: crypto.randomUUID(),
-                sortOrder,
-                type,
-                name: place.name,
-                address: place.formattedAddress,
-                latitude: place.latitude,
-                longitude: place.longitude,
-                googlePlaceId: place.placeId,
-                durationMins:
-                  timing.durationMins ?? place.estimatedDurationMins ?? null,
-                timingMode: timing.timingMode,
-                timingMins: timing.timingMins,
-                customTravelDurationMins: null,
-                customTravelDistanceKm: null,
-                travelMode: "driving" as const,
-                status: "to_visit" as const,
-                notes: null,
-              },
-            ],
+            items:
+              type === "hotel"
+                ? demoteOtherOvernightHotels(nextItems, newId)
+                : nextItems,
           };
         }),
       }));
@@ -680,32 +702,35 @@ export function PlannerShell({ tripId }: Props) {
       if (!prev) return prev;
       return {
         ...prev,
-        days: prev.days.map((day) =>
-          day.id === dayId
-            ? {
-                ...day,
-                items: [
-                  ...day.items,
-                  {
-                    ...data.item,
-                    status: normalizeStatus(data.item.status),
-                    customTravelDurationMins:
-                      data.item.customTravelDurationMins ?? null,
-                    customTravelDistanceKm:
-                      data.item.customTravelDistanceKm ?? null,
-                    travelMode: data.item.travelMode ?? "driving",
-                  },
-                ],
-              }
-            : day,
-        ),
+        days: prev.days.map((day) => {
+          if (day.id !== dayId) return day;
+          const nextItems = [
+            ...day.items,
+            {
+              ...data.item,
+              status: normalizeStatus(data.item.status),
+              customTravelDurationMins:
+                data.item.customTravelDurationMins ?? null,
+              customTravelDistanceKm:
+                data.item.customTravelDistanceKm ?? null,
+              travelMode: data.item.travelMode ?? "driving",
+            },
+          ];
+          return {
+            ...day,
+            items:
+              type === "hotel"
+                ? demoteOtherOvernightHotels(nextItems, data.item.id)
+                : nextItems,
+          };
+        }),
       };
     });
   }
 
   async function addCustomPlace(dayId: string, input: CustomStopInput) {
     if (!isEditor) return;
-    const type = input.asHotel ? "hotel" : "custom";
+    const type: GuestItemType = input.asHotel ? "hotel" : "custom";
 
     if (isDraftRoute) {
       updateDraft((current) => ({
@@ -713,29 +738,34 @@ export function PlannerShell({ tripId }: Props) {
         days: current.days.map((day) => {
           if (day.id !== dayId) return day;
           const sortOrder = day.items.length;
+          const newId = crypto.randomUUID();
+          const nextItems = [
+            ...day.items,
+            {
+              id: newId,
+              sortOrder,
+              type,
+              name: input.name,
+              address: input.address ?? null,
+              latitude: null,
+              longitude: null,
+              googlePlaceId: null,
+              durationMins: input.timing?.durationMins ?? null,
+              timingMode: input.timing?.timingMode ?? null,
+              timingMins: input.timing?.timingMins ?? null,
+              customTravelDurationMins: null,
+              customTravelDistanceKm: null,
+              travelMode: "driving" as const,
+              status: "to_visit" as const,
+              notes: input.notes ?? null,
+            },
+          ];
           return {
             ...day,
-            items: [
-              ...day.items,
-              {
-                id: crypto.randomUUID(),
-                sortOrder,
-                type,
-                name: input.name,
-                address: input.address ?? null,
-                latitude: null,
-                longitude: null,
-                googlePlaceId: null,
-                durationMins: input.timing?.durationMins ?? null,
-                timingMode: input.timing?.timingMode ?? null,
-                timingMins: input.timing?.timingMins ?? null,
-                customTravelDurationMins: null,
-                customTravelDistanceKm: null,
-                travelMode: "driving" as const,
-                status: "to_visit" as const,
-                notes: input.notes ?? null,
-              },
-            ],
+            items:
+              type === "hotel"
+                ? demoteOtherOvernightHotels(nextItems, newId)
+                : nextItems,
           };
         }),
       }));
@@ -767,25 +797,28 @@ export function PlannerShell({ tripId }: Props) {
       if (!prev) return prev;
       return {
         ...prev,
-        days: prev.days.map((day) =>
-          day.id === dayId
-            ? {
-                ...day,
-                items: [
-                  ...day.items,
-                  {
-                    ...data.item,
-                    status: normalizeStatus(data.item.status),
-                    customTravelDurationMins:
-                      data.item.customTravelDurationMins ?? null,
-                    customTravelDistanceKm:
-                      data.item.customTravelDistanceKm ?? null,
-                    travelMode: data.item.travelMode ?? "driving",
-                  },
-                ],
-              }
-            : day,
-        ),
+        days: prev.days.map((day) => {
+          if (day.id !== dayId) return day;
+          const nextItems = [
+            ...day.items,
+            {
+              ...data.item,
+              status: normalizeStatus(data.item.status),
+              customTravelDurationMins:
+                data.item.customTravelDurationMins ?? null,
+              customTravelDistanceKm:
+                data.item.customTravelDistanceKm ?? null,
+              travelMode: data.item.travelMode ?? "driving",
+            },
+          ];
+          return {
+            ...day,
+            items:
+              type === "hotel"
+                ? demoteOtherOvernightHotels(nextItems, data.item.id)
+                : nextItems,
+          };
+        }),
       };
     });
   }
@@ -1605,7 +1638,6 @@ export function PlannerShell({ tripId }: Props) {
               {days.length > 0 ? (
                 <ItineraryCanvas
                   days={days}
-                  accommodations={accommodations}
                   isEditor={isEditor}
                   showTemplates={
                     isDraftRoute && !hasTimelineContent && dismissedStarter

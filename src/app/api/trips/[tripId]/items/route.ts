@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { and, eq, max, sql } from "drizzle-orm";
+import { and, asc, eq, max, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getSession } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 import { accommodations, itineraryItems, tripDays } from "@/lib/db/schema";
 import { assertCanEdit, getTripAccess } from "@/lib/trips/permissions";
 import { getPlaceDetails } from "@/lib/maps/places";
+import { demoteOtherOvernightHotels } from "@/lib/trips/overnight-hotel";
 
 type Ctx = { params: Promise<{ tripId: string }> };
 
@@ -150,17 +151,44 @@ export async function POST(request: Request, ctx: Ctx) {
     .returning();
 
   if (parsed.data.type === "hotel") {
-    await db.insert(accommodations).values({
-      tripId,
-      dayId: day.id,
-      googlePlaceId: placeFields.googlePlaceId,
-      name: placeFields.name,
-      address: placeFields.address,
-      latitude: placeFields.latitude,
-      longitude: placeFields.longitude,
-      googleMapsUri: placeFields.googleMapsUri,
-      isConfirmed: "false",
-    });
+    const dayItems = await db
+      .select({
+        id: itineraryItems.id,
+        type: itineraryItems.type,
+        sortOrder: itineraryItems.sortOrder,
+      })
+      .from(itineraryItems)
+      .where(eq(itineraryItems.dayId, day.id))
+      .orderBy(asc(itineraryItems.sortOrder));
+
+    const demoted = demoteOtherOvernightHotels(dayItems, item.id);
+    for (const row of demoted) {
+      if (row.type !== "hotel" && dayItems.some((d) => d.id === row.id && d.type === "hotel")) {
+        await db
+          .update(itineraryItems)
+          .set({ type: "attraction" })
+          .where(
+            and(eq(itineraryItems.id, row.id), ne(itineraryItems.id, item.id)),
+          );
+      }
+    }
+
+    // Overnight lodging lives at end-of-day; morning-base hotels are stop 1.
+    const isOvernight = sortOrder > 0 || dayItems.length <= 1;
+    if (isOvernight) {
+      await db.delete(accommodations).where(eq(accommodations.dayId, day.id));
+      await db.insert(accommodations).values({
+        tripId,
+        dayId: day.id,
+        googlePlaceId: placeFields.googlePlaceId,
+        name: placeFields.name,
+        address: placeFields.address,
+        latitude: placeFields.latitude,
+        longitude: placeFields.longitude,
+        googleMapsUri: placeFields.googleMapsUri,
+        isConfirmed: "false",
+      });
+    }
   }
 
   return NextResponse.json({ item }, { status: 201 });

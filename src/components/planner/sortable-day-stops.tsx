@@ -75,7 +75,7 @@ import {
 import { cn } from "@/lib/utils/cn";
 
 type ItemTimePatch = Partial<
-  Pick<PlannerItem, "durationMins" | "timingMode" | "timingMins">
+  Pick<PlannerItem, "durationMins" | "timingMode" | "timingMins" | "type">
 >;
 
 export type ReplacePlacePayload = {
@@ -791,9 +791,7 @@ function SortableStopRow({
                     className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-sm text-muted-foreground transition-colors hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Trash2 className="size-3.5" />
-                    <span className="sm:hidden">
-                      {isTripStart ? "Clear" : "Delete"}
-                    </span>
+                    {isTripStart ? "Clear" : "Delete"}
                   </button>
                 )
               ) : null}
@@ -843,11 +841,38 @@ function SortableStopRow({
               </div>
             ) : null}
 
+            {isHotel && !isTripStart && onUpdateItem ? (
+              <div
+                className={cn(
+                  "space-y-2",
+                  canReplace && "border-t border-border pt-4",
+                )}
+              >
+                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Overnight
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Keep the place but stop treating it as lodging, or delete the
+                  stop entirely with Delete.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    void onUpdateItem(item.id, { type: "attraction" })
+                  }
+                >
+                  Remove overnight
+                </Button>
+              </div>
+            ) : null}
+
             {canEditTimes ? (
               <div
                 className={cn(
                   "space-y-3",
-                  canReplace && "border-t border-border pt-4",
+                  (canReplace || isHotel) && "border-t border-border pt-4",
                 )}
               >
                 <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">

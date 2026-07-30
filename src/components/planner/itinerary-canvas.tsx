@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BedDouble,
   ChevronDown,
   Coffee,
   MoreHorizontal,
@@ -25,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import {
   nextCheckboxStatus,
   type PlaceDetailsPayload,
-  type PlannerAccommodation,
   type PlannerDay,
   type PlannerItem,
 } from "@/components/planner/planner-types";
@@ -40,7 +38,6 @@ type DayPatch = Partial<
 
 type Props = {
   days: PlannerDay[];
-  accommodations?: PlannerAccommodation[];
   isEditor: boolean;
   showTemplates?: boolean;
   onUpdateItem: (
@@ -56,6 +53,7 @@ type Props = {
         | "timingMins"
         | "customTravelDurationMins"
         | "customTravelDistanceKm"
+        | "type"
       >
     >,
   ) => Promise<void> | void;
@@ -98,29 +96,6 @@ type Props = {
   onFocusStop?: (item: PlannerItem) => void;
   onSelectDay?: (dayId: string) => void;
 };
-
-function lodgingForDay(
-  day: PlannerDay,
-  accommodations: PlannerAccommodation[],
-) {
-  const byDay = accommodations.filter((a) => a.dayId === day.id);
-  if (byDay.length) return byDay;
-  return day.items
-    .filter((i) => i.type === "hotel")
-    .map((i) => ({
-      id: `item-${i.id}`,
-      dayId: day.id,
-      name: i.name,
-      address: i.address,
-      checkInDate: day.date,
-      checkOutDate: null,
-      isConfirmed: "false",
-      latitude: i.latitude,
-      longitude: i.longitude,
-      googlePlaceId: i.googlePlaceId,
-      googleMapsUri: i.googleMapsUri,
-    }));
-}
 
 function DayMenu({
   day,
@@ -324,7 +299,6 @@ function DayMenu({
 
 export function ItineraryCanvas({
   days,
-  accommodations = [],
   isEditor,
   showTemplates,
   onUpdateItem,
@@ -429,7 +403,6 @@ export function ItineraryCanvas({
       <ul className="space-y-4">
         {days.map((day) => {
           const open = openDays[day.id] ?? false;
-          const lodging = lodgingForDay(day, accommodations);
           const isRest = !!day.isRestDay;
 
           return (
@@ -566,44 +539,6 @@ export function ItineraryCanvas({
                           }}
                         />
                       )}
-
-                      {lodging.length ? (
-                        <div className="mt-3 space-y-2 border-t border-dashed border-border pt-3">
-                          {lodging.map((stay) => (
-                            <div
-                              key={stay.id}
-                              className="flex items-start gap-3 rounded-2xl bg-sandstone/15 px-3 py-3"
-                            >
-                              <span className="mt-0.5 grid size-9 place-items-center rounded-xl bg-sandstone/30 text-foreground">
-                                <BedDouble className="size-4" />
-                              </span>
-                              <div className="min-w-0">
-                                <p className="font-medium">{stay.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {[
-                                    stay.checkInDate
-                                      ? `Check-in ${stay.checkInDate}`
-                                      : "Overnight stay",
-                                    stay.checkOutDate
-                                      ? `out ${stay.checkOutDate}`
-                                      : null,
-                                    stay.isConfirmed === "true"
-                                      ? "Confirmed"
-                                      : null,
-                                  ]
-                                    .filter(Boolean)
-                                    .join(" · ")}
-                                </p>
-                                {stay.address ? (
-                                  <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
-                                    {stay.address}
-                                  </p>
-                                ) : null}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : null}
 
                       {isEditor && onAddPlace && onAddCustomPlace ? (
                         <AddStopSearch
