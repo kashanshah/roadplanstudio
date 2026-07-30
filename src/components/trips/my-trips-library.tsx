@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { SiteNav } from "@/components/layout/site-nav";
+import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
 import type { UserTripSummary } from "@/lib/trips/list-user-trips";
 import { cn } from "@/lib/utils/cn";
@@ -158,6 +159,7 @@ function TripCard({
                     disabled={deleting}
                     onClick={() => onToggleConfirm(trip.id)}
                     aria-label="Cancel delete"
+                    {...tip("Cancel")}
                   >
                     <X className="size-3.5" />
                   </Button>
@@ -176,6 +178,7 @@ function TripCard({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 aria-label={`Delete ${trip.title}`}
+                {...tip("Delete trip")}
                 onClick={() => onToggleConfirm(trip.id)}
                 className="grid size-9 place-items-center rounded-full bg-background/90 text-foreground shadow-soft backdrop-blur-md transition hover:bg-destructive hover:text-destructive-foreground"
               >

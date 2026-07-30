@@ -10,6 +10,7 @@ import { Wordmark } from "@/components/brand/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { PreferencesMenu } from "@/components/layout/preferences-menu";
 import { SitePreFooter } from "@/components/layout/site-pre-footer";
+import { tip } from "@/components/ui/app-tooltip";
 import { useSession } from "@/lib/auth-client";
 import {
   localizedPath,
@@ -147,6 +148,7 @@ export function SiteNav({ overlay = false }: { overlay?: boolean }) {
           <button
             type="button"
             aria-label="Open menu"
+            {...tip("Menu")}
             onClick={() => setOpen((v) => !v)}
             className={cn(
               "grid h-10 w-10 place-items-center rounded-full border border-border lg:hidden",

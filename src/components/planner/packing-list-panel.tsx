@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Luggage, Plus, Trash2 } from "lucide-react";
 import type { PlannerPackingItem } from "@/components/planner/planner-types";
+import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils/cn";
@@ -142,6 +143,7 @@ export function PackingListPanel({
                     <button
                       type="button"
                       aria-label={`Remove ${item.label}`}
+                      {...tip("Remove item")}
                       className="rounded-lg p-1.5 text-muted-foreground opacity-70 transition hover:bg-background hover:text-destructive group-hover:opacity-100"
                       disabled={pending}
                       onClick={() => void onDelete(item.id)}

@@ -40,7 +40,7 @@ export function travelModeTitle(mode: TravelMode): string {
     case "transit":
       return "Transit";
     default:
-      return "Car";
+      return "Drive";
   }
 }
 

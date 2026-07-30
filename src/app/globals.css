@@ -194,3 +194,43 @@
 ::selection {
   background: color-mix(in oklab, var(--primary) 35%, transparent);
 }
+
+/* react-tooltip — alpine ink chips, not default black pills */
+:root {
+  --rt-color-dark: var(--ink);
+  --rt-color-white: var(--snow);
+  --rt-opacity: 1;
+}
+
+.rps-tooltip {
+  background-color: var(--ink) !important;
+  color: var(--snow) !important;
+  font-family: var(--font-sans), system-ui, sans-serif !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1.3 !important;
+  padding: 0.4rem 0.7rem !important;
+  border-radius: 0.5rem !important;
+  z-index: 80 !important;
+  max-width: 14rem !important;
+  box-shadow: var(--shadow-soft) !important;
+  border: 1px solid color-mix(in oklab, var(--snow) 12%, transparent) !important;
+}
+
+.rps-tooltip .react-tooltip-arrow {
+  background-color: var(--ink) !important;
+  border: 1px solid color-mix(in oklab, var(--snow) 12%, transparent) !important;
+}
+
+.dark .rps-tooltip {
+  background-color: var(--card) !important;
+  color: var(--card-foreground) !important;
+  border-color: var(--border) !important;
+  box-shadow: var(--shadow-elevated) !important;
+}
+
+.dark .rps-tooltip .react-tooltip-arrow {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+}

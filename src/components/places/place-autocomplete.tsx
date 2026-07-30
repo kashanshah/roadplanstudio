@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Loader2, MapPin, Search, X } from "lucide-react";
 import type { PlaceDetailsPayload } from "@/components/planner/planner-types";
+import { tip } from "@/components/ui/app-tooltip";
 import { cn } from "@/lib/utils/cn";
 
 export type PlaceSelection = {
@@ -157,6 +158,7 @@ export function PlaceAutocomplete({
             type="button"
             disabled={disabled}
             aria-label="Clear place"
+            {...tip("Clear")}
             className={cn(
               "absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full transition-colors",
               onDark

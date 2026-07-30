@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { Wordmark } from "@/components/brand/logo";
 import { PreferencesMenu } from "@/components/layout/preferences-menu";
+import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
 
 export function AuthShell({
@@ -97,7 +98,8 @@ export function SocialButtons() {
           variant="outline"
           className="w-full justify-center"
           disabled
-          title="OAuth providers wire up when client IDs are added"
+          aria-label={`${label} sign-in coming soon`}
+          {...tip("Coming soon")}
         >
           {label}
         </Button>

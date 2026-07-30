@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { Compass, X } from "lucide-react";
+import { tip } from "@/components/ui/app-tooltip";
 import { RemixTripButton } from "@/components/trips/remix-trip-button";
 import { tripTemplates } from "@/data/trips/templates";
 
@@ -44,6 +45,7 @@ export function TemplatePickerModal({ open, onClose }: Props) {
           <button
             type="button"
             aria-label="Close"
+            {...tip("Close")}
             className="grid size-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground"
             onClick={onClose}
           >

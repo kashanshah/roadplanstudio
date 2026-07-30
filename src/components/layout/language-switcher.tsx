@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Globe } from "lucide-react";
+import { tip } from "@/components/ui/app-tooltip";
 import {
   defaultLocale,
   localeLabels,
@@ -61,6 +62,7 @@ export function LanguageSwitcher({
         aria-label={`Language: ${localeLabels[locale]}`}
         aria-expanded={open}
         aria-haspopup="menu"
+        {...tip(`Language · ${localeLabels[locale]}`)}
         onClick={() => setOpen((v) => !v)}
         className={cn(
           "relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border backdrop-blur transition-colors",
