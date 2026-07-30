@@ -3,6 +3,12 @@
  * Uses GOOGLE_MAPS_SERVER_API_KEY.
  */
 
+import {
+  estimateSpeedKmh,
+  normalizeTravelMode,
+  type TravelMode,
+} from "@/lib/maps/travel-mode";
+
 export type RoutePoint = {
   latitude: number;
   longitude: number;
@@ -13,6 +19,7 @@ export type RouteLeg = {
   distanceMeters: number;
   distanceKm: number;
   estimated: boolean;
+  travelMode: TravelMode;
 };
 
 export type DrivingRoute = {
@@ -44,10 +51,19 @@ export function haversineMeters(a: RoutePoint, b: RoutePoint): number {
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-/** Rough drive-time estimate (~80 km/h average, min 5 min). */
+/** Rough travel-time estimate from distance + mode (min 1–5 min). */
+export function estimateTravelMins(
+  distanceMeters: number,
+  mode: TravelMode = "driving",
+): number {
+  const hours = distanceMeters / 1000 / estimateSpeedKmh(mode);
+  const minFloor = mode === "driving" ? 5 : 1;
+  return Math.max(minFloor, Math.round(hours * 60));
+}
+
+/** @deprecated Prefer estimateTravelMins */
 export function estimateDriveMins(distanceMeters: number): number {
-  const hours = distanceMeters / 1000 / 80;
-  return Math.max(5, Math.round(hours * 60));
+  return estimateTravelMins(distanceMeters, "driving");
 }
 
 /** Decode Google encoded polyline into lat/lng path. */
@@ -85,19 +101,41 @@ export function decodePolyline(encoded: string): Array<{ lat: number; lng: numbe
   return coordinates;
 }
 
-function estimateRoute(points: RoutePoint[]): DrivingRoute {
+function normalizeModes(
+  pointCount: number,
+  modes?: TravelMode[],
+): TravelMode[] {
+  const legCount = Math.max(0, pointCount - 1);
+  const out: TravelMode[] = [];
+  for (let i = 0; i < legCount; i++) {
+    out.push(normalizeTravelMode(modes?.[i]));
+  }
+  return out;
+}
+
+function estimatedLeg(
+  a: RoutePoint,
+  b: RoutePoint,
+  mode: TravelMode,
+): RouteLeg {
+  const distanceMeters = Math.round(haversineMeters(a, b));
+  return {
+    durationMins: estimateTravelMins(distanceMeters, mode),
+    distanceMeters,
+    distanceKm: Math.round((distanceMeters / 1000) * 10) / 10,
+    estimated: true,
+    travelMode: mode,
+  };
+}
+
+function estimateRoute(
+  points: RoutePoint[],
+  modes: TravelMode[],
+): DrivingRoute {
   const legs: RouteLeg[] = [];
   const path = points.map((p) => ({ lat: p.latitude, lng: p.longitude }));
   for (let i = 0; i < points.length - 1; i++) {
-    const distanceMeters = Math.round(
-      haversineMeters(points[i], points[i + 1]),
-    );
-    legs.push({
-      durationMins: estimateDriveMins(distanceMeters),
-      distanceMeters,
-      distanceKm: Math.round((distanceMeters / 1000) * 10) / 10,
-      estimated: true,
-    });
+    legs.push(estimatedLeg(points[i], points[i + 1], modes[i] ?? "driving"));
   }
   return { legs, path, source: "estimated" };
 }
@@ -118,6 +156,7 @@ type DirectionsJson = {
 async function fetchDirections(
   origin: RoutePoint,
   destination: RoutePoint,
+  mode: TravelMode,
   waypoints: RoutePoint[] = [],
 ): Promise<DirectionsJson> {
   const key = getApiKey();
@@ -130,10 +169,10 @@ async function fetchDirections(
     "destination",
     `${destination.latitude},${destination.longitude}`,
   );
-  url.searchParams.set("mode", "driving");
+  url.searchParams.set("mode", mode);
   url.searchParams.set("units", "metric");
   url.searchParams.set("key", key);
-  if (waypoints.length) {
+  if (waypoints.length && mode !== "transit") {
     url.searchParams.set(
       "waypoints",
       waypoints.map((p) => `${p.latitude},${p.longitude}`).join("|"),
@@ -143,11 +182,14 @@ async function fetchDirections(
   return (await res.json()) as DirectionsJson;
 }
 
-function parseRoute(data: DirectionsJson): DrivingRoute | null {
+function parseRoute(
+  data: DirectionsJson,
+  modes: TravelMode[],
+): DrivingRoute | null {
   const route = data.routes?.[0];
   if (data.status !== "OK" || !route?.legs?.length) return null;
 
-  const legs: RouteLeg[] = route.legs.map((leg) => {
+  const legs: RouteLeg[] = route.legs.map((leg, i) => {
     const distanceMeters = leg.distance?.value ?? 0;
     const durationMins = Math.max(
       1,
@@ -158,6 +200,7 @@ function parseRoute(data: DirectionsJson): DrivingRoute | null {
       distanceMeters,
       distanceKm: Math.round((distanceMeters / 1000) * 10) / 10,
       estimated: false,
+      travelMode: modes[i] ?? "driving",
     };
   });
 
@@ -178,17 +221,21 @@ function parseRoute(data: DirectionsJson): DrivingRoute | null {
 }
 
 /**
- * Pairwise Directions — more reliable when a multi-waypoint day fails
- * (lakes, viewpoints, MAX_WAYPOINTS_EXCEEDED, etc.).
+ * Pairwise Directions — supports mixed travel modes and recovers when
+ * multi-waypoint requests fail.
  */
-async function getPairwiseRoute(points: RoutePoint[]): Promise<DrivingRoute> {
+async function getPairwiseRoute(
+  points: RoutePoint[],
+  modes: TravelMode[],
+): Promise<DrivingRoute> {
   const legs: RouteLeg[] = [];
   const path: Array<{ lat: number; lng: number }> = [];
   let anyDirections = false;
 
   for (let i = 0; i < points.length - 1; i++) {
-    const data = await fetchDirections(points[i], points[i + 1]);
-    const parsed = parseRoute(data);
+    const mode = modes[i] ?? "driving";
+    const data = await fetchDirections(points[i], points[i + 1], mode);
+    const parsed = parseRoute(data, [mode]);
     if (parsed) {
       anyDirections = true;
       legs.push(...parsed.legs);
@@ -198,15 +245,7 @@ async function getPairwiseRoute(points: RoutePoint[]): Promise<DrivingRoute> {
         path.push(...parsed.path);
       }
     } else {
-      const distanceMeters = Math.round(
-        haversineMeters(points[i], points[i + 1]),
-      );
-      legs.push({
-        durationMins: estimateDriveMins(distanceMeters),
-        distanceMeters,
-        distanceKm: Math.round((distanceMeters / 1000) * 10) / 10,
-        estimated: true,
-      });
+      legs.push(estimatedLeg(points[i], points[i + 1], mode));
       const a = { lat: points[i].latitude, lng: points[i].longitude };
       const b = {
         lat: points[i + 1].latitude,
@@ -224,40 +263,57 @@ async function getPairwiseRoute(points: RoutePoint[]): Promise<DrivingRoute> {
   };
 }
 
+function modesAreUniform(modes: TravelMode[]): boolean {
+  if (!modes.length) return true;
+  return modes.every((m) => m === modes[0]);
+}
+
 /**
- * Driving route between consecutive points via Directions API.
+ * Route between consecutive points via Directions API.
+ * Pass per-leg `modes` (length = points.length - 1); defaults to driving.
  * Falls back to pairwise requests, then haversine estimates.
  */
 export async function getDrivingRoute(
   points: RoutePoint[],
+  modesInput?: TravelMode[],
 ): Promise<DrivingRoute> {
   if (points.length < 2) {
     return { legs: [], path: [], source: "estimated" };
   }
 
+  const modes = normalizeModes(points.length, modesInput);
+  const uniform = modesAreUniform(modes);
+  const singleMode = modes[0] ?? "driving";
+  const canBatch =
+    uniform && singleMode !== "transit" && points.length <= 25;
+
   try {
-    const middle = points.slice(1, -1).slice(0, 23);
-    const data = await fetchDirections(
-      points[0],
-      points[points.length - 1],
-      middle,
-    );
-    const parsed = parseRoute(data);
-    if (parsed && parsed.path.length >= 2) {
-      return parsed;
+    if (canBatch) {
+      const middle = points.slice(1, -1).slice(0, 23);
+      const data = await fetchDirections(
+        points[0],
+        points[points.length - 1],
+        singleMode,
+        middle,
+      );
+      const parsed = parseRoute(data, modes);
+      if (parsed && parsed.path.length >= 2) {
+        return parsed;
+      }
+
+      if (points.length > 2) {
+        return getPairwiseRoute(points, modes);
+      }
+
+      return estimateRoute(points, modes);
     }
 
-    // Multi-stop day often fails ( Banff lakes / natural features ).
-    if (points.length > 2) {
-      return getPairwiseRoute(points);
-    }
-
-    return estimateRoute(points);
+    return getPairwiseRoute(points, modes);
   } catch {
     try {
-      return await getPairwiseRoute(points);
+      return await getPairwiseRoute(points, modes);
     } catch {
-      return estimateRoute(points);
+      return estimateRoute(points, modes);
     }
   }
 }
@@ -265,7 +321,8 @@ export async function getDrivingRoute(
 /** @deprecated Prefer getDrivingRoute — kept for callers that only need legs. */
 export async function getDrivingLegs(
   points: RoutePoint[],
+  modes?: TravelMode[],
 ): Promise<RouteLeg[]> {
-  const route = await getDrivingRoute(points);
+  const route = await getDrivingRoute(points, modes);
   return route.legs;
 }

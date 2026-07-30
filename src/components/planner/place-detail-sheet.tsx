@@ -27,7 +27,7 @@ type Props = {
   onUpdate: (
     itemId: string,
     patch: Partial<
-      Pick<PlannerItem, "status" | "durationMins" | "notes">
+      Pick<PlannerItem, "status" | "durationMins" | "notes" | "travelMode">
     >,
   ) => Promise<void> | void;
 };

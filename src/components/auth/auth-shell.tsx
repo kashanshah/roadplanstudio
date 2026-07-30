@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { Wordmark } from "@/components/brand/logo";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { PreferencesMenu } from "@/components/layout/preferences-menu";
 import { Button } from "@/components/ui/button";
 
 export function AuthShell({
@@ -30,7 +30,7 @@ export function AuthShell({
           <Link href="/" className="min-w-0">
             <Wordmark size="sm" />
           </Link>
-          <ThemeToggle />
+          <PreferencesMenu />
         </div>
 
         <motion.div

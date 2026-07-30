@@ -5,11 +5,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BedDouble,
   ChevronDown,
+  Plus,
 } from "lucide-react";
 import { AddStopSearch } from "@/components/planner/add-stop-search";
 import { PlaceDetailSheet } from "@/components/planner/place-detail-sheet";
 import { SortableDayStops } from "@/components/planner/sortable-day-stops";
 import { TemplateStrip } from "@/components/planner/template-strip";
+import { Button } from "@/components/ui/button";
 import {
   nextCheckboxStatus,
   type PlaceDetailsPayload,
@@ -26,7 +28,9 @@ type Props = {
   showTemplates?: boolean;
   onUpdateItem: (
     itemId: string,
-    patch: Partial<Pick<PlannerItem, "status" | "durationMins" | "notes">>,
+    patch: Partial<
+      Pick<PlannerItem, "status" | "durationMins" | "notes" | "travelMode">
+    >,
   ) => Promise<void> | void;
   onReorderDay: (dayId: string, orderedItemIds: string[]) => Promise<void> | void;
   onAddPlace?: (
@@ -34,6 +38,7 @@ type Props = {
     place: PlaceDetailsPayload,
     asHotel: boolean,
   ) => Promise<void> | void;
+  onAddDay?: () => Promise<void> | void;
   onFocusStop?: (item: PlannerItem) => void;
   onSelectDay?: (dayId: string) => void;
 };
@@ -69,6 +74,7 @@ export function ItineraryCanvas({
   onUpdateItem,
   onReorderDay,
   onAddPlace,
+  onAddDay,
   onFocusStop,
   onSelectDay,
 }: Props) {
@@ -203,6 +209,9 @@ export function ItineraryCanvas({
                         onReorder={(id, orderedIds) => {
                           void onReorderDay(id, orderedIds);
                         }}
+                        onTravelModeChange={(itemId, mode) => {
+                          void onUpdateItem(itemId, { travelMode: mode });
+                        }}
                       />
 
                       {lodging.length ? (
@@ -260,6 +269,18 @@ export function ItineraryCanvas({
           );
         })}
       </ul>
+
+      {isEditor && onAddDay ? (
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full text-base sm:w-auto"
+          onClick={() => void onAddDay()}
+        >
+          <Plus className="size-4" />
+          Add another day
+        </Button>
+      ) : null}
 
       <PlaceDetailSheet
         item={selected}

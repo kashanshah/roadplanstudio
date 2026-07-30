@@ -32,6 +32,7 @@ function stopsFromDay(day: PlannerDay): MapStop[] {
       type: i.type,
       dayIndex: day.dayIndex,
       status: i.status,
+      travelMode: i.travelMode ?? "driving",
     }));
 }
 
@@ -105,7 +106,7 @@ export function PlannerMaps({
         </div>
         <p className="text-sm text-muted-foreground">
           {tab === "daily"
-            ? "Road directions for the selected day"
+            ? "Route for the selected day (uses each leg’s travel mode)"
             : "Straight-line overview of the whole trip"}
         </p>
       </div>

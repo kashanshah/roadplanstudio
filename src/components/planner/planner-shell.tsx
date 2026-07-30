@@ -12,10 +12,10 @@ import {
 } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo";
 import { AccountMenu } from "@/components/auth/account-menu";
+import { PreferencesMenu } from "@/components/layout/preferences-menu";
 import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { useAuthGate } from "@/components/auth/auth-gate-provider";
 import { GuestBanner } from "@/components/layout/guest-banner";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { ItineraryCanvas } from "@/components/planner/itinerary-canvas";
 import { PlannerEmptyState } from "@/components/planner/planner-empty-state";
 import type {
@@ -87,7 +87,8 @@ export function PlannerShell({ tripId }: Props) {
   const isVerified = !!session?.user.emailVerified;
   const isAnonymous = isDraftRoute && !isLoggedIn;
   const { requireAuth } = useAuthGate();
-  const { draft, hydrated, clearDraft, updateDraft } = useGuestTrip();
+  const { draft, hydrated, clearDraft, updateDraft, startPlanning } =
+    useGuestTrip();
   const [shareOpen, setShareOpen] = useState(false);
   const [matesOpen, setMatesOpen] = useState(false);
   const [cloud, setCloud] = useState<CloudTripPayload | null>(null);
@@ -96,6 +97,13 @@ export function PlannerShell({ tripId }: Props) {
   const [saving, setSaving] = useState(false);
   const [focusStopId, setFocusStopId] = useState<string | null>(null);
   const [activeDayId, setActiveDayId] = useState<string | null>(null);
+  const [dismissedStarter, setDismissedStarter] = useState(false);
+
+  // Blank /planner/new always gets a local draft so users can plan without a template.
+  useEffect(() => {
+    if (!isDraftRoute || !hydrated) return;
+    if (!draft) startPlanning();
+  }, [isDraftRoute, hydrated, draft, startPlanning]);
 
   useEffect(() => {
     if (isDraftRoute) {
@@ -129,6 +137,7 @@ export function PlannerShell({ tripId }: Props) {
               googlePlaceId: i.googlePlaceId ?? null,
               googleMapsUri: i.googleMapsUri ?? null,
               durationMins: i.durationMins ?? null,
+              travelMode: i.travelMode ?? "driving",
               latitude: i.latitude ?? null,
               longitude: i.longitude ?? null,
             })),
@@ -199,6 +208,7 @@ export function PlannerShell({ tripId }: Props) {
           googlePlaceId: i.googlePlaceId ?? null,
           googleMapsUri: null,
           durationMins: i.durationMins ?? null,
+          travelMode: i.travelMode ?? "driving",
           status: normalizeStatus(i.status),
         })),
       }));
@@ -208,7 +218,8 @@ export function PlannerShell({ tripId }: Props) {
 
   const accommodations = cloud?.accommodations ?? [];
   const hasTimelineContent = days.some((d) => d.items.length > 0);
-  const showEmptyState = isDraftRoute && !hasTimelineContent;
+  const showStarter =
+    isDraftRoute && !hasTimelineContent && !dismissedStarter && !!draft;
 
   useEffect(() => {
     if (!activeDayId && days[0]?.id) setActiveDayId(days[0].id);
@@ -288,7 +299,9 @@ export function PlannerShell({ tripId }: Props) {
 
   async function updateItem(
     itemId: string,
-    patch: Partial<Pick<PlannerItem, "status" | "durationMins" | "notes">>,
+    patch: Partial<
+      Pick<PlannerItem, "status" | "durationMins" | "notes" | "travelMode">
+    >,
   ) {
     if (!isEditor) return;
 
@@ -418,6 +431,7 @@ export function PlannerShell({ tripId }: Props) {
                 longitude: place.longitude,
                 googlePlaceId: place.placeId,
                 durationMins: place.estimatedDurationMins || null,
+                travelMode: "driving" as const,
                 status: "to_visit" as const,
                 notes: null,
               },
@@ -458,6 +472,7 @@ export function PlannerShell({ tripId }: Props) {
                   {
                     ...data.item,
                     status: normalizeStatus(data.item.status),
+                    travelMode: data.item.travelMode ?? "driving",
                   },
                 ],
               }
@@ -465,6 +480,57 @@ export function PlannerShell({ tripId }: Props) {
         ),
       };
     });
+  }
+
+  async function addDay() {
+    if (!isEditor) return;
+
+    if (isDraftRoute) {
+      updateDraft((current) => {
+        const dayIndex = current.days.length + 1;
+        const day = {
+          id: crypto.randomUUID(),
+          dayIndex,
+          title: `Day ${dayIndex}`,
+          items: [],
+        };
+        return {
+          ...current,
+          durationDays: dayIndex,
+          days: [...current.days, day],
+        };
+      });
+      return;
+    }
+
+    if (!isLoggedIn) {
+      requireAuth("save");
+      return;
+    }
+
+    const res = await fetch(`/api/trips/${tripId}/days`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as {
+      day: PlannerDay;
+    };
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        days: [
+          ...prev.days,
+          {
+            ...data.day,
+            items: data.day.items ?? [],
+          },
+        ],
+      };
+    });
+    setActiveDayId(data.day.id);
   }
 
   return (
@@ -525,7 +591,7 @@ export function PlannerShell({ tripId }: Props) {
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Tripmates</span>
             </Button>
-            <ThemeToggle />
+            <PreferencesMenu />
             <AccountMenu />
           </div>
         </div>
@@ -575,17 +641,19 @@ export function PlannerShell({ tripId }: Props) {
                 <Link href="/discover">Browse public trips</Link>
               </Button>
             </div>
-          ) : showEmptyState ? (
-            <div className="space-y-5">
-              <PlannerEmptyState
-                isLoggedIn={isLoggedIn}
-                hasDraft={!!draft}
-                onSaveDraft={isLoggedIn ? onSave : undefined}
-                saving={saving}
-              />
-            </div>
           ) : (
             <>
+              {showStarter ? (
+                <div className="mb-5">
+                  <PlannerEmptyState
+                    isLoggedIn={isLoggedIn}
+                    onStartBlank={() => {
+                      setDismissedStarter(true);
+                      if (days[0]?.id) setActiveDayId(days[0].id);
+                    }}
+                  />
+                </div>
+              ) : null}
               {cloud?.trip.description ||
               (isDraftRoute &&
                 (draft?.startLocation || draft?.endLocation)) ? (
@@ -601,17 +669,26 @@ export function PlannerShell({ tripId }: Props) {
                   Viewer access — checkboxes and Places edits are locked.
                 </p>
               ) : null}
-              <ItineraryCanvas
-                days={days}
-                accommodations={accommodations}
-                isEditor={isEditor}
-                showTemplates={isDraftRoute}
-                onUpdateItem={updateItem}
-                onReorderDay={reorderDay}
-                onAddPlace={addPlace}
-                onFocusStop={(item) => setFocusStopId(item.id)}
-                onSelectDay={setActiveDayId}
-              />
+              {days.length > 0 ? (
+                <ItineraryCanvas
+                  days={days}
+                  accommodations={accommodations}
+                  isEditor={isEditor}
+                  showTemplates={
+                    isDraftRoute && !hasTimelineContent && dismissedStarter
+                  }
+                  onUpdateItem={updateItem}
+                  onReorderDay={reorderDay}
+                  onAddPlace={addPlace}
+                  onAddDay={addDay}
+                  onFocusStop={(item) => setFocusStopId(item.id)}
+                  onSelectDay={setActiveDayId}
+                />
+              ) : (
+                <p className="text-base text-muted-foreground">
+                  Preparing your blank itinerary…
+                </p>
+              )}
             </>
           )}
         </section>

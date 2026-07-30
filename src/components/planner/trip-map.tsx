@@ -16,6 +16,8 @@ export type MapStop = {
   type?: string;
   dayIndex?: number;
   status?: string;
+  /** Mode from this stop to the next (for daily directions). */
+  travelMode?: "driving" | "walking" | "bicycling" | "transit";
 };
 
 export type TripMapMode = "directions" | "straight";
@@ -96,7 +98,7 @@ function DirectionsPolyline({
 }) {
   const map = useMap();
   const fingerprint = stops
-    .map((s) => `${s.id}:${s.latitude},${s.longitude}`)
+    .map((s) => `${s.id}:${s.latitude},${s.longitude}:${s.travelMode ?? "driving"}`)
     .join("|");
 
   useEffect(() => {
@@ -109,6 +111,7 @@ function DirectionsPolyline({
     let line: google.maps.Polyline | null = null;
     let cancelled = false;
     const stopSnapshot = stops;
+    const modes = stopSnapshot.slice(0, -1).map((s) => s.travelMode ?? "driving");
 
     fetch("/api/maps/route-legs", {
       method: "POST",
@@ -119,6 +122,7 @@ function DirectionsPolyline({
           latitude: s.latitude,
           longitude: s.longitude,
         })),
+        modes,
       }),
     })
       .then(async (res) => {

@@ -1,9 +1,13 @@
+import type { TravelMode } from "@/lib/maps/travel-mode";
+
 export type StopStatus =
   | "to_visit"
   | "visited"
   | "skipped"
   | "cancelled"
   | "favorite";
+
+export type { TravelMode };
 
 export type PlannerItem = {
   id: string;
@@ -17,6 +21,8 @@ export type PlannerItem = {
   googlePlaceId: string | null;
   googleMapsUri: string | null;
   durationMins: number | null;
+  /** Mode used to travel from this stop to the next. */
+  travelMode: TravelMode;
   status: StopStatus;
 };
 

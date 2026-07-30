@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { PlannerItem } from "@/components/planner/planner-types";
-
+import {
+  normalizeTravelMode,
+  type TravelMode,
+} from "@/lib/maps/travel-mode";
 import type { TimeFormat } from "@/lib/prefs/display-prefs";
 import { formatClock } from "@/lib/prefs/display-prefs";
 
@@ -11,6 +14,7 @@ export type TravelLeg = {
   distanceMeters: number;
   distanceKm: number;
   estimated: boolean;
+  travelMode: TravelMode;
 };
 
 const DAY_START_MINS = 8 * 60; // 08:00
@@ -55,12 +59,21 @@ export function useDayTimeline(
     [items],
   );
 
+  const modes = useMemo(
+    () =>
+      routedStops.slice(0, -1).map((i) => normalizeTravelMode(i.travelMode)),
+    [routedStops],
+  );
+
   const fingerprint = useMemo(
     () =>
       routedStops
-        .map((i) => `${i.id}:${i.latitude},${i.longitude}`)
+        .map(
+          (i, idx) =>
+            `${i.id}:${i.latitude},${i.longitude}:${idx < modes.length ? modes[idx] : ""}`,
+        )
         .join("|"),
-    [routedStops],
+    [routedStops, modes],
   );
 
   const [legs, setLegs] = useState<TravelLeg[]>([]);
@@ -85,6 +98,7 @@ export function useDayTimeline(
           latitude: i.latitude,
           longitude: i.longitude,
         })),
+        modes,
       }),
     })
       .then(async (res) => {
@@ -93,7 +107,12 @@ export function useDayTimeline(
           error?: string;
         };
         if (!res.ok) throw new Error(data.error || "Route failed");
-        setLegs(data.legs ?? []);
+        setLegs(
+          (data.legs ?? []).map((leg, i) => ({
+            ...leg,
+            travelMode: normalizeTravelMode(leg.travelMode ?? modes[i]),
+          })),
+        );
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return;
@@ -105,7 +124,7 @@ export function useDayTimeline(
       });
 
     return () => controller.abort();
-  }, [fingerprint, routedStops]);
+  }, [fingerprint, routedStops, modes]);
 
   const timeline = useMemo(() => {
     const legByPair = new Map<string, TravelLeg>();
@@ -149,16 +168,18 @@ export function useDayTimeline(
     }
 
     const visitMins = rows.reduce((sum, r) => sum + r.stayMins, 0);
-    const driveMins = rows.reduce(
+    const travelMins = rows.reduce(
       (sum, r) => sum + (r.legAfter?.durationMins ?? 0),
       0,
     );
-    const totalMins = visitMins + driveMins;
+    const totalMins = visitMins + travelMins;
 
     return {
       rows,
       visitMins,
-      driveMins,
+      /** @deprecated use travelMins */
+      driveMins: travelMins,
+      travelMins,
       totalMins,
       overDay: totalMins > MAX_REALISTIC_DAY_MINS,
       endClock: formatClock(DAY_START_MINS + totalMins, timeFormat),

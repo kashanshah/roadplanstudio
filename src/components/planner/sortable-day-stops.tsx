@@ -22,10 +22,13 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   AlertTriangle,
   BedDouble,
+  Bike,
+  Bus,
   Car,
   ChevronDown,
   ChevronUp,
   Clock,
+  Footprints,
   GripVertical,
   Heart,
   MapPin,
@@ -35,13 +38,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   formatDurationLabel,
   useDayTimeline,
+  type TimelineRow,
   type TravelLeg,
 } from "@/components/planner/use-day-timeline";
 import {
   statusLabel,
   type PlannerItem,
   type StopStatus,
+  type TravelMode,
 } from "@/components/planner/planner-types";
+import {
+  TRAVEL_MODES,
+  travelModeLabel,
+  travelModeTitle,
+} from "@/lib/maps/travel-mode";
 import {
   formatClock,
   useDisplayPrefs,
@@ -55,9 +65,32 @@ type Props = {
   onToggleVisited: (item: PlannerItem) => void;
   onOpenItem: (item: PlannerItem) => void;
   onReorder: (dayId: string, orderedIds: string[]) => void;
+  onTravelModeChange?: (itemId: string, mode: TravelMode) => void;
 };
 
-function TravelConnector({ leg, loading }: { leg: TravelLeg | null; loading: boolean }) {
+const MODE_ICON = {
+  driving: Car,
+  walking: Footprints,
+  bicycling: Bike,
+  transit: Bus,
+} as const;
+
+function TravelConnector({
+  fromItem,
+  leg,
+  loading,
+  isEditor,
+  onTravelModeChange,
+}: {
+  fromItem: PlannerItem;
+  leg: TravelLeg | null;
+  loading: boolean;
+  isEditor: boolean;
+  onTravelModeChange?: (itemId: string, mode: TravelMode) => void;
+}) {
+  const mode = (leg?.travelMode ?? fromItem.travelMode ?? "driving") as TravelMode;
+  const Icon = MODE_ICON[mode];
+
   if (!leg && !loading) {
     return (
       <div className="relative ml-[2.85rem] flex items-center gap-2 py-1.5 sm:ml-[3.35rem]">
@@ -70,25 +103,60 @@ function TravelConnector({ leg, loading }: { leg: TravelLeg | null; loading: boo
   return (
     <div className="relative ml-[2.85rem] py-2 sm:ml-[3.35rem]">
       <span className="absolute -left-[1.15rem] top-0 bottom-0 w-px bg-map-route/50 sm:-left-[1.35rem]" />
-      <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground">
-        <Car className="size-3.5 shrink-0 text-map-route" />
-        {loading && !leg ? (
-          <span>Calculating drive…</span>
-        ) : leg ? (
-          <>
-            <span className="font-medium text-foreground">
-              {formatDurationLabel(leg.durationMins)} drive
-            </span>
-            <span aria-hidden>·</span>
-            <span>
-              {leg.distanceKm >= 10
-                ? `${Math.round(leg.distanceKm)} km`
-                : `${leg.distanceKm} km`}
-            </span>
-            {leg.estimated ? (
-              <span className="text-xs">(est.)</span>
-            ) : null}
-          </>
+      <div className="flex max-w-full flex-wrap items-center gap-2">
+        <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground">
+          <Icon className="size-3.5 shrink-0 text-map-route" />
+          {loading && !leg ? (
+            <span>Calculating route…</span>
+          ) : leg ? (
+            <>
+              <span className="font-medium text-foreground">
+                {formatDurationLabel(leg.durationMins)} {travelModeLabel(mode)}
+              </span>
+              <span aria-hidden>·</span>
+              <span>
+                {leg.distanceKm >= 10
+                  ? `${Math.round(leg.distanceKm)} km`
+                  : `${leg.distanceKm} km`}
+              </span>
+              {leg.estimated ? (
+                <span className="text-xs">(est.)</span>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+
+        {isEditor && onTravelModeChange ? (
+          <div
+            role="group"
+            aria-label="Travel mode"
+            className="inline-flex rounded-full border border-border bg-background p-0.5"
+          >
+            {TRAVEL_MODES.map((m) => {
+              const ModeIcon = MODE_ICON[m];
+              const active = mode === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  title={travelModeTitle(m)}
+                  aria-label={travelModeTitle(m)}
+                  aria-pressed={active}
+                  onClick={() => {
+                    if (m !== mode) onTravelModeChange(fromItem.id, m);
+                  }}
+                  className={cn(
+                    "grid size-7 place-items-center rounded-full transition-colors",
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <ModeIcon className="size-3.5" />
+                </button>
+              );
+            })}
+          </div>
         ) : null}
       </div>
     </div>
@@ -283,6 +351,7 @@ export function SortableDayStops({
   onToggleVisited,
   onOpenItem,
   onReorder,
+  onTravelModeChange,
 }: Props) {
   const [localItems, setLocalItems] = useState(items);
 
@@ -290,12 +359,12 @@ export function SortableDayStops({
     setLocalItems(items);
   }, [items]);
 
-  const { timeFormat, setTimeFormat } = useDisplayPrefs();
+  const { timeFormat } = useDisplayPrefs();
 
   const {
     rows,
     visitMins,
-    driveMins,
+    travelMins,
     totalMins,
     overDay,
     startClock,
@@ -361,52 +430,22 @@ export function SortableDayStops({
             : "border-border bg-secondary/50",
         )}
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:text-base">
-            <span className="font-medium text-foreground">
-              {startClock} → {endClock}
-            </span>
-            <span className="text-muted-foreground">
-              {formatDurationLabel(totalMins)} total
-            </span>
-            <span className="text-muted-foreground">
-              · {formatDurationLabel(driveMins)} driving
-            </span>
-            <span className="text-muted-foreground">
-              · {formatDurationLabel(visitMins)} on site
-            </span>
-            {loading ? (
-              <span className="text-muted-foreground">· updating routes…</span>
-            ) : null}
-          </div>
-          <div className="flex rounded-full border border-border bg-background p-0.5">
-            <button
-              type="button"
-              onClick={() => setTimeFormat("h12")}
-              className={cn(
-                "rounded-full px-2.5 py-1 text-xs font-medium",
-                timeFormat === "h12"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-              aria-pressed={timeFormat === "h12"}
-            >
-              AM/PM
-            </button>
-            <button
-              type="button"
-              onClick={() => setTimeFormat("h24")}
-              className={cn(
-                "rounded-full px-2.5 py-1 text-xs font-medium",
-                timeFormat === "h24"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-              aria-pressed={timeFormat === "h24"}
-            >
-              24h
-            </button>
-          </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:text-base">
+          <span className="font-medium text-foreground">
+            {startClock} → {endClock}
+          </span>
+          <span className="text-muted-foreground">
+            {formatDurationLabel(totalMins)} total
+          </span>
+          <span className="text-muted-foreground">
+            · {formatDurationLabel(travelMins)} travel
+          </span>
+          <span className="text-muted-foreground">
+            · {formatDurationLabel(visitMins)} on site
+          </span>
+          {loading ? (
+            <span className="text-muted-foreground">· updating routes…</span>
+          ) : null}
         </div>
         {overDay ? (
           <p
@@ -456,8 +495,11 @@ export function SortableDayStops({
                   {index < localItems.length - 1 ? (
                     <li className="list-none">
                       <TravelConnector
+                        fromItem={item}
                         leg={row.legAfter}
                         loading={loading}
+                        isEditor={isEditor}
+                        onTravelModeChange={onTravelModeChange}
                       />
                     </li>
                   ) : null}

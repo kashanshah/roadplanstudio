@@ -64,7 +64,11 @@ export function AccountMenu({ tone = "default", className }: Props) {
         asChild
         size="sm"
         variant={tone === "onDark" ? "onDark" : "default"}
-        className={cn(tone === "compact" ? "hidden sm:inline-flex" : "", className)}
+        className={cn(
+          "inline-flex items-center justify-center leading-none",
+          tone === "compact" ? "hidden sm:inline-flex" : "",
+          className,
+        )}
       >
         <Link href={`/auth/login?next=${encodeURIComponent(pathname || "/")}`}>
           Sign in
