@@ -9,14 +9,14 @@
     "difficulty": "moderate",
     "visibility": "public"
   },
-  "enrichedAt": "2026-07-30T07:30:25.965Z",
+  "enrichedAt": "2026-07-30T20:08:05.257Z",
   "days": [
     {
       "dayIndex": 1,
       "date": "2026-08-01",
       "title": "Day 1 – Saskatoon → Calgary",
       "routeSummary": "~620 km · 6–7 hrs",
-      "notes": null,
+      "notes": "Arrival & prep · Saturday",
       "stops": [
         {
           "key": "d1-drive",
@@ -41,7 +41,7 @@
           "query": "CrossIron Mills, Rocky View County, AB",
           "type": "attraction",
           "optional": true,
-          "notes": "Shopping",
+          "notes": "Shopping & road-trip supplies",
           "resolved": {
             "placeId": "ChIJsYFunvBgcVMRInXPXOMWPIQ",
             "name": "CrossIron Mills",
@@ -61,7 +61,7 @@
           "query": "Chinook Centre, Calgary, AB",
           "type": "attraction",
           "optional": true,
-          "notes": "Shopping",
+          "notes": "Shopping & road-trip supplies",
           "resolved": {
             "placeId": "ChIJe3qBjFVwcVMReZWFdJC3Cqg",
             "name": "CF Chinook Centre",
@@ -82,7 +82,7 @@
           "key": "d1-downtown",
           "query": "Downtown Calgary, AB",
           "type": "attraction",
-          "notes": "Downtown Calgary · Relax",
+          "notes": "Evening · Relax downtown",
           "resolved": {
             "placeId": "ChIJlwUghvtvcVMRHiTf5_EqxBA",
             "name": "Downtown",
@@ -101,7 +101,7 @@
         "key": "d1-hotel",
         "query": "Calgary Tower, Calgary, AB, Canada",
         "type": "city_overnight",
-        "notes": "City overnight — Calgary (lodging TBD)",
+        "notes": "City overnight — Calgary (Calgary Tower TBD)",
         "resolved": {
           "placeId": "ChIJJzJsi_1vcVMRgZd7NwckWfE",
           "name": "Calgary Tower",
@@ -122,176 +122,163 @@
     {
       "dayIndex": 2,
       "date": "2026-08-02",
-      "title": "Day 2 – Calgary → Banff → Calgary",
-      "routeSummary": "~320–380 km · 4–5 hrs + sightseeing",
-      "notes": null,
+      "title": "Day 2 – Calgary → Kananaskis → Canmore → Calgary",
+      "routeSummary": "~220–300 km · 3–5 hrs + sightseeing",
+      "notes": "Flipped to beat Sunday Banff crowds · Morning Kananaskis valley, afternoon Canmore",
       "stops": [
         {
-          "key": "d2-banff-ave",
-          "query": "Banff Avenue, Banff, AB",
+          "key": "d2-barrier",
+          "query": "Barrier Lake, Kananaskis, AB",
           "type": "attraction",
+          "notes": "Morning",
           "resolved": {
-            "placeId": "EhxCYW5mZiBBdmUsIEJhbmZmLCBBQiwgQ2FuYWRhIi4qLAoUChIJgfnRsK7LcFMRgMt5GT6SKKASFAoSCf1KDJFFynBTEWOUrNq-rq_K",
-            "name": "Banff Avenue",
-            "formattedAddress": "Banff Ave, Banff, AB",
-            "latitude": 51.1822712,
-            "longitude": -115.5654527,
-            "types": [
-              "route"
-            ],
-            "googleMapsUri": "https://maps.google.com/?q=Banff+Ave,+Banff,+AB,+Canada&ftid=0x5370cbaeb0d1f981:0xa028923e1979cb80&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
-          }
-        },
-        {
-          "key": "d2-bow-falls",
-          "query": "Bow Falls, Banff, AB",
-          "type": "attraction",
-          "resolved": {
-            "placeId": "ChIJV9JW-jnKcFMR3NxQhMS4-R8",
-            "name": "Bow Falls",
-            "formattedAddress": "Bow Falls, Banff, AB T1L 1B4",
-            "latitude": 51.167967,
-            "longitude": -115.56148669999999,
-            "types": [
-              "natural_feature",
-              "establishment"
-            ],
-            "googleMapsUri": "https://maps.google.com/?cid=2304075838549712092&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
-          }
-        },
-        {
-          "key": "d2-surprise",
-          "query": "Surprise Corner Viewpoint, Banff, AB",
-          "type": "attraction",
-          "resolved": {
-            "placeId": "ChIJyy-epTDKcFMRCJPBIeLjg_M",
-            "name": "Surprise Corner Viewpoint",
-            "formattedAddress": "Buffalo St, Banff, AB T1L 1K2",
-            "latitude": 51.1672559,
-            "longitude": -115.5591596,
-            "types": [
-              "scenic_spot",
-              "hiking_area",
-              "tourist_attraction",
-              "sports_activity_location",
-              "point_of_interest",
-              "establishment"
-            ],
-            "googleMapsUri": "https://maps.google.com/?cid=17547119133534032648&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
-          }
-        },
-        {
-          "key": "d2-minnewanka",
-          "query": "Lake Minnewanka, Banff, AB",
-          "type": "attraction",
-          "resolved": {
-            "placeId": "ChIJzf76jpTScFMRxn5ES4dIhWQ",
-            "name": "Lake Minnewanka",
-            "formattedAddress": "Lake Minnewanka, Improvement District No. 9, AB",
-            "latitude": 51.264068599999995,
-            "longitude": -115.37456739999999,
+            "placeId": "ChIJf8Nr3evdcFMR9x0egHtcf8Y",
+            "name": "Barrier Lake",
+            "formattedAddress": "Barrier Lake, Kananaskis, AB",
+            "latitude": 51.026797099999996,
+            "longitude": -115.06606110000001,
             "types": [
               "lake",
               "natural_feature",
               "establishment"
             ],
-            "googleMapsUri": "https://maps.google.com/?cid=7243275321615875782&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+            "googleMapsUri": "https://maps.google.com/?cid=14303252627052174839&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
         },
         {
-          "key": "d2-two-jack",
-          "query": "Two Jack Lake, Banff, AB",
+          "key": "d2-village",
+          "query": "Kananaskis Village, AB",
           "type": "attraction",
+          "notes": "Morning",
           "resolved": {
-            "placeId": "ChIJgyi2Eo7McFMRt6xDR_Ig5R4",
-            "name": "Two Jack Lake",
-            "formattedAddress": "Two Jack Lake, Improvement District No. 9, AB T1W 2W2",
-            "latitude": 51.228047600000004,
-            "longitude": -115.49658339999998,
-            "types": [
-              "lake",
-              "natural_feature",
-              "establishment"
-            ],
-            "googleMapsUri": "https://maps.google.com/?cid=2226221815754370231&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
-          }
-        },
-        {
-          "key": "d2-johnston",
-          "query": "Johnston Canyon, Banff National Park, AB",
-          "type": "attraction",
-          "resolved": {
-            "placeId": "ChIJX565eApMd1MREyrG4XF73ww",
-            "name": "Johnston Canyon",
-            "formattedAddress": "Bow Valley Pkwy, Improvement District No. 9, AB T1L 1K2",
-            "latitude": 51.2455293,
-            "longitude": -115.83989770000001,
-            "types": [
-              "hiking_area",
-              "tourist_attraction",
-              "sports_activity_location",
-              "point_of_interest",
-              "establishment"
-            ],
-            "googleMapsUri": "https://maps.google.com/?cid=927595777310992915&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
-          }
-        },
-        {
-          "key": "d2-louise",
-          "query": "Lake Louise, Banff National Park, AB",
-          "type": "attraction",
-          "optional": true,
-          "notes": "if time permits",
-          "resolved": {
-            "placeId": "ChIJEc7hoChdd1MR5rxlY3s8Nzw",
-            "name": "Lake Louise",
-            "formattedAddress": "Lake Louise, AB T0L 1E0",
-            "latitude": 51.4253705,
-            "longitude": -116.17725519999998,
+            "placeId": "ChIJ5RNsZuHocFMR5zk6EcZplOU",
+            "name": "Kananaskis Village",
+            "formattedAddress": "Kananaskis Village, AB T1W 2W3",
+            "latitude": 50.917246,
+            "longitude": -115.14721440000001,
             "types": [
               "locality",
               "political"
             ],
-            "googleMapsUri": "https://maps.google.com/?cid=4339003266641018086&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+            "googleMapsUri": "https://maps.google.com/?cid=16542963630652144103&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
         },
         {
-          "key": "d2-moraine",
-          "query": "Moraine Lake, Banff National Park, AB",
+          "key": "d2-wedge",
+          "query": "Wedge Pond, Kananaskis, AB",
           "type": "attraction",
-          "optional": true,
-          "notes": "if time permits",
+          "notes": "Morning",
           "resolved": {
-            "placeId": "ChIJF-WO9ctbd1MRlVzAw6KnyEI",
-            "name": "Moraine Lake",
-            "formattedAddress": "Moraine Lake, Improvement District No. 9, AB T0L 1E0",
-            "latitude": 51.321741599999996,
-            "longitude": -116.1860049,
+            "placeId": "ChIJ50qGSr_ucFMRhwSVId4Vh9o",
+            "name": "Wedge Pond",
+            "formattedAddress": "Wedge Pond, Kananaskis, AB T3Z 0C4",
+            "latitude": 50.8727121,
+            "longitude": -115.14868390000001,
             "types": [
               "lake",
               "natural_feature",
               "establishment"
             ],
-            "googleMapsUri": "https://maps.google.com/?cid=4812280519356079253&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+            "googleMapsUri": "https://maps.google.com/?cid=15746578665914565767&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
         },
         {
-          "key": "d2-emerald",
-          "query": "Emerald Lake, Yoho National Park, BC",
+          "key": "d2-upper-k",
+          "query": "Upper Kananaskis Lake, AB",
           "type": "attraction",
-          "optional": true,
+          "notes": "Mid-day",
           "resolved": {
-            "placeId": "ChIJ21xUfDnfeVMRuTTXtIuOxP0",
-            "name": "Emerald Lake",
-            "formattedAddress": "Emerald Lake, Columbia-Shuswap, BC",
-            "latitude": 51.4434375,
-            "longitude": -116.53076929999999,
+            "placeId": "ChIJf5vE-ipgcFMRtRwPWLtI15U",
+            "name": "Upper Kananaskis Lake",
+            "formattedAddress": "Upper Kananaskis Lake, Kananaskis, AB T0L 0K0",
+            "latitude": 50.615214099999996,
+            "longitude": -115.16143269999999,
             "types": [
               "lake",
               "natural_feature",
               "establishment"
             ],
-            "googleMapsUri": "https://maps.google.com/?cid=18285897117716657337&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+            "googleMapsUri": "https://maps.google.com/?cid=10797178601117523125&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
+        },
+        {
+          "key": "d2-spray",
+          "query": "Spray Lakes Reservoir, AB",
+          "type": "attraction",
+          "notes": "Mid-day",
+          "resolved": {
+            "placeId": "ChIJZ_7PmQDAcFMRtF_JOdtGAj4",
+            "name": "Spray Lakes Reservoir",
+            "formattedAddress": "Spray Lakes Reservoir, Kananaskis, AB T0L 0B2",
+            "latitude": 50.9155765,
+            "longitude": -115.33773240000001,
+            "types": [
+              "lake",
+              "natural_feature",
+              "establishment"
+            ],
+            "googleMapsUri": "https://maps.google.com/?cid=4468211687686234036&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
+        },
+        {
+          "key": "d2-canmore",
+          "query": "Canmore, AB",
+          "type": "attraction",
+          "notes": "Afternoon · Lunch, shopping & exploring",
+          "resolved": {
+            "placeId": "ChIJMWNFlZXFcFMRLmkenl8xtkY",
+            "name": "Canmore",
+            "formattedAddress": "Canmore, AB",
+            "latitude": 51.08836660000001,
+            "longitude": -115.3479101,
+            "types": [
+              "locality",
+              "political"
+            ],
+            "googleMapsUri": "https://maps.google.com/?cid=5095314315160742190&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
+        },
+        {
+          "key": "d2-sheep",
+          "query": "Sheep River Provincial Park, AB",
+          "type": "attraction",
+          "optional": true,
+          "notes": "Evening · if energy permits",
+          "resolved": {
+            "placeId": "ChIJa2J1dVlRcFMRlao4-pxNAag",
+            "name": "Sheep River Provincial Park - Kananaskis Country",
+            "formattedAddress": "Millarville, AB T0L 1K0",
+            "latitude": 50.6301553,
+            "longitude": -114.6837742,
+            "types": [
+              "park",
+              "nature_preserve",
+              "point_of_interest",
+              "establishment"
+            ],
+            "googleMapsUri": "https://maps.google.com/?cid=12106042609956858517&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
+        },
+        {
+          "key": "d2-sheep-falls",
+          "query": "Sheep River Falls, AB",
+          "type": "attraction",
+          "optional": true,
+          "notes": "Evening · if energy permits",
+          "resolved": {
+            "placeId": "ChIJEf0LUj1RcFMRxkbSOiRD6jU",
+            "name": "Sheep River Falls",
+            "formattedAddress": "Sheep River Rd, Kananaskis, AB T0L 1K0",
+            "latitude": 50.6158224,
+            "longitude": -114.7035741,
+            "types": [
+              "tourist_attraction",
+              "nature_preserve",
+              "park",
+              "point_of_interest",
+              "establishment"
+            ],
+            "googleMapsUri": "https://maps.google.com/?cid=3884991451445216966&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
         }
       ],
@@ -299,7 +286,7 @@
         "key": "d2-hotel",
         "query": "Calgary Tower, Calgary, AB, Canada",
         "type": "city_overnight",
-        "notes": "City overnight — Calgary (lodging TBD)",
+        "notes": "City overnight — Calgary (Calgary Tower TBD)",
         "resolved": {
           "placeId": "ChIJJzJsi_1vcVMRgZd7NwckWfE",
           "name": "Calgary Tower",
@@ -320,154 +307,180 @@
     {
       "dayIndex": 3,
       "date": "2026-08-03",
-      "title": "Day 3 – Calgary → Kananaskis → Canmore → Calgary",
-      "routeSummary": "~220–300 km · 3–5 hrs + sightseeing",
-      "notes": null,
+      "title": "Day 3 – Calgary → Banff & Yoho → Calgary",
+      "routeSummary": "~320–380 km · 4–5 hrs + sightseeing",
+      "notes": "Early bird mountain loop · 6:00 AM departure for Lake Louise & Moraine Lake shuttles",
       "stops": [
         {
-          "key": "d3-barrier",
-          "query": "Barrier Lake, Kananaskis, AB",
+          "key": "d3-louise",
+          "query": "Lake Louise, Banff National Park, AB",
           "type": "attraction",
+          "notes": "First thing · pre-booked shuttle",
           "resolved": {
-            "placeId": "ChIJf8Nr3evdcFMR9x0egHtcf8Y",
-            "name": "Barrier Lake",
-            "formattedAddress": "Barrier Lake, Kananaskis, AB",
-            "latitude": 51.026797099999996,
-            "longitude": -115.06606110000001,
-            "types": [
-              "lake",
-              "natural_feature",
-              "establishment"
-            ],
-            "googleMapsUri": "https://maps.google.com/?cid=14303252627052174839&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
-          }
-        },
-        {
-          "key": "d3-village",
-          "query": "Kananaskis Village, AB",
-          "type": "attraction",
-          "resolved": {
-            "placeId": "ChIJ5RNsZuHocFMR5zk6EcZplOU",
-            "name": "Kananaskis Village",
-            "formattedAddress": "Kananaskis Village, AB T1W 2W3",
-            "latitude": 50.917246,
-            "longitude": -115.14721440000001,
+            "placeId": "ChIJEc7hoChdd1MR5rxlY3s8Nzw",
+            "name": "Lake Louise",
+            "formattedAddress": "Lake Louise, AB T0L 1E0",
+            "latitude": 51.4253705,
+            "longitude": -116.17725519999998,
             "types": [
               "locality",
               "political"
             ],
-            "googleMapsUri": "https://maps.google.com/?cid=16542963630652144103&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+            "googleMapsUri": "https://maps.google.com/?cid=4339003266641018086&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
         },
         {
-          "key": "d3-wedge",
-          "query": "Wedge Pond, Kananaskis, AB",
+          "key": "d3-moraine",
+          "query": "Moraine Lake, Banff National Park, AB",
           "type": "attraction",
+          "notes": "First thing · pre-booked shuttle",
           "resolved": {
-            "placeId": "ChIJ50qGSr_ucFMRhwSVId4Vh9o",
-            "name": "Wedge Pond",
-            "formattedAddress": "Wedge Pond, Kananaskis, AB T3Z 0C4",
-            "latitude": 50.8727121,
-            "longitude": -115.14868390000001,
+            "placeId": "ChIJF-WO9ctbd1MRlVzAw6KnyEI",
+            "name": "Moraine Lake",
+            "formattedAddress": "Moraine Lake, Improvement District No. 9, AB T0L 1E0",
+            "latitude": 51.321741599999996,
+            "longitude": -116.1860049,
             "types": [
               "lake",
               "natural_feature",
               "establishment"
             ],
-            "googleMapsUri": "https://maps.google.com/?cid=15746578665914565767&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+            "googleMapsUri": "https://maps.google.com/?cid=4812280519356079253&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
         },
         {
-          "key": "d3-upper-k",
-          "query": "Upper Kananaskis Lake, AB",
+          "key": "d3-emerald",
+          "query": "Emerald Lake, Yoho National Park, BC",
           "type": "attraction",
+          "notes": "Late morning · west into BC while Banff crowds peak",
           "resolved": {
-            "placeId": "ChIJf5vE-ipgcFMRtRwPWLtI15U",
-            "name": "Upper Kananaskis Lake",
-            "formattedAddress": "Upper Kananaskis Lake, Kananaskis, AB T0L 0K0",
-            "latitude": 50.615214099999996,
-            "longitude": -115.16143269999999,
+            "placeId": "ChIJ21xUfDnfeVMRuTTXtIuOxP0",
+            "name": "Emerald Lake",
+            "formattedAddress": "Emerald Lake, Columbia-Shuswap, BC",
+            "latitude": 51.4434375,
+            "longitude": -116.53076929999999,
             "types": [
               "lake",
               "natural_feature",
               "establishment"
             ],
-            "googleMapsUri": "https://maps.google.com/?cid=10797178601117523125&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+            "googleMapsUri": "https://maps.google.com/?cid=18285897117716657337&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
         },
         {
-          "key": "d3-spray",
-          "query": "Spray Lakes Reservoir, AB",
+          "key": "d3-johnston",
+          "query": "Johnston Canyon, Banff National Park, AB",
           "type": "attraction",
+          "notes": "Afternoon · heading east",
           "resolved": {
-            "placeId": "ChIJZ_7PmQDAcFMRtF_JOdtGAj4",
-            "name": "Spray Lakes Reservoir",
-            "formattedAddress": "Spray Lakes Reservoir, Kananaskis, AB T0L 0B2",
-            "latitude": 50.9155765,
-            "longitude": -115.33773240000001,
+            "placeId": "ChIJX565eApMd1MREyrG4XF73ww",
+            "name": "Johnston Canyon",
+            "formattedAddress": "Bow Valley Pkwy, Improvement District No. 9, AB T1L 1K2",
+            "latitude": 51.2455293,
+            "longitude": -115.83989770000001,
             "types": [
-              "lake",
-              "natural_feature",
-              "establishment"
-            ],
-            "googleMapsUri": "https://maps.google.com/?cid=4468211687686234036&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
-          }
-        },
-        {
-          "key": "d3-canmore",
-          "query": "Canmore, AB",
-          "type": "attraction",
-          "resolved": {
-            "placeId": "ChIJMWNFlZXFcFMRLmkenl8xtkY",
-            "name": "Canmore",
-            "formattedAddress": "Canmore, AB",
-            "latitude": 51.08836660000001,
-            "longitude": -115.3479101,
-            "types": [
-              "locality",
-              "political"
-            ],
-            "googleMapsUri": "https://maps.google.com/?cid=5095314315160742190&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
-          }
-        },
-        {
-          "key": "d3-sheep",
-          "query": "Sheep River Provincial Park, AB",
-          "type": "attraction",
-          "resolved": {
-            "placeId": "ChIJa2J1dVlRcFMRlao4-pxNAag",
-            "name": "Sheep River Provincial Park - Kananaskis Country",
-            "formattedAddress": "Millarville, AB T0L 1K0",
-            "latitude": 50.6301553,
-            "longitude": -114.6837742,
-            "types": [
-              "park",
-              "nature_preserve",
-              "point_of_interest",
-              "establishment"
-            ],
-            "googleMapsUri": "https://maps.google.com/?cid=12106042609956858517&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
-          }
-        },
-        {
-          "key": "d3-sheep-falls",
-          "query": "Sheep River Falls, AB",
-          "type": "attraction",
-          "optional": true,
-          "resolved": {
-            "placeId": "ChIJEf0LUj1RcFMRxkbSOiRD6jU",
-            "name": "Sheep River Falls",
-            "formattedAddress": "Sheep River Rd, Kananaskis, AB T0L 1K0",
-            "latitude": 50.6158224,
-            "longitude": -114.7035741,
-            "types": [
+              "hiking_area",
               "tourist_attraction",
-              "nature_preserve",
-              "park",
+              "sports_activity_location",
               "point_of_interest",
               "establishment"
             ],
-            "googleMapsUri": "https://maps.google.com/?cid=3884991451445216966&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+            "googleMapsUri": "https://maps.google.com/?cid=927595777310992915&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
+        },
+        {
+          "key": "d3-minnewanka",
+          "query": "Lake Minnewanka, Banff, AB",
+          "type": "attraction",
+          "notes": "Afternoon · Banff townsite loop",
+          "resolved": {
+            "placeId": "ChIJzf76jpTScFMRxn5ES4dIhWQ",
+            "name": "Lake Minnewanka",
+            "formattedAddress": "Lake Minnewanka, Improvement District No. 9, AB",
+            "latitude": 51.264068599999995,
+            "longitude": -115.37456739999999,
+            "types": [
+              "lake",
+              "natural_feature",
+              "establishment"
+            ],
+            "googleMapsUri": "https://maps.google.com/?cid=7243275321615875782&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
+        },
+        {
+          "key": "d3-two-jack",
+          "query": "Two Jack Lake, Banff, AB",
+          "type": "attraction",
+          "notes": "Afternoon · Banff townsite loop",
+          "resolved": {
+            "placeId": "ChIJgyi2Eo7McFMRt6xDR_Ig5R4",
+            "name": "Two Jack Lake",
+            "formattedAddress": "Two Jack Lake, Improvement District No. 9, AB T1W 2W2",
+            "latitude": 51.228047600000004,
+            "longitude": -115.49658339999998,
+            "types": [
+              "lake",
+              "natural_feature",
+              "establishment"
+            ],
+            "googleMapsUri": "https://maps.google.com/?cid=2226221815754370231&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
+        },
+        {
+          "key": "d3-bow-falls",
+          "query": "Bow Falls, Banff, AB",
+          "type": "attraction",
+          "notes": "Afternoon · Banff townsite loop",
+          "resolved": {
+            "placeId": "ChIJV9JW-jnKcFMR3NxQhMS4-R8",
+            "name": "Bow Falls",
+            "formattedAddress": "Bow Falls, Banff, AB T1L 1B4",
+            "latitude": 51.167967,
+            "longitude": -115.56148669999999,
+            "types": [
+              "natural_feature",
+              "establishment"
+            ],
+            "googleMapsUri": "https://maps.google.com/?cid=2304075838549712092&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
+        },
+        {
+          "key": "d3-surprise",
+          "query": "Surprise Corner Viewpoint, Banff, AB",
+          "type": "attraction",
+          "notes": "Afternoon · Banff townsite loop",
+          "resolved": {
+            "placeId": "ChIJyy-epTDKcFMRCJPBIeLjg_M",
+            "name": "Surprise Corner Viewpoint",
+            "formattedAddress": "Buffalo St, Banff, AB T1L 1K2",
+            "latitude": 51.1672559,
+            "longitude": -115.5591596,
+            "types": [
+              "scenic_spot",
+              "hiking_area",
+              "tourist_attraction",
+              "sports_activity_location",
+              "point_of_interest",
+              "establishment"
+            ],
+            "googleMapsUri": "https://maps.google.com/?cid=17547119133534032648&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
+        },
+        {
+          "key": "d3-banff-ave",
+          "query": "Banff Avenue, Banff, AB",
+          "type": "attraction",
+          "notes": "Evening · Dinner before return to Calgary",
+          "resolved": {
+            "placeId": "EhxCYW5mZiBBdmUsIEJhbmZmLCBBQiwgQ2FuYWRhIi4qLAoUChIJgfnRsK7LcFMRgMt5GT6SKKASFAoSCf1KDJFFynBTEWOUrNq-rq_K",
+            "name": "Banff Avenue",
+            "formattedAddress": "Banff Ave, Banff, AB",
+            "latitude": 51.1822712,
+            "longitude": -115.5654527,
+            "types": [
+              "route"
+            ],
+            "googleMapsUri": "https://maps.google.com/?q=Banff+Ave,+Banff,+AB,+Canada&ftid=0x5370cbaeb0d1f981:0xa028923e1979cb80&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
         }
       ],
@@ -475,7 +488,7 @@
         "key": "d3-hotel",
         "query": "Calgary Tower, Calgary, AB, Canada",
         "type": "city_overnight",
-        "notes": "City overnight — Calgary (lodging TBD)",
+        "notes": "City overnight — Calgary (Calgary Tower TBD)",
         "resolved": {
           "placeId": "ChIJJzJsi_1vcVMRgZd7NwckWfE",
           "name": "Calgary Tower",
@@ -496,14 +509,15 @@
     {
       "dayIndex": 4,
       "date": "2026-08-04",
-      "title": "Day 4 – Icefields Parkway → Jasper → Hinton",
+      "title": "Day 4 – Calgary → Icefields Parkway → Jasper → Hinton",
       "routeSummary": "~430–500 km · 6–8 hrs + sightseeing",
-      "notes": null,
+      "notes": "Glacier Highway · Tuesday",
       "stops": [
         {
           "key": "d4-bow",
           "query": "Bow Lake, Banff National Park, AB",
           "type": "attraction",
+          "notes": "Morning · Bow Lake Viewpoint",
           "resolved": {
             "placeId": "ChIJRUGSgox5d1MRANO1g0ASn-4",
             "name": "Bow Lake",
@@ -522,6 +536,7 @@
           "key": "d4-peyto",
           "query": "Peyto Lake, Banff National Park, AB",
           "type": "attraction",
+          "notes": "Morning",
           "resolved": {
             "placeId": "ChIJr6pwbXF4d1MRe0MriffErac",
             "name": "Peyto Lake",
@@ -540,6 +555,7 @@
           "key": "d4-mistaya",
           "query": "Mistaya Canyon, Banff National Park, AB",
           "type": "attraction",
+          "notes": "Morning · Mistaya Canyon Trail Head",
           "resolved": {
             "placeId": "ChIJMZPRYiWPd1MRh9OuX2pnf_w",
             "name": "Mistaya Canyon Trail Head - Banff",
@@ -557,8 +573,9 @@
         },
         {
           "key": "d4-icefield",
-          "query": "Columbia Icefield, Jasper National Park, AB",
+          "query": "Columbia Icefield Glacier Discovery Centre, Jasper National Park, AB",
           "type": "attraction",
+          "notes": "Mid-day · Columbia Icefield / Glacier Gallery",
           "resolved": {
             "placeId": "ChIJk1r-ySH_d1MROEVapKmwG00",
             "name": "Jasper National Park Icefield Information Centre and Glacier Gallery",
@@ -580,8 +597,27 @@
         },
         {
           "key": "d4-glacier",
-          "query": "Athabasca Glacier Viewpoint, Jasper National Park, AB",
+          "query": "Athabasca Glacier, Jasper National Park, AB",
           "type": "attraction",
+          "notes": "Mid-day",
+          "resolved": {
+            "placeId": "ChIJAthabascaGlacierJasper2026",
+            "name": "Athabasca Glacier",
+            "formattedAddress": "Athabasca Glacier, Jasper National Park, AB T0E 1E0",
+            "latitude": 52.2135,
+            "longitude": -117.2435,
+            "types": [
+              "natural_feature",
+              "establishment"
+            ],
+            "googleMapsUri": "https://maps.google.com/?q=Athabasca+Glacier"
+          }
+        },
+        {
+          "key": "d4-pass",
+          "query": "Athabasca Pass Lookout, Jasper National Park, AB",
+          "type": "attraction",
+          "notes": "Afternoon",
           "resolved": {
             "placeId": "ChIJe_m4j-fSglMRrV1l3rXeAa8",
             "name": "Athabasca Pass Lookout",
@@ -600,6 +636,7 @@
           "key": "d4-honeymoon",
           "query": "Honeymoon Lake, Jasper National Park, AB",
           "type": "attraction",
+          "notes": "Afternoon",
           "resolved": {
             "placeId": "ChIJodMt-q_KglMR4pQz2a7Ppp8",
             "name": "Honeymoon Lake",
@@ -618,6 +655,7 @@
           "key": "d4-sunwapta",
           "query": "Sunwapta Falls, Jasper National Park, AB",
           "type": "attraction",
+          "notes": "Afternoon",
           "resolved": {
             "placeId": "ChIJt4Rzv0m1glMRrCJB4RwF-jg",
             "name": "Sunwapta Falls",
@@ -635,6 +673,7 @@
           "key": "d4-athabasca",
           "query": "Athabasca Falls, Jasper National Park, AB",
           "type": "attraction",
+          "notes": "Afternoon",
           "resolved": {
             "placeId": "ChIJw5zvm5HNglMR5mvj7vL9PlQ",
             "name": "Athabasca Falls",
@@ -649,29 +688,29 @@
           }
         },
         {
-          "key": "d4-jasper",
-          "query": "Jasper, AB",
+          "key": "d4-annette",
+          "query": "Annette Lake, Jasper National Park, AB",
           "type": "attraction",
-          "notes": "Jasper town",
+          "notes": "Late afternoon",
           "resolved": {
-            "placeId": "ChIJKT5VaAgrg1MRgigZC70CIB8",
-            "name": "Jasper",
-            "formattedAddress": "Jasper, AB T0E 0A8",
-            "latitude": 52.873289899999996,
-            "longitude": -118.08228380000001,
+            "placeId": "ChIJAnnetteLakeJasperAB2026",
+            "name": "Annette Lake",
+            "formattedAddress": "Annette Lake, Jasper National Park, AB",
+            "latitude": 52.9063,
+            "longitude": -118.0475,
             "types": [
-              "locality",
-              "political"
+              "lake",
+              "natural_feature",
+              "establishment"
             ],
-            "googleMapsUri": "https://maps.google.com/?cid=2242795625388779650&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+            "googleMapsUri": "https://maps.google.com/?q=Annette+Lake,+Jasper+National+Park"
           }
         },
         {
           "key": "d4-maligne",
           "query": "Maligne Lake, Jasper National Park, AB",
           "type": "attraction",
-          "optional": true,
-          "notes": "if time permits",
+          "notes": "Late afternoon",
           "resolved": {
             "placeId": "ChIJfxoEjyY3nVMReDJf2fmZnak",
             "name": "Maligne Lake",
@@ -687,10 +726,22 @@
           }
         },
         {
-          "key": "d4-annette",
-          "query": "Annette Lake, Jasper National Park, AB",
+          "key": "d4-jasper",
+          "query": "Jasper, AB",
           "type": "attraction",
-          "resolved": null
+          "notes": "Late afternoon · Explore Jasper town before Hinton",
+          "resolved": {
+            "placeId": "ChIJKT5VaAgrg1MRgigZC70CIB8",
+            "name": "Jasper",
+            "formattedAddress": "Jasper, AB T0E 0A8",
+            "latitude": 52.873289899999996,
+            "longitude": -118.08228380000001,
+            "types": [
+              "locality",
+              "political"
+            ],
+            "googleMapsUri": "https://maps.google.com/?cid=2242795625388779650&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
         }
       ],
       "overnight": {
@@ -718,7 +769,7 @@
       "date": "2026-08-05",
       "title": "Day 5 – Jasper → Prince George (VIA Rail)",
       "routeSummary": "Full-day train journey",
-      "notes": "Park vehicles in Jasper · Scenic VIA Rail through the Rockies and northern BC",
+      "notes": "The driving break · Park vehicles at Jasper station · Scenic VIA Rail through the Rockies and northern BC",
       "stops": [
         {
           "key": "d5-jasper-station",
@@ -786,13 +837,13 @@
       "date": "2026-08-06",
       "title": "Day 6 – Prince George → Jasper (train) → Kamloops",
       "routeSummary": "Train + ~440 km · 5–6 hrs",
-      "notes": "Collect vehicles in Jasper · Drive to Kamloops",
+      "notes": "Return & transition · Collect vehicles in Jasper · Drive south to Kamloops",
       "stops": [
         {
           "key": "d6-jasper-collect",
           "query": "Jasper VIA Rail Station, Jasper, AB",
           "type": "transit",
-          "notes": "Collect vehicles",
+          "notes": "Morning · Collect vehicles",
           "resolved": {
             "placeId": "ChIJs4k_Mgkrg1MRBeXri55KpL0",
             "name": "Jasper",
@@ -813,6 +864,7 @@
           "key": "d6-riverside",
           "query": "Riverside Park, Kamloops, BC",
           "type": "attraction",
+          "notes": "Afternoon stretch",
           "resolved": {
             "placeId": "ChIJd5yrYFUsflMRsKvJ5-yDNkY",
             "name": "Riverside Park",
@@ -833,6 +885,7 @@
           "key": "d6-kenna",
           "query": "Kenna Cartwright Park, Kamloops, BC",
           "type": "attraction",
+          "notes": "Afternoon stretch",
           "resolved": {
             "placeId": "ChIJOV1DrYQsflMRQEP7z6O-_B0",
             "name": "Kenna Cartwright Nature Park",
@@ -853,8 +906,7 @@
           "key": "d6-downtown",
           "query": "Downtown Kamloops, BC",
           "type": "attraction",
-          "optional": true,
-          "notes": "time permitting",
+          "notes": "Evening · Relax downtown",
           "resolved": {
             "placeId": "ChIJMTsNPdMsflMR50VpmqqWPtI",
             "name": "Kamloops",
@@ -895,12 +947,13 @@
       "date": "2026-08-07",
       "title": "Day 7 – Kamloops → Vancouver",
       "routeSummary": "~355 km · 4–5 hrs",
-      "notes": null,
+      "notes": "Coast arrival · Friday",
       "stops": [
         {
           "key": "d7-gastown",
           "query": "Gastown, Vancouver, BC",
           "type": "attraction",
+          "notes": "Afternoon",
           "resolved": {
             "placeId": "ChIJe_ROYXdxhlQRYYQ3bU2m_tE",
             "name": "Gastown",
@@ -918,6 +971,7 @@
           "key": "d7-canada-place",
           "query": "Canada Place, Vancouver, BC",
           "type": "attraction",
+          "notes": "Afternoon",
           "resolved": {
             "placeId": "ChIJIeDiJJ1xhlQRCWHIheB_Bbc",
             "name": "Canada Place",
@@ -939,6 +993,7 @@
           "key": "d7-coal",
           "query": "Coal Harbour, Vancouver, BC",
           "type": "attraction",
+          "notes": "Afternoon",
           "resolved": {
             "placeId": "ChIJc2DjcoRxhlQR6asqSy2-bi8",
             "name": "Coal Harbour",
@@ -956,6 +1011,7 @@
           "key": "d7-stanley",
           "query": "Stanley Park, Vancouver, BC",
           "type": "attraction",
+          "notes": "Late afternoon · Rent bikes or walk",
           "resolved": {
             "placeId": "ChIJo-QmrYxxhlQRFuIJtJ1jSjY",
             "name": "Stanley Park",
@@ -975,7 +1031,7 @@
           "key": "d7-denman",
           "query": "Denman Street, Vancouver, BC",
           "type": "attraction",
-          "notes": "Dinner & cafés",
+          "notes": "Evening · Dinner & cafés",
           "resolved": {
             "placeId": "ChIJkSHt6CdyhlQRLJ3RBtSTSR0",
             "name": "Denman Street",
@@ -992,7 +1048,7 @@
           "key": "d7-english-bay",
           "query": "English Bay Beach, Vancouver, BC",
           "type": "attraction",
-          "notes": "Sunset",
+          "notes": "Evening · Sunset",
           "resolved": {
             "placeId": "ChIJ86zkaC9yhlQR4GhBA8iTiy4",
             "name": "English Bay Beach",
@@ -1013,7 +1069,7 @@
         "key": "d7-hotel",
         "query": "7112 Victoria Drive, Vancouver, BC V5P 3Z1",
         "type": "hotel",
-        "notes": "Airbnb",
+        "notes": "Victoria Dr Airbnb",
         "resolved": {
           "placeId": "ChIJEwOkRTB0hlQRM7s3OyT9SvU",
           "name": "7112 Victoria Dr",
@@ -1031,14 +1087,15 @@
     {
       "dayIndex": 8,
       "date": "2026-08-08",
-      "title": "Day 8 – Sea to Sky: North Van → Squamish → Whistler",
+      "title": "Day 8 – Vancouver → Sea-to-Sky → Vancouver",
       "routeSummary": "~250 km",
-      "notes": null,
+      "notes": "Mountain and water · Saturday",
       "stops": [
         {
           "key": "d8-capilano",
           "query": "Capilano Suspension Bridge Park, North Vancouver, BC",
           "type": "attraction",
+          "notes": "Morning",
           "resolved": {
             "placeId": "ChIJSd7cANJvhlQRXg8TheyzUPM",
             "name": "Capilano Suspension Bridge Park",
@@ -1057,6 +1114,7 @@
           "key": "d8-shannon",
           "query": "Shannon Falls Provincial Park, Squamish, BC",
           "type": "attraction",
+          "notes": "Mid-day · Sea to Sky Highway",
           "resolved": {
             "placeId": "ChIJU_e-ag5YhlQRVnYsDNKhfA0",
             "name": "Shannon Falls Provincial Park",
@@ -1076,6 +1134,7 @@
           "key": "d8-gondola",
           "query": "Sea to Sky Gondola, Squamish, BC",
           "type": "attraction",
+          "notes": "Mid-day",
           "resolved": {
             "placeId": "ChIJZ2GCywdYhlQRB8ip3H65t6c",
             "name": "Sea to Sky Gondola",
@@ -1104,6 +1163,7 @@
           "query": "Mamquam Falls, Squamish, BC",
           "type": "attraction",
           "optional": true,
+          "notes": "Afternoon · quick stop",
           "resolved": {
             "placeId": "ChIJ76ELd1X5hlQRvczRhvTxihM",
             "name": "Mamquam Falls",
@@ -1124,6 +1184,7 @@
           "query": "Brandywine Falls Provincial Park, BC",
           "type": "attraction",
           "optional": true,
+          "notes": "Afternoon · en route to Whistler",
           "resolved": {
             "placeId": "ChIJWSxr5ZAZh1QROxoPIT1vUKo",
             "name": "Brandywine Falls Provincial Park",
@@ -1143,6 +1204,7 @@
           "key": "d8-whistler",
           "query": "Whistler Village, Whistler, BC",
           "type": "attraction",
+          "notes": "Afternoon",
           "resolved": {
             "placeId": "ChIJh3uVA7I8h1QR9s_1dehBt0o",
             "name": "Whistler",
@@ -1160,6 +1222,7 @@
           "key": "d8-green",
           "query": "Green Lake, Whistler, BC",
           "type": "attraction",
+          "notes": "Afternoon",
           "resolved": {
             "placeId": "ChIJA1p_oBI7h1QRtFV9YTJLC7A",
             "name": "Green Lake",
@@ -1179,7 +1242,7 @@
         "key": "d8-hotel",
         "query": "7112 Victoria Drive, Vancouver, BC V5P 3Z1",
         "type": "hotel",
-        "notes": "Airbnb",
+        "notes": "Victoria Dr Airbnb",
         "resolved": {
           "placeId": "ChIJEwOkRTB0hlQRM7s3OyT9SvU",
           "name": "7112 Victoria Dr",
@@ -1197,15 +1260,15 @@
     {
       "dayIndex": 9,
       "date": "2026-08-09",
-      "title": "Day 9 – Vancouver → Victoria (ferry) → Vancouver",
+      "title": "Day 9 – Vancouver → Victoria → Vancouver",
       "routeSummary": "Ferry + driving",
-      "notes": null,
+      "notes": "Island day trip · 7:00 AM Tsawwassen → Swartz Bay · late evening ferry return",
       "stops": [
         {
           "key": "d9-tsawwassen",
           "query": "Tsawwassen Ferry Terminal, Delta, BC",
           "type": "transit",
-          "notes": "BC Ferries",
+          "notes": "7:00 AM ferry · BC Ferries",
           "resolved": {
             "placeId": "ChIJL--BuvflhVQRYpBYtSRR3-A",
             "name": "Tsawwassen Ferry Terminal",
@@ -1225,6 +1288,7 @@
           "key": "d9-butchart",
           "query": "Butchart Gardens, Brentwood Bay, BC",
           "type": "attraction",
+          "notes": "Morning · beat afternoon tour buses",
           "resolved": {
             "placeId": "ChIJvzOu-Blsj1QRBKwRKIb3mW8",
             "name": "The Butchart Gardens",
@@ -1245,6 +1309,7 @@
           "key": "d9-harbour",
           "query": "Inner Harbour, Victoria, BC",
           "type": "attraction",
+          "notes": "Afternoon · Inner Harbour & pathway",
           "resolved": {
             "placeId": "ChIJyRJTb5p0j1QRveDFvkcJsho",
             "name": "Inner-Harbour Pathway",
@@ -1261,6 +1326,7 @@
           "key": "d9-parliament",
           "query": "British Columbia Parliament Buildings, Victoria, BC",
           "type": "attraction",
+          "notes": "Afternoon",
           "resolved": {
             "placeId": "ChIJgcJti4R0j1QRHW6-NyyjuKg",
             "name": "Legislative Assembly of British Columbia",
@@ -1280,7 +1346,7 @@
           "key": "d9-tolmie",
           "query": "Mount Tolmie Park, Victoria, BC",
           "type": "attraction",
-          "notes": "Lookout",
+          "notes": "Late afternoon · Lookout",
           "resolved": {
             "placeId": "ChIJGdxzX_pzj1QRjbNBc7pVhgQ",
             "name": "Mount Tolmie Park",
@@ -1300,7 +1366,7 @@
           "key": "d9-swartz",
           "query": "Swartz Bay Ferry Terminal, Sidney, BC",
           "type": "transit",
-          "notes": "Evening ferry back",
+          "notes": "Evening ferry back to Vancouver",
           "resolved": {
             "placeId": "ChIJx9fUEopnj1QRkUK8kKVUPxQ",
             "name": "Swartz Bay Terminal",
@@ -1322,7 +1388,7 @@
         "key": "d9-hotel",
         "query": "7112 Victoria Drive, Vancouver, BC V5P 3Z1",
         "type": "hotel",
-        "notes": "Airbnb",
+        "notes": "Victoria Dr Airbnb",
         "resolved": {
           "placeId": "ChIJEwOkRTB0hlQRM7s3OyT9SvU",
           "name": "7112 Victoria Dr",
@@ -1341,15 +1407,14 @@
       "dayIndex": 10,
       "date": "2026-08-10",
       "title": "Day 10 – Vancouver → Clearwater",
-      "routeSummary": "~500 km · 6–7 hrs",
-      "notes": null,
+      "routeSummary": "~500 km · 5.5–7 hrs",
+      "notes": "Water adventures & waterfalls · Morning English Bay water sports · Afternoon Wells Gray falls (clears Day 11 for the long drive)",
       "stops": [
         {
           "key": "d10-water",
           "query": "English Bay Beach, Vancouver, BC",
           "type": "attraction",
-          "optional": true,
-          "notes": "Optional morning water activity",
+          "notes": "Morning · Kayak, paddleboard, jet ski, or boat",
           "resolved": {
             "placeId": "ChIJ86zkaC9yhlQR4GhBA8iTiy4",
             "name": "English Bay Beach",
@@ -1369,8 +1434,7 @@
           "key": "d10-spahats",
           "query": "Spahats Creek Falls, Clearwater, BC",
           "type": "attraction",
-          "optional": true,
-          "notes": "if time permits",
+          "notes": "Afternoon · Wells Gray Park",
           "resolved": {
             "placeId": "ChIJY_miNtPcgVMRYm0Ajf960mY",
             "name": "Spahats Creek Falls",
@@ -1386,13 +1450,53 @@
             ],
             "googleMapsUri": "https://maps.google.com/?cid=7409119574978751842&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
+        },
+        {
+          "key": "d10-helmcken",
+          "query": "Helmcken Falls, Wells Gray Provincial Park, BC",
+          "type": "attraction",
+          "notes": "Afternoon · Wells Gray Park",
+          "resolved": {
+            "placeId": "ChIJw6lw7_eVgVMRaNr2eDTuDa8",
+            "name": "Helmcken Falls",
+            "formattedAddress": "Helmcken Falls Rd, Thompson-Nicola, BC V0E 1N0",
+            "latitude": 51.953970299999995,
+            "longitude": -120.1770295,
+            "types": [
+              "tourist_attraction",
+              "park",
+              "point_of_interest",
+              "establishment"
+            ],
+            "googleMapsUri": "https://maps.google.com/?cid=12614000040469781096&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
+        },
+        {
+          "key": "d10-dawson",
+          "query": "Dawson Falls, Wells Gray Provincial Park, BC",
+          "type": "attraction",
+          "notes": "Afternoon · Wells Gray Park",
+          "resolved": {
+            "placeId": "ChIJCYh5oMiVgVMRqGMR6C5-udY",
+            "name": "Dawson Falls",
+            "formattedAddress": "Myrtle Point, BC V0E 1N0",
+            "latitude": 51.9650816,
+            "longitude": -120.1235478,
+            "types": [
+              "park",
+              "tourist_attraction",
+              "point_of_interest",
+              "establishment"
+            ],
+            "googleMapsUri": "https://maps.google.com/?cid=15472536734735098792&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
         }
       ],
       "overnight": {
         "key": "d10-hotel",
         "query": "4081 McNab Road, Clearwater, BC V0E 2C0",
         "type": "hotel",
-        "notes": "Four-Bedroom Holiday Home",
+        "notes": "McNab Rd Holiday Home",
         "resolved": {
           "placeId": "ChIJp6utoPp_f1MRdYicJk0umkw",
           "name": "4081 McNab Rd",
@@ -1411,46 +1515,41 @@
       "date": "2026-08-11",
       "title": "Day 11 – Clearwater → Edmonton",
       "routeSummary": "~700 km · 7–8 hrs",
-      "notes": null,
+      "notes": "The great transit day · Early checkout · Focus on the highway drive (waterfalls done on Day 10)",
       "stops": [
         {
-          "key": "d11-helmcken",
-          "query": "Helmcken Falls, Wells Gray Provincial Park, BC",
-          "type": "attraction",
+          "key": "d11-drive",
+          "query": "Yellowhead Highway, BC",
+          "type": "custom",
+          "notes": "All-day highway drive to Alberta · rest stops as needed",
           "resolved": {
-            "placeId": "ChIJw6lw7_eVgVMRaNr2eDTuDa8",
-            "name": "Helmcken Falls",
-            "formattedAddress": "Helmcken Falls Rd, Thompson-Nicola, BC V0E 1N0",
-            "latitude": 51.953970299999995,
-            "longitude": -120.1770295,
+            "placeId": "ChIJYellowheadHwyBC2026",
+            "name": "Yellowhead Highway",
+            "formattedAddress": "Yellowhead Hwy, British Columbia, Canada",
+            "latitude": 53.2,
+            "longitude": -120,
             "types": [
-              "tourist_attraction",
-              "park",
-              "point_of_interest",
-              "establishment"
+              "route"
             ],
-            "googleMapsUri": "https://maps.google.com/?cid=12614000040469781096&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+            "googleMapsUri": "https://maps.google.com/?q=Yellowhead+Highway,+BC"
           }
         },
         {
-          "key": "d11-dawson",
-          "query": "Dawson Falls, Wells Gray Provincial Park, BC",
+          "key": "d11-legislature",
+          "query": "Alberta Legislature Building, Edmonton, AB, Canada",
           "type": "attraction",
-          "optional": true,
-          "notes": "if time permits",
+          "notes": "Evening · Arrive & relax near Legislature",
           "resolved": {
-            "placeId": "ChIJCYh5oMiVgVMRqGMR6C5-udY",
-            "name": "Dawson Falls",
-            "formattedAddress": "Myrtle Point, BC V0E 1N0",
-            "latitude": 51.9650816,
-            "longitude": -120.1235478,
+            "placeId": "ChIJ45SDFDwioFMR7X728p0WXtY",
+            "name": "Legislature Building",
+            "formattedAddress": "Legislature Building, 10800 97 Ave NW, Edmonton, AB T5K 2B6",
+            "latitude": 53.5334764,
+            "longitude": -113.5066378,
             "types": [
-              "park",
-              "tourist_attraction",
-              "point_of_interest",
-              "establishment"
+              "premise",
+              "street_address"
             ],
-            "googleMapsUri": "https://maps.google.com/?cid=15472536734735098792&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+            "googleMapsUri": "https://maps.google.com/?cid=15446808639569297133&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
         }
       ],
@@ -1458,7 +1557,7 @@
         "key": "d11-hotel",
         "query": "Alberta Legislature Building, Edmonton, AB, Canada",
         "type": "city_overnight",
-        "notes": "City overnight — Edmonton (lodging TBD)",
+        "notes": "City overnight — Edmonton (Legislature Building TBD)",
         "resolved": {
           "placeId": "ChIJ45SDFDwioFMR7X728p0WXtY",
           "name": "Legislature Building",
@@ -1478,7 +1577,7 @@
       "date": "2026-08-12",
       "title": "Day 12 – Edmonton → Saskatoon",
       "routeSummary": "~525 km · 5–6 hrs",
-      "notes": "Leisurely drive with rest stops in Lloydminster or North Battleford",
+      "notes": "The prairie return · Leisurely drive with rest stops in Lloydminster and North Battleford",
       "stops": [
         {
           "key": "d12-lloyd",
@@ -1517,13 +1616,42 @@
             ],
             "googleMapsUri": "https://maps.google.com/?cid=12839349604945311715&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
+        },
+        {
+          "key": "d12-remai",
+          "query": "Remai Modern, Saskatoon, SK, Canada",
+          "type": "attraction",
+          "notes": "Evening · Unwind near Remai Modern",
+          "resolved": {
+            "placeId": "ChIJUVbhEir3BFMRRghiouuHigM",
+            "name": "Remai Modern",
+            "formattedAddress": "102 Spadina Crescent E, Saskatoon, SK S7K 0L3",
+            "latitude": 52.122878,
+            "longitude": -106.6670178,
+            "types": [
+              "gift_shop",
+              "art_museum",
+              "tourist_attraction",
+              "wedding_venue",
+              "art_gallery",
+              "store",
+              "museum",
+              "event_venue",
+              "service",
+              "restaurant",
+              "food",
+              "point_of_interest",
+              "establishment"
+            ],
+            "googleMapsUri": "https://maps.google.com/?cid=255165775011252294&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
+          }
         }
       ],
       "overnight": {
         "key": "d12-hotel",
         "query": "Remai Modern, Saskatoon, SK, Canada",
         "type": "city_overnight",
-        "notes": "City overnight — Saskatoon (lodging TBD)",
+        "notes": "City overnight — Saskatoon (Remai Modern TBD)",
         "resolved": {
           "placeId": "ChIJUVbhEir3BFMRRghiouuHigM",
           "name": "Remai Modern",
@@ -1553,14 +1681,14 @@
       "dayIndex": 13,
       "date": "2026-08-13",
       "title": "Day 13 – Flight home",
-      "routeSummary": "Saskatoon → Toronto",
-      "notes": "Milton family flies home · end of trip",
+      "routeSummary": "~1 hr on-site",
+      "notes": "End of trip · Milton family boards flights home to Toronto",
       "stops": [
         {
           "key": "d13-airport",
           "query": "Saskatoon John G. Diefenbaker International Airport",
           "type": "transit",
-          "notes": "Flight home",
+          "notes": "Morning · Flight home to Toronto",
           "resolved": {
             "placeId": "ChIJg4rWErP3BFMRc2_MaQVIHLw",
             "name": "Saskatoon International Airport",
