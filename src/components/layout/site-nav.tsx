@@ -143,7 +143,7 @@ export function SiteNav({ overlay = false }: { overlay?: boolean }) {
           <PreferencesMenu tone={overlay ? "onDark" : "default"} />
           <AccountMenu
             tone={overlay ? "onDark" : "default"}
-            className="hidden sm:block"
+            className="hidden sm:inline-flex"
           />
           <button
             type="button"

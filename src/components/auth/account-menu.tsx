@@ -68,31 +68,29 @@ export function AccountMenu({
 
   if (!session) {
     return (
-      <Button
-        asChild
-        size="sm"
-        variant={tone === "onDark" ? "onDark" : "default"}
-        className={cn(
-          "inline-flex min-h-10 items-center justify-center leading-none",
-          compact && "px-3",
-          className,
-        )}
-      >
-        <Link
-          href={`/auth/login?next=${encodeURIComponent(pathname || "/")}`}
-          {...(compact ? tip("Sign in") : {})}
+      <div className={cn(className)}>
+        <Button
+          asChild
+          size="default"
+          variant={tone === "onDark" ? "onDark" : "default"}
+          className={cn(compact && "px-3")}
         >
-          {compact ? (
-            <>
-              <UserRound className="size-4 sm:hidden" aria-hidden />
-              <span className="sr-only sm:hidden">Sign in</span>
-              <span className="hidden sm:inline">Sign in</span>
-            </>
-          ) : (
-            "Sign in"
-          )}
-        </Link>
-      </Button>
+          <Link
+            href={`/auth/login?next=${encodeURIComponent(pathname || "/")}`}
+            {...(compact ? tip("Sign in") : {})}
+          >
+            {compact ? (
+              <>
+                <UserRound className="size-4 sm:hidden" aria-hidden />
+                <span className="sr-only sm:hidden">Sign in</span>
+                <span className="hidden sm:inline">Sign in</span>
+              </>
+            ) : (
+              "Sign in"
+            )}
+          </Link>
+        </Button>
+      </div>
     );
   }
 
