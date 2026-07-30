@@ -29,6 +29,12 @@ const patchSchema = z.object({
   notes: z.string().max(4000).nullable().optional(),
   name: z.string().min(1).max(200).optional(),
   sortOrder: z.number().int().min(0).optional(),
+  type: z.enum(["attraction", "hotel", "custom"]).optional(),
+  googlePlaceId: z.string().max(256).nullable().optional(),
+  address: z.string().max(500).nullable().optional(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+  googleMapsUri: z.string().url().nullable().optional(),
 });
 
 export async function PATCH(request: Request, ctx: Ctx) {

@@ -308,310 +308,335 @@ export function TripmatesPanel({ tripId, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/55 p-4 sm:items-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/55 p-3 sm:items-center sm:p-6">
       <button
         type="button"
         className="absolute inset-0"
         aria-label="Close"
         onClick={onClose}
       />
-      <div className="relative z-10 max-h-[min(92dvh,720px)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-border bg-card p-6 shadow-elevated sm:p-8">
-        <button
-          type="button"
-          onClick={onClose}
-          className="sticky top-0 float-right z-10 -mr-1 -mt-1 grid size-10 place-items-center rounded-full text-muted-foreground hover:bg-muted"
-          aria-label="Close"
-          {...tip("Close")}
-        >
-          <X className="h-5 w-5" />
-        </button>
-        <p className="eyebrow text-primary">Collaborate</p>
-        <h2 className="mt-3 font-display text-3xl font-semibold">Tripmates</h2>
-        <p className="mt-3 text-base text-muted-foreground">
-          Invite by email or share a link. Viewers can look; Editors can edit
-          the itinerary.
-        </p>
+      <div
+        role="dialog"
+        aria-labelledby="tripmates-title"
+        className="relative z-10 flex max-h-[min(92dvh,880px)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-elevated"
+      >
+        <header className="shrink-0 border-b border-border px-5 py-5 sm:px-8 sm:py-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="eyebrow text-primary">Collaborate</p>
+              <h2
+                id="tripmates-title"
+                className="mt-2 font-display text-2xl font-semibold sm:text-3xl"
+              >
+                Tripmates
+              </h2>
+              <p className="mt-1.5 text-sm text-muted-foreground sm:text-base">
+                Viewers can look · Editors can change the itinerary
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid size-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted"
+              aria-label="Close"
+              {...tip("Close")}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          {error || message ? (
+            <div className="mt-4 space-y-1">
+              {error ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              {message ? (
+                <p className="break-all text-sm text-primary">{message}</p>
+              ) : null}
+            </div>
+          ) : null}
+        </header>
 
         {loading ? (
-          <div className="mt-8 flex items-center gap-2 text-muted-foreground">
+          <div className="flex flex-1 items-center justify-center gap-2 p-10 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading…
           </div>
         ) : (
-          <>
-            <section className="mt-6 space-y-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                People
-              </h3>
-              <ul className="space-y-2">
-                {owner ? (
-                  <li className="flex items-center justify-between gap-3 rounded-2xl border border-border px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">
-                        {displayName(owner)}
-                      </p>
-                      <p className="truncate text-sm text-muted-foreground">
-                        Owner · Editor
-                        {owner.email ? ` · ${owner.email}` : ""}
-                      </p>
-                    </div>
-                  </li>
-                ) : null}
-                {collaborators.map((c) => (
-                  <li
-                    key={c.userId}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-border px-4 py-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{displayName(c)}</p>
-                      <p className="truncate text-sm text-muted-foreground">
-                        {c.permission === "EDITOR" ? "Editor" : "Viewer"}
-                        {c.email ? ` · ${c.email}` : ""}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      disabled={removingId === c.userId}
-                      onClick={() => removeCollaborator(c.userId)}
-                      aria-label={`Remove ${displayName(c)}`}
-                      {...tip("Remove tripmate")}
-                    >
-                      {removingId === c.userId ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      )}
-                    </Button>
-                  </li>
-                ))}
-                {collaborators.length === 0 ? (
-                  <li className="rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
-                    No tripmates yet — invite someone below.
-                  </li>
-                ) : null}
-              </ul>
-            </section>
-
-            {requests.length > 0 ? (
-              <section className="mt-6 space-y-3">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  Pending requests
-                </h3>
-                <ul className="space-y-2">
-                  {requests.map((r) => (
-                    <li
-                      key={r.id}
-                      className="rounded-2xl border border-border px-4 py-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">
-                          {displayName(r)}
-                        </p>
-                        <p className="truncate text-sm text-muted-foreground">
-                          Wants{" "}
-                          {r.permission === "EDITOR" ? "Editor" : "Viewer"}{" "}
-                          access
-                          {r.email ? ` · ${r.email}` : ""}
-                        </p>
-                      </div>
-                      <div className="mt-3 flex gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={resolvingId === r.id}
-                          onClick={() => resolveRequest(r.id, "approve")}
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={resolvingId === r.id}
-                          onClick={() => resolveRequest(r.id, "reject")}
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
-
-            <section className="mt-8 space-y-4 border-t border-border pt-6">
-              <div className="flex items-center gap-2">
-                <Link2 className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  Shareable link
-                </h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Anyone with the link can accept. For private trips they only see
-                the invite — not the itinerary — until they join.
-              </p>
-
-              <label className="block space-y-2 text-base">
-                <span className="font-medium">Link permission</span>
-                <select
-                  value={linkPermission}
-                  onChange={(e) =>
-                    setLinkPermission(e.target.value as "VIEWER" | "EDITOR")
-                  }
-                  className="h-12 w-full rounded-full border border-input bg-background px-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="VIEWER">Viewer</option>
-                  <option value="EDITOR">Editor</option>
-                </select>
-              </label>
-
-              <label className="flex items-start gap-3 text-base">
-                <Checkbox
-                  checked={requireApproval}
-                  onCheckedChange={(v) => setRequireApproval(v === true)}
-                  className="mt-0.5"
-                />
-                <span>
-                  <span className="font-medium">Require approval</span>
-                  <span className="mt-0.5 block text-sm text-muted-foreground">
-                    People request to join; you approve before they become
-                    tripmates. Turn off for instant join.
-                  </span>
-                </span>
-              </label>
-
-              {inviteLink ? (
-                <>
-                  <label className="flex items-start gap-3 text-base">
-                    <Checkbox
-                      checked={inviteLink.enabled}
-                      disabled={linkBusy}
-                      onCheckedChange={(v) => toggleLinkEnabled(v === true)}
-                      className="mt-0.5"
-                    />
-                    <span>
-                      <span className="font-medium">Allow joins via link</span>
-                      <span className="mt-0.5 block text-sm text-muted-foreground">
-                        Disable anytime to stop new people from using this link.
-                      </span>
+          <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+            <aside className="flex min-h-0 flex-col border-b border-border lg:border-r lg:border-b-0">
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6 sm:py-6">
+                <section className="space-y-2">
+                  <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                    People
+                    <span className="ml-1.5 font-normal normal-case tabular-nums">
+                      ({(owner ? 1 : 0) + collaborators.length})
                     </span>
-                  </label>
+                  </h3>
+                  <ul className="space-y-2">
+                    {owner ? (
+                      <li className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background/60 px-3.5 py-2.5">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">
+                            {displayName(owner)}
+                          </p>
+                          <p className="truncate text-sm text-muted-foreground">
+                            Owner · Editor
+                            {owner.email ? ` · ${owner.email}` : ""}
+                          </p>
+                        </div>
+                      </li>
+                    ) : null}
+                    {collaborators.map((c) => (
+                      <li
+                        key={c.userId}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background/60 px-3.5 py-2.5"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">
+                            {displayName(c)}
+                          </p>
+                          <p className="truncate text-sm text-muted-foreground">
+                            {c.permission === "EDITOR" ? "Editor" : "Viewer"}
+                            {c.email ? ` · ${c.email}` : ""}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          disabled={removingId === c.userId}
+                          onClick={() => removeCollaborator(c.userId)}
+                          aria-label={`Remove ${displayName(c)}`}
+                          {...tip("Remove tripmate")}
+                        >
+                          {removingId === c.userId ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          )}
+                        </Button>
+                      </li>
+                    ))}
+                    {collaborators.length === 0 ? (
+                      <li className="rounded-xl border border-dashed border-border px-3.5 py-3 text-sm text-muted-foreground">
+                        No tripmates yet — invite by email or link.
+                      </li>
+                    ) : null}
+                  </ul>
+                </section>
 
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <input
-                      readOnly
-                      value={inviteLink.url}
-                      className="h-12 min-w-0 flex-1 rounded-full border border-input bg-background px-4 text-sm outline-none"
-                    />
+                {requests.length > 0 ? (
+                  <section className="space-y-2">
+                    <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      Pending requests
+                      <span className="ml-1.5 font-normal normal-case tabular-nums">
+                        ({requests.length})
+                      </span>
+                    </h3>
+                    <ul className="space-y-2">
+                      {requests.map((r) => (
+                        <li
+                          key={r.id}
+                          className="rounded-xl border border-border px-3.5 py-2.5"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">
+                              {displayName(r)}
+                            </p>
+                            <p className="truncate text-sm text-muted-foreground">
+                              Wants{" "}
+                              {r.permission === "EDITOR" ? "Editor" : "Viewer"}
+                              {r.email ? ` · ${r.email}` : ""}
+                            </p>
+                          </div>
+                          <div className="mt-2.5 flex gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={resolvingId === r.id}
+                              onClick={() => resolveRequest(r.id, "approve")}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={resolvingId === r.id}
+                              onClick={() => resolveRequest(r.id, "reject")}
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+              </div>
+            </aside>
+
+            <div className="min-h-0 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6 sm:py-6">
+              <div className="mx-auto flex max-w-xl flex-col gap-6">
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="h-4 w-4 text-primary" />
+                    <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      Invite by email
+                    </h3>
+                  </div>
+                  <form
+                    className="flex flex-col gap-3 sm:flex-row sm:items-end"
+                    onSubmit={onInvite}
+                  >
+                    <label className="block min-w-0 flex-1 space-y-1.5 text-sm">
+                      <span className="font-medium">Email</span>
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-11 w-full rounded-xl border border-input bg-background px-3.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        placeholder="friend@example.com"
+                      />
+                    </label>
+                    <label className="block w-full space-y-1.5 text-sm sm:w-36">
+                      <span className="font-medium">Role</span>
+                      <select
+                        value={permission}
+                        onChange={(e) =>
+                          setPermission(e.target.value as "VIEWER" | "EDITOR")
+                        }
+                        className="h-11 w-full rounded-xl border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="VIEWER">Viewer</option>
+                        <option value="EDITOR">Editor</option>
+                      </select>
+                    </label>
                     <Button
-                      type="button"
+                      type="submit"
                       size="lg"
-                      variant="secondary"
-                      onClick={copyLink}
-                      disabled={!inviteLink.enabled}
+                      className="h-11 shrink-0"
+                      disabled={pending}
                     >
-                      {copied ? (
-                        <>
-                          <Check className="h-4 w-4" /> Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4" /> Copy
-                        </>
-                      )}
+                      {pending ? "Inviting…" : "Invite"}
                     </Button>
+                  </form>
+                </section>
+
+                <section className="space-y-3 border-t border-border pt-6">
+                  <div className="flex items-center gap-2">
+                    <Link2 className="h-4 w-4 text-primary" />
+                    <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      Shareable link
+                    </h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Anyone with the link can accept. On private trips they see
+                    the invite only until they join.
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm">
+                      <span className="font-medium text-muted-foreground">
+                        Role
+                      </span>
+                      <select
+                        value={linkPermission}
+                        onChange={(e) =>
+                          setLinkPermission(
+                            e.target.value as "VIEWER" | "EDITOR",
+                          )
+                        }
+                        className="h-10 rounded-xl border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="VIEWER">Viewer</option>
+                        <option value="EDITOR">Editor</option>
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={requireApproval}
+                        onCheckedChange={(v) => setRequireApproval(v === true)}
+                      />
+                      <span className="font-medium">Require approval</span>
+                    </label>
+                    {inviteLink ? (
+                      <label className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={inviteLink.enabled}
+                          disabled={linkBusy}
+                          onCheckedChange={(v) =>
+                            toggleLinkEnabled(v === true)
+                          }
+                        />
+                        <span className="font-medium">Link active</span>
+                      </label>
+                    ) : null}
                   </div>
 
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                  {inviteLink ? (
+                    <div className="space-y-3">
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <input
+                          readOnly
+                          value={inviteLink.url}
+                          className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-background px-3.5 text-sm outline-none"
+                        />
+                        <Button
+                          type="button"
+                          size="lg"
+                          variant="secondary"
+                          className="h-11 shrink-0"
+                          onClick={copyLink}
+                          disabled={!inviteLink.enabled}
+                        >
+                          {copied ? (
+                            <>
+                              <Check className="h-4 w-4" /> Copied
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-4 w-4" /> Copy
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          disabled={linkBusy}
+                          onClick={() => createOrUpdateLink(false)}
+                        >
+                          {linkBusy ? "Saving…" : "Save settings"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={linkBusy}
+                          onClick={() => createOrUpdateLink(true)}
+                        >
+                          Regenerate
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
                     <Button
                       type="button"
                       size="lg"
-                      className="flex-1"
                       disabled={linkBusy}
                       onClick={() => createOrUpdateLink(false)}
                     >
-                      {linkBusy ? "Saving…" : "Save link settings"}
+                      {linkBusy ? "Creating…" : "Create invite link"}
                     </Button>
-                    <Button
-                      type="button"
-                      size="lg"
-                      variant="outline"
-                      className="flex-1"
-                      disabled={linkBusy}
-                      onClick={() => createOrUpdateLink(true)}
-                    >
-                      Regenerate
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <Button
-                  type="button"
-                  size="lg"
-                  className="w-full"
-                  disabled={linkBusy}
-                  onClick={() => createOrUpdateLink(false)}
-                >
-                  {linkBusy ? "Creating…" : "Create invite link"}
-                </Button>
-              )}
-            </section>
-
-            <section className="mt-8 space-y-4 border-t border-border pt-6">
-              <div className="flex items-center gap-2">
-                <UserPlus className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  Invite by email
-                </h3>
+                  )}
+                </section>
               </div>
-              <form className="space-y-4" onSubmit={onInvite}>
-                <label className="block space-y-2 text-base">
-                  <span className="font-medium">Email</span>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 w-full rounded-full border border-input bg-background px-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    placeholder="friend@example.com"
-                  />
-                </label>
-                <label className="block space-y-2 text-base">
-                  <span className="font-medium">Permission</span>
-                  <select
-                    value={permission}
-                    onChange={(e) =>
-                      setPermission(e.target.value as "VIEWER" | "EDITOR")
-                    }
-                    className="h-12 w-full rounded-full border border-input bg-background px-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="VIEWER">Viewer</option>
-                    <option value="EDITOR">Editor</option>
-                  </select>
-                </label>
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full"
-                  disabled={pending}
-                >
-                  {pending ? "Inviting…" : "Invite tripmate"}
-                </Button>
-              </form>
-            </section>
-          </>
+            </div>
+          </div>
         )}
-
-        {error ? (
-          <p className="mt-4 text-base text-destructive" role="alert">
-            {error}
-          </p>
-        ) : null}
-        {message ? (
-          <p className="mt-4 break-all text-base text-primary">{message}</p>
-        ) : null}
       </div>
     </div>
   );

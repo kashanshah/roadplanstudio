@@ -28,6 +28,8 @@ export type MapStop = {
   arriveMins?: number | null;
   departMins?: number | null;
   stayMins?: number | null;
+  /** True when this is the first stop of its day (day-start, not a fresh arrival). */
+  isDayStart?: boolean;
   /** Mode from this stop to the next (for daily directions). */
   travelMode?: "driving" | "walking" | "bicycling" | "transit";
 };
@@ -313,13 +315,20 @@ function MapCanvas({
               ) : null}
             </div>
 
-            {selected.arriveMins != null ? (
+            {selected.arriveMins != null || selected.departMins != null ? (
               <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-xl bg-secondary/70 px-2.5 py-2 text-xs">
-                <span className="text-muted-foreground">Arrive</span>
-                <span className="font-mono font-semibold tabular-nums text-primary">
-                  {formatClock(selected.arriveMins, timeFormat)}
-                </span>
-                {selected.type !== "hotel" && selected.departMins != null ? (
+                {!selected.isDayStart &&
+                selected.type !== "hotel" &&
+                selected.arriveMins != null ? (
+                  <>
+                    <span className="text-muted-foreground">Arrive</span>
+                    <span className="font-mono font-semibold tabular-nums text-primary">
+                      {formatClock(selected.arriveMins, timeFormat)}
+                    </span>
+                  </>
+                ) : null}
+                {(selected.isDayStart || selected.type !== "hotel") &&
+                selected.departMins != null ? (
                   <>
                     <span className="text-muted-foreground">Depart</span>
                     <span className="font-mono font-semibold tabular-nums">
@@ -327,7 +336,8 @@ function MapCanvas({
                     </span>
                   </>
                 ) : null}
-                {selected.type !== "hotel" &&
+                {!selected.isDayStart &&
+                selected.type !== "hotel" &&
                 selected.stayMins != null &&
                 selected.stayMins > 0 ? (
                   <>
@@ -336,7 +346,7 @@ function MapCanvas({
                       {formatDurationLabel(selected.stayMins)}
                     </span>
                   </>
-                ) : selected.type === "hotel" ? (
+                ) : selected.type === "hotel" && !selected.isDayStart ? (
                   <>
                     <span className="text-muted-foreground">Stay</span>
                     <span className="font-medium">Overnight</span>

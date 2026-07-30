@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, eq, max } from "drizzle-orm";
+import { and, eq, max, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getSession } from "@/lib/auth-server";
 import { db } from "@/lib/db";
@@ -30,6 +30,8 @@ const createSchema = z.object({
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
   googleMapsUri: z.string().url().nullable().optional(),
+  /** When set (e.g. 0 for trip start), insert at that index and shift later stops. */
+  sortOrder: z.number().int().min(0).optional(),
 });
 
 export async function POST(request: Request, ctx: Ctx) {
@@ -117,7 +119,23 @@ export async function POST(request: Request, ctx: Ctx) {
     .from(itineraryItems)
     .where(eq(itineraryItems.dayId, day.id));
 
-  const sortOrder = (agg?.maxSort ?? -1) + 1;
+  const appendSort = (agg?.maxSort ?? -1) + 1;
+  const sortOrder =
+    parsed.data.sortOrder != null
+      ? Math.min(parsed.data.sortOrder, appendSort)
+      : appendSort;
+
+  if (parsed.data.sortOrder != null) {
+    await db
+      .update(itineraryItems)
+      .set({ sortOrder: sql`${itineraryItems.sortOrder} + 1` })
+      .where(
+        and(
+          eq(itineraryItems.dayId, day.id),
+          sql`${itineraryItems.sortOrder} >= ${sortOrder}`,
+        ),
+      );
+  }
 
   const [item] = await db
     .insert(itineraryItems)

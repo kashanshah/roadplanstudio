@@ -1,4 +1,5 @@
 import resolved from "@/data/seeds/western-canada-2026.resolved.json";
+import { withDayOpeningBases } from "@/data/seeds/overnight-carry-forward";
 import type { TripTemplateDay } from "@/data/trips/templates";
 
 type ResolvedPlace = {
@@ -57,7 +58,7 @@ function stopType(
 
 /** Marketing / Discover day spine — all 13 days from the Places-resolved seed. */
 export function westernCanadaTemplateDays(): TripTemplateDay[] {
-  return seed.days.map((day) => {
+  return withDayOpeningBases(seed.days).map((day) => {
     const stops = [
       ...day.stops.map((stop) => ({
         name: stopName(stop),
@@ -92,7 +93,7 @@ export function westernCanadaTemplateDays(): TripTemplateDay[] {
 
 /** Full remix source used when Neon seed is unavailable. */
 export function westernCanadaStaticTemplateSource() {
-  const days = seed.days.map((day) => {
+  const days = withDayOpeningBases(seed.days).map((day) => {
     const dayId = `template:${seed.trip.slug}:day:${day.dayIndex}`;
     const items = [
       ...day.stops.map((stop, stopIndex) => ({
@@ -100,7 +101,7 @@ export function westernCanadaStaticTemplateSource() {
         dayId,
         sortOrder: stopIndex,
         type:
-          stop.type === "hotel"
+          stop.type === "hotel" || stop.type === "city_overnight"
             ? ("hotel" as const)
             : stop.type === "custom" || stop.type === "transit"
               ? ("custom" as const)
@@ -110,7 +111,12 @@ export function westernCanadaStaticTemplateSource() {
         address: stop.resolved?.formattedAddress ?? null,
         latitude: stop.resolved?.latitude ?? null,
         longitude: stop.resolved?.longitude ?? null,
-        durationMins: null,
+        durationMins:
+          stop.type === "hotel" ||
+          stop.type === "city_overnight" ||
+          (day.dayIndex === 1 && stopIndex === 0)
+            ? 0
+            : null,
         timingMode: null,
         timingMins: null,
         customTravelDurationMins: null,
@@ -132,7 +138,7 @@ export function westernCanadaStaticTemplateSource() {
               address: day.overnight.resolved?.formattedAddress ?? null,
               latitude: day.overnight.resolved?.latitude ?? null,
               longitude: day.overnight.resolved?.longitude ?? null,
-              durationMins: null,
+              durationMins: 0,
               timingMode: null,
               timingMins: null,
               customTravelDurationMins: null,

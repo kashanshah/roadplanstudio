@@ -93,15 +93,17 @@ export function buildTripPdfModel(input: BuildTripPdfInput): TripPdfModel {
           }
         : null);
 
-    const plannedMins = stops.reduce(
-      (sum, s) => sum + (s.durationMins ?? 0),
-      0,
-    );
+    const plannedMins = stops.reduce((sum, s, index) => {
+      // Exclude day-opening anchors and overnight hotels from planned stay totals.
+      if (index === 0 || s.type === "hotel") return sum;
+      return sum + (s.durationMins ?? 0);
+    }, 0);
 
     return {
       id: day.id,
-      dayNumber: day.dayIndex + 1,
-      title: day.title || `Day ${day.dayIndex + 1}`,
+      // dayIndex is already 1-based in RoadPlan itineraries.
+      dayNumber: day.dayIndex,
+      title: day.title || `Day ${day.dayIndex}`,
       date: day.date,
       routeSummary: day.routeSummary,
       notes: day.notes,

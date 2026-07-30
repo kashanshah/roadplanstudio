@@ -115,10 +115,13 @@ export function TripStartPlacePanel({
             {value?.address ? (
               <p className="mt-1 text-sm text-muted-foreground">{value.address}</p>
             ) : null}
+            <p className="mt-2 text-sm text-muted-foreground">
+              Opens Day 1 as stop 1 — depart from here to start the trip.
+            </p>
           </div>
         ) : (
           <p className="mt-2 text-base text-muted-foreground">
-            Where does this road trip begin?
+            Set where the trip begins. This becomes Day 1&apos;s first stop.
           </p>
         )}
       </div>
@@ -128,13 +131,16 @@ export function TripStartPlacePanel({
   return (
     <div
       className={cn(
-        "mb-4 rounded-2xl border border-border bg-card px-4 py-3 sm:px-5 sm:py-4",
+        "mb-4 rounded-2xl border border-primary/25 bg-card px-4 py-3 ring-1 ring-primary/10 sm:px-5 sm:py-4",
         className,
       )}
     >
-      <p className="mb-2 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+      <p className="mb-1 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
         <MapPinned className="size-3.5" />
         Trip start
+      </p>
+      <p className="mb-3 text-sm text-muted-foreground">
+        Saved as Day 1 · stop 1. Later days open from the previous overnight.
       </p>
       <PlaceAutocomplete
         value={draft}
@@ -148,7 +154,7 @@ export function TripStartPlacePanel({
           disabled={saving}
           onClick={() => void commit()}
         >
-          {saving ? "Saving…" : "Save start"}
+          {saving ? "Saving…" : "Save as Day 1 start"}
         </Button>
         <Button
           type="button"
@@ -162,6 +168,24 @@ export function TripStartPlacePanel({
         >
           Cancel
         </Button>
+        {label ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            disabled={saving}
+            onClick={() => {
+              setSaving(true);
+              void Promise.resolve(onSave(null)).finally(() => {
+                setSaving(false);
+                setEditing(false);
+              });
+            }}
+          >
+            Clear
+          </Button>
+        ) : null}
       </div>
     </div>
   );

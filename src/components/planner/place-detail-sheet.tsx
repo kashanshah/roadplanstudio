@@ -189,14 +189,17 @@ export function PlaceDetailSheet({
         Pick<PlannerItem, "durationMins" | "timingMode" | "timingMins">
       > = {};
 
-      if (!isHotel) {
-        const arrive =
-          isFirstStop
-            ? timeInputToMins(arriveDraft)
-            : (arriveMins ?? timeInputToMins(arriveDraft));
+      if (!isHotel || isFirstStop) {
         const depart = timeInputToMins(departDraft);
+        const arrive = isFirstStop
+          ? depart
+          : (arriveMins ?? timeInputToMins(arriveDraft));
         if (arrive == null || depart == null) {
-          setTimeError("Enter a valid arrive and depart time.");
+          setTimeError(
+            isFirstStop
+              ? "Enter a valid depart time."
+              : "Enter a valid arrive and depart time.",
+          );
           return;
         }
         if (depart < arrive) {
@@ -372,30 +375,37 @@ export function PlaceDetailSheet({
               />
             </label>
 
-            {!isHotel ? (
+            {isHotel && !isFirstStop ? (
+              <div className="rounded-xl border border-border bg-sandstone/15 p-3 text-sm text-foreground/85">
+                Overnight stay — no depart time on this stop.
+              </div>
+            ) : (
               <div className="rounded-xl border border-border bg-background/80 p-3">
                 <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                   <Clock className="size-3.5 text-primary" />
                   Schedule
                 </p>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-1 block text-xs text-muted-foreground">
-                      Arrive
-                      {!isFirstStop ? (
+                <div
+                  className={
+                    isFirstStop
+                      ? "mt-2 grid gap-2"
+                      : "mt-2 grid gap-2 sm:grid-cols-2"
+                  }
+                >
+                  {!isFirstStop ? (
+                    <label className="block">
+                      <span className="mb-1 block text-xs text-muted-foreground">
+                        Arrive
                         <span> · from previous stop</span>
-                      ) : (
-                        <span> · day start</span>
-                      )}
-                    </span>
-                    <input
-                      type="time"
-                      value={arriveDraft}
-                      disabled={!isEditor || !isFirstStop}
-                      onChange={(e) => setArriveDraft(e.target.value)}
-                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
-                    />
-                  </label>
+                      </span>
+                      <input
+                        type="time"
+                        value={arriveDraft}
+                        disabled
+                        className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                      />
+                    </label>
+                  ) : null}
                   <label className="block">
                     <span className="mb-1 block text-xs text-muted-foreground">
                       Depart
@@ -409,24 +419,22 @@ export function PlaceDetailSheet({
                     />
                   </label>
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Stay{" "}
-                  <span className="font-medium text-foreground">
-                    {draftStayMins != null
-                      ? formatDurationLabel(draftStayMins)
-                      : "—"}
-                  </span>{" "}
-                  (auto)
-                </p>
+                {!isFirstStop ? (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Stay{" "}
+                    <span className="font-medium text-foreground">
+                      {draftStayMins != null
+                        ? formatDurationLabel(draftStayMins)
+                        : "—"}
+                    </span>{" "}
+                    (auto)
+                  </p>
+                ) : null}
                 {timeError ? (
                   <p className="mt-1 text-sm text-destructive" role="alert">
                     {timeError}
                   </p>
                 ) : null}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-border bg-sandstone/15 p-3 text-sm text-foreground/85">
-                Overnight stay — no depart time on this stop.
               </div>
             )}
 

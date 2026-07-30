@@ -47,6 +47,7 @@ function baseStopsFromDay(day: PlannerDay): MapStop[] {
 
 function withSchedule(stops: MapStop[], rows: TimelineRow[]): MapStop[] {
   const byId = new Map(rows.map((r) => [r.item.id, r]));
+  const dayStartId = rows[0]?.item.id;
   return stops.map((stop) => {
     const row = byId.get(stop.id);
     if (!row) return stop;
@@ -55,6 +56,7 @@ function withSchedule(stops: MapStop[], rows: TimelineRow[]): MapStop[] {
       arriveMins: row.arriveMins,
       departMins: row.departMins,
       stayMins: row.stayMins,
+      isDayStart: stop.id === dayStartId,
     };
   });
 }

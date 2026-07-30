@@ -4,13 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import {
-  Luggage,
-  Share2,
-  Users,
-  Save,
-  Lock,
-} from "lucide-react";
+import { ArrowLeft, Luggage, Share2, Users, Save, Lock } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { PreferencesMenu } from "@/components/layout/preferences-menu";
@@ -44,11 +38,15 @@ import { SITE_URL } from "@/lib/constants";
 import { createDefaultPackingItems } from "@/lib/packing/defaults";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 import type { GuestStopStatus } from "@/lib/trips/guest-trip";
+import {
+  isTripStartItem,
+  pinTripStartFirst,
+  TRIP_START_NOTE,
+} from "@/lib/trips/trip-start";
 import { cn } from "@/lib/utils/cn";
 
 const TripMapPanel = dynamic(
-  () =>
-    import("@/components/planner/planner-maps").then((m) => m.PlannerMaps),
+  () => import("@/components/planner/planner-maps").then((m) => m.PlannerMaps),
   {
     ssr: false,
     loading: () => (
@@ -239,24 +237,24 @@ export function PlannerShell({ tripId }: Props) {
           .slice()
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map((i) => ({
-          id: i.id,
-          name: i.name,
-          address: i.address ?? null,
-          type: i.type,
-          notes: i.notes ?? null,
-          sortOrder: i.sortOrder,
-          latitude: i.latitude ?? null,
-          longitude: i.longitude ?? null,
-          googlePlaceId: i.googlePlaceId ?? null,
-          googleMapsUri: null,
-          durationMins: i.durationMins ?? null,
-          timingMode: i.timingMode ?? null,
-          timingMins: i.timingMins ?? null,
-          customTravelDurationMins: i.customTravelDurationMins ?? null,
-          customTravelDistanceKm: i.customTravelDistanceKm ?? null,
-          travelMode: i.travelMode ?? "driving",
-          status: normalizeStatus(i.status),
-        })),
+            id: i.id,
+            name: i.name,
+            address: i.address ?? null,
+            type: i.type,
+            notes: i.notes ?? null,
+            sortOrder: i.sortOrder,
+            latitude: i.latitude ?? null,
+            longitude: i.longitude ?? null,
+            googlePlaceId: i.googlePlaceId ?? null,
+            googleMapsUri: null,
+            durationMins: i.durationMins ?? null,
+            timingMode: i.timingMode ?? null,
+            timingMins: i.timingMins ?? null,
+            customTravelDurationMins: i.customTravelDurationMins ?? null,
+            customTravelDistanceKm: i.customTravelDistanceKm ?? null,
+            travelMode: i.travelMode ?? "driving",
+            status: normalizeStatus(i.status),
+          })),
       }));
     }
     return cloud?.days ?? [];
@@ -458,15 +456,26 @@ export function PlannerShell({ tripId }: Props) {
   async function reorderDay(dayId: string, orderedItemIds: string[]) {
     if (!isEditor) return;
 
+    const day = days.find((d) => d.id === dayId);
+    const pinnedIds =
+      day?.dayIndex === 1
+        ? pinTripStartFirst(
+            orderedItemIds.map((id) => {
+              const item = day.items.find((i) => i.id === id);
+              return { id, notes: item?.notes ?? null };
+            }),
+          ).map((item) => item.id)
+        : orderedItemIds;
+
     if (isDraftRoute) {
       updateDraft((current) => ({
         ...current,
-        days: current.days.map((day) => {
-          if (day.id !== dayId) return day;
-          const byId = new Map(day.items.map((item) => [item.id, item]));
+        days: current.days.map((d) => {
+          if (d.id !== dayId) return d;
+          const byId = new Map(d.items.map((item) => [item.id, item]));
           return {
-            ...day,
-            items: orderedItemIds
+            ...d,
+            items: pinnedIds
               .map((id, index) => {
                 const item = byId.get(id);
                 if (!item) return null;
@@ -483,12 +492,12 @@ export function PlannerShell({ tripId }: Props) {
       if (!prev) return prev;
       return {
         ...prev,
-        days: prev.days.map((day) => {
-          if (day.id !== dayId) return day;
-          const byId = new Map(day.items.map((item) => [item.id, item]));
+        days: prev.days.map((d) => {
+          if (d.id !== dayId) return d;
+          const byId = new Map(d.items.map((item) => [item.id, item]));
           return {
-            ...day,
-            items: orderedItemIds
+            ...d,
+            items: pinnedIds
               .map((id, index) => {
                 const item = byId.get(id);
                 if (!item) return null;
@@ -503,7 +512,7 @@ export function PlannerShell({ tripId }: Props) {
     const res = await fetch(`/api/trips/${tripId}/items/reorder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dayId, orderedItemIds }),
+      body: JSON.stringify({ dayId, orderedItemIds: pinnedIds }),
     });
     if (!res.ok) {
       console.error("Failed to reorder items");
@@ -518,6 +527,23 @@ export function PlannerShell({ tripId }: Props) {
   ) {
     if (!isEditor) return;
     const type = asHotel ? "hotel" : "attraction";
+    const targetDay = days.find((day) => day.id === dayId);
+    const shouldBecomeTripStart =
+      targetDay?.dayIndex === 1 &&
+      targetDay.items.length === 0 &&
+      !targetDay.items.some(isTripStartItem);
+
+    // First place on an empty Day 1 becomes Trip Start (Day 1 stop 1).
+    if (shouldBecomeTripStart) {
+      await updateTripStart({
+        placeId: place.placeId,
+        name: place.name,
+        address: place.formattedAddress,
+        latitude: place.latitude,
+        longitude: place.longitude,
+      });
+      return;
+    }
 
     if (isDraftRoute) {
       updateDraft((current) => ({
@@ -601,10 +627,7 @@ export function PlannerShell({ tripId }: Props) {
     });
   }
 
-  async function addCustomPlace(
-    dayId: string,
-    input: CustomStopInput,
-  ) {
+  async function addCustomPlace(dayId: string, input: CustomStopInput) {
     if (!isEditor) return;
     const type = input.asHotel ? "hotel" : "custom";
 
@@ -757,14 +780,66 @@ export function PlannerShell({ tripId }: Props) {
     if (!isEditor) return;
 
     if (isDraftRoute) {
-      updateDraft((current) => ({
-        ...current,
-        startLocation: place?.name || undefined,
-        startPlaceId: place?.placeId ?? null,
-        startAddress: place?.address ?? null,
-        startLatitude: place?.latitude ?? null,
-        startLongitude: place?.longitude ?? null,
-      }));
+      updateDraft((current) => {
+        const day1 = [...current.days].sort(
+          (a, b) => a.dayIndex - b.dayIndex,
+        )[0];
+        if (!day1) {
+          return {
+            ...current,
+            startLocation: place?.name || undefined,
+            startPlaceId: place?.placeId ?? null,
+            startAddress: place?.address ?? null,
+            startLatitude: place?.latitude ?? null,
+            startLongitude: place?.longitude ?? null,
+          };
+        }
+
+        const others = day1.items
+          .filter((item) => !isTripStartItem(item))
+          .sort((a, b) => a.sortOrder - b.sortOrder);
+
+        const nextItems = place?.name
+          ? [
+              {
+                id:
+                  day1.items.find((item) => isTripStartItem(item))?.id ??
+                  crypto.randomUUID(),
+                sortOrder: 0,
+                type: "custom" as const,
+                name: place.name,
+                address: place.address,
+                latitude: place.latitude,
+                longitude: place.longitude,
+                googlePlaceId: place.placeId,
+                durationMins: 0,
+                timingMode: null,
+                timingMins: null,
+                customTravelDurationMins: null,
+                customTravelDistanceKm: null,
+                travelMode: "driving" as const,
+                status: "to_visit" as const,
+                notes: TRIP_START_NOTE,
+              },
+              ...others.map((item, index) => ({
+                ...item,
+                sortOrder: index + 1,
+              })),
+            ]
+          : others.map((item, index) => ({ ...item, sortOrder: index }));
+
+        return {
+          ...current,
+          startLocation: place?.name || undefined,
+          startPlaceId: place?.placeId ?? null,
+          startAddress: place?.address ?? null,
+          startLatitude: place?.latitude ?? null,
+          startLongitude: place?.longitude ?? null,
+          days: current.days.map((day) =>
+            day.id === day1.id ? { ...day, items: nextItems } : day,
+          ),
+        };
+      });
       return;
     }
 
@@ -800,7 +875,134 @@ export function PlannerShell({ tripId }: Props) {
         const data = (await refresh.json()) as CloudTripPayload;
         setCloud(data);
       }
+      return;
     }
+
+    // Keep Day 1's opening stop in sync with Trip Start.
+    const day1 = [...days].sort((a, b) => a.dayIndex - b.dayIndex)[0];
+    if (!day1) return;
+    const ordered = [...day1.items].sort((a, b) => a.sortOrder - b.sortOrder);
+    const existingStart = ordered.find((item) => isTripStartItem(item));
+
+    if (!place?.name) {
+      if (existingStart) {
+        await fetch(`/api/trips/${tripId}/items/${existingStart.id}`, {
+          method: "DELETE",
+        });
+        setCloud((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            days: prev.days.map((day) =>
+              day.id === day1.id
+                ? {
+                    ...day,
+                    items: day.items
+                      .filter((item) => item.id !== existingStart.id)
+                      .map((item, index) => ({ ...item, sortOrder: index })),
+                  }
+                : day,
+            ),
+          };
+        });
+      }
+      return;
+    }
+
+    if (existingStart) {
+      const patchRes = await fetch(
+        `/api/trips/${tripId}/items/${existingStart.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: place.name,
+            address: place.address,
+            latitude: place.latitude,
+            longitude: place.longitude,
+            googlePlaceId: place.placeId,
+            notes: TRIP_START_NOTE,
+            durationMins: 0,
+            type: "custom",
+            sortOrder: 0,
+          }),
+        },
+      );
+      if (patchRes.ok) {
+        const data = (await patchRes.json()) as { item: PlannerItem };
+        setCloud((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            days: prev.days.map((day) =>
+              day.id === day1.id
+                ? {
+                    ...day,
+                    items: day.items.map((item) =>
+                      item.id === existingStart.id
+                        ? {
+                            ...item,
+                            ...data.item,
+                            status: normalizeStatus(data.item.status),
+                            travelMode: data.item.travelMode ?? "driving",
+                          }
+                        : item,
+                    ),
+                  }
+                : day,
+            ),
+          };
+        });
+      }
+      return;
+    }
+
+    const createRes = await fetch(`/api/trips/${tripId}/items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dayId: day1.id,
+        name: place.name,
+        address: place.address,
+        latitude: place.latitude,
+        longitude: place.longitude,
+        googlePlaceId: place.placeId ?? undefined,
+        type: "custom",
+        notes: TRIP_START_NOTE,
+        durationMins: 0,
+        sortOrder: 0,
+      }),
+    });
+    if (!createRes.ok) return;
+    const data = (await createRes.json()) as { item: PlannerItem };
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        days: prev.days.map((day) =>
+          day.id === day1.id
+            ? {
+                ...day,
+                items: [
+                  {
+                    ...data.item,
+                    status: normalizeStatus(data.item.status),
+                    customTravelDurationMins:
+                      data.item.customTravelDurationMins ?? null,
+                    customTravelDistanceKm:
+                      data.item.customTravelDistanceKm ?? null,
+                    travelMode: data.item.travelMode ?? "driving",
+                  },
+                  ...day.items.map((item) => ({
+                    ...item,
+                    sortOrder: item.sortOrder + 1,
+                  })),
+                ],
+              }
+            : day,
+        ),
+      };
+    });
   }
 
   async function updateTripNotes(notes: string | null) {
@@ -932,7 +1134,9 @@ export function PlannerShell({ tripId }: Props) {
       if (!prev) return prev;
       return {
         ...prev,
-        packingItems: (prev.packingItems ?? []).filter((item) => item.id !== id),
+        packingItems: (prev.packingItems ?? []).filter(
+          (item) => item.id !== id,
+        ),
       };
     });
 
@@ -968,7 +1172,10 @@ export function PlannerShell({ tripId }: Props) {
   async function updateDay(
     dayId: string,
     patch: Partial<
-      Pick<PlannerDay, "title" | "notes" | "date" | "routeSummary" | "isRestDay">
+      Pick<
+        PlannerDay,
+        "title" | "notes" | "date" | "routeSummary" | "isRestDay"
+      >
     >,
   ) {
     if (!isEditor) return;
@@ -1052,37 +1259,37 @@ export function PlannerShell({ tripId }: Props) {
       {isAnonymous ? <GuestBanner /> : null}
       {!isAnonymous ? <VerifyEmailBanner /> : null}
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:h-16 sm:gap-3 sm:px-6">
-          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:h-20 sm:gap-3 sm:px-6">
+          <div className="grid gap-0">
             <Link
-              href={isLoggedIn ? "/planner" : "/"}
-              aria-label={isLoggedIn ? "Your trips" : "RoadPlan Studio home"}
-              {...tip(isLoggedIn ? "Your trips" : "Home")}
-              className="shrink-0"
+              href="/planner"
+              aria-label="Back to planner"
+              {...tip("Back to planner")}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              <LogoMark className="h-8 w-8 sm:h-9 sm:w-9" />
+              <ArrowLeft className="size-4" />
+              <span className="hidden sm:inline">Planner</span>
             </Link>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground sm:text-lg">
-                {title}
-              </p>
-              <p className="hidden truncate text-sm text-muted-foreground sm:flex sm:items-center sm:gap-1.5">
-                {!isDraftRoute && cloud && !isEditor ? (
-                  <Lock className="h-3.5 w-3.5 shrink-0" />
-                ) : null}
-                {isLoggedIn ? (
-                  <>
-                    <Link
-                      href="/planner"
-                      className="hover:text-foreground hover:underline hover:underline-offset-2"
-                    >
-                      Your trips
-                    </Link>
-                    <span aria-hidden>·</span>
-                  </>
-                ) : null}
-                {roleLabel}
-              </p>
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+              <Link
+                href={isLoggedIn ? "/planner" : "/"}
+                aria-label={isLoggedIn ? "Your trips" : "RoadPlan Studio home"}
+                {...tip(isLoggedIn ? "Your trips" : "Home")}
+                className="shrink-0"
+              >
+                <LogoMark className="h-8 w-8 sm:h-9 sm:w-9" />
+              </Link>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-foreground sm:text-lg">
+                  {title}
+                </p>
+                <p className="hidden truncate text-sm text-muted-foreground sm:flex sm:items-center sm:gap-1.5 leading-none">
+                  {!isDraftRoute && cloud && !isEditor ? (
+                    <Lock className="h-3.5 w-3.5 shrink-0" />
+                  ) : null}
+                  {roleLabel}
+                </p>
+              </div>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
@@ -1116,9 +1323,7 @@ export function PlannerShell({ tripId }: Props) {
               totalDistanceKm={cloud?.trip.totalDistanceKm ?? null}
               difficulty={cloud?.trip.difficulty ?? null}
               visibility={cloud?.trip.visibility ?? null}
-              plannerUrl={
-                isDraftRoute ? null : `${SITE_URL}/planner/${tripId}`
-              }
+              plannerUrl={isDraftRoute ? null : `${SITE_URL}/planner/${tripId}`}
               startLocation={draft?.startLocation ?? null}
               endLocation={draft?.endLocation ?? null}
               packingItems={packingList}
@@ -1308,7 +1513,7 @@ export function PlannerShell({ tripId }: Props) {
                   <TripNotesPanel
                     notes={
                       isDraftRoute
-                        ? draft?.description ?? null
+                        ? (draft?.description ?? null)
                         : cloud?.trip.description
                     }
                     isEditor={isEditor}
@@ -1331,6 +1536,7 @@ export function PlannerShell({ tripId }: Props) {
                   }
                   onUpdateItem={updateItem}
                   onDeleteItem={deleteItem}
+                  onClearTripStart={() => updateTripStart(null)}
                   onUpdateDay={updateDay}
                   onDeleteDay={deleteDay}
                   onReorderDay={reorderDay}

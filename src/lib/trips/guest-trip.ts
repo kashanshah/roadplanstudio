@@ -1,4 +1,5 @@
 import { createDefaultPackingItems } from "@/lib/packing/defaults";
+import { TRIP_START_NOTE } from "@/lib/trips/trip-start";
 
 export type GuestStopStatus =
   | "to_visit"
@@ -96,6 +97,31 @@ export function createEmptyGuestTrip(
         ? `From ${partial.startLocation}`
         : "Untitled road trip");
 
+  const day1Items: GuestItineraryItem[] =
+    partial?.startLocation &&
+    (partial.startLatitude != null || partial.startPlaceId)
+      ? [
+          {
+            id: crypto.randomUUID(),
+            sortOrder: 0,
+            type: "custom",
+            name: partial.startLocation,
+            address: partial.startAddress ?? null,
+            latitude: partial.startLatitude ?? null,
+            longitude: partial.startLongitude ?? null,
+            googlePlaceId: partial.startPlaceId ?? null,
+            durationMins: 0,
+            timingMode: null,
+            timingMins: null,
+            customTravelDurationMins: null,
+            customTravelDistanceKm: null,
+            travelMode: "driving",
+            status: "to_visit",
+            notes: TRIP_START_NOTE,
+          },
+        ]
+      : [];
+
   return {
     guestToken: crypto.randomUUID(),
     title,
@@ -111,7 +137,7 @@ export function createEmptyGuestTrip(
         id: crypto.randomUUID(),
         dayIndex: 1,
         title: "Day 1",
-        items: [],
+        items: day1Items,
       },
     ],
     packingItems: defaultPacking(),

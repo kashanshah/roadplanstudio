@@ -359,6 +359,16 @@ function typeLabel(type: string) {
   return "Stop";
 }
 
+/** First stop / lodging are schedule anchors — don't print a stay duration. */
+function stopMetaSuffix(stop: TripPdfStop) {
+  if (stop.type === "hotel") {
+    return stop.index === 1 ? " · morning base" : " · overnight";
+  }
+  if (stop.index === 1) return " · day start";
+  if (stop.durationMins) return ` · stay ${formatDuration(stop.durationMins)}`;
+  return "";
+}
+
 function PageFooter({
   title,
   pageLabel,
@@ -539,7 +549,7 @@ function StopCard({ stop }: { stop: TripPdfStop }) {
       </View>
       <Text style={styles.stopMeta}>
         {typeLabel(stop.type)}
-        {stop.durationMins ? ` · stay ${formatDuration(stop.durationMins)}` : ""}
+        {stopMetaSuffix(stop)}
         {` · travel next: ${stop.travelMode}`}
       </Text>
       {timingLabel ? <Text style={styles.stopMeta}>{timingLabel}</Text> : null}

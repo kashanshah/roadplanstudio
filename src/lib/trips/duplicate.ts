@@ -237,11 +237,20 @@ export function templateToGuestDraft(data: TemplateSource): GuestTripDraft {
     })),
   }));
 
+  const day1First = days[0]?.items
+    .slice()
+    .sort((a, b) => a.sortOrder - b.sortOrder)[0];
+
   return {
     guestToken: crypto.randomUUID(),
     title: `${data.trip.title} (remix)`,
     description: data.trip.description ?? undefined,
     durationDays: data.trip.durationDays,
+    startLocation: day1First?.name,
+    startPlaceId: day1First?.googlePlaceId ?? null,
+    startAddress: day1First?.address ?? null,
+    startLatitude: day1First?.latitude ?? null,
+    startLongitude: day1First?.longitude ?? null,
     days,
     updatedAt: new Date().toISOString(),
   };
@@ -260,6 +269,12 @@ export async function duplicateTemplateForUser(opts: {
 
   await ensureProfile({ id: opts.userId, name: opts.userName });
 
+  const day1First = source.days
+    .slice()
+    .sort((a, b) => a.dayIndex - b.dayIndex)[0]
+    ?.items.slice()
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0];
+
   const [created] = await db
     .insert(trips)
     .values({
@@ -267,6 +282,11 @@ export async function duplicateTemplateForUser(opts: {
       title: `${source.trip.title} (copy)`,
       description: source.trip.description,
       coverPhotoUrl: source.trip.coverPhotoUrl,
+      startPlaceId: day1First?.googlePlaceId ?? null,
+      startPlaceName: day1First?.name ?? null,
+      startAddress: day1First?.address ?? null,
+      startLatitude: day1First?.latitude ?? null,
+      startLongitude: day1First?.longitude ?? null,
       durationDays: source.trip.durationDays,
       totalDistanceKm: source.trip.totalDistanceKm,
       difficulty: source.trip.difficulty,

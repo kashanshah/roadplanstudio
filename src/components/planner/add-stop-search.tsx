@@ -366,8 +366,7 @@ export function AddStopSearch({
       <div className="mt-3 rounded-xl border border-border bg-card/70 p-3">
         <p className="text-sm font-medium text-foreground">Times (optional)</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Arrive sets the day start when this is the first stop. Stay is
-          calculated from arrive → depart.
+          Stay is calculated from arrive → depart when both are set.
         </p>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           <label className="block">

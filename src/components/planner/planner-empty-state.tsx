@@ -36,7 +36,8 @@ export function PlannerEmptyState({ isLoggedIn, onStartBlank }: Props) {
             </span>
             <h3 className="mt-4 text-lg font-semibold">Start blank</h3>
             <p className="mt-2 text-base text-muted-foreground">
-              Open Day 1 and add stops with Google Places — no template required.
+              Set Trip start first — it becomes Day 1 stop 1 — then add places
+              with Google search.
             </p>
             <Button
               type="button"

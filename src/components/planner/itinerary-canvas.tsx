@@ -31,6 +31,7 @@ import {
 } from "@/components/planner/planner-types";
 import { useDisplayPrefs } from "@/lib/prefs/display-prefs";
 import { formatDayHeading } from "@/lib/trips/format-day-label";
+import { isTripStartItem } from "@/lib/trips/trip-start";
 import { cn } from "@/lib/utils/cn";
 
 type DayPatch = Partial<
@@ -59,6 +60,8 @@ type Props = {
     >,
   ) => Promise<void> | void;
   onDeleteItem?: (itemId: string) => Promise<void> | void;
+  /** Clears trip start (and Day 1 stop 1) when the pinned opener is removed. */
+  onClearTripStart?: () => Promise<void> | void;
   onUpdateDay?: (dayId: string, patch: DayPatch) => Promise<void> | void;
   onDeleteDay?: (dayId: string) => Promise<void> | void;
   onReorderDay: (dayId: string, orderedItemIds: string[]) => Promise<void> | void;
@@ -314,6 +317,7 @@ export function ItineraryCanvas({
   showTemplates,
   onUpdateItem,
   onDeleteItem,
+  onClearTripStart,
   onUpdateDay,
   onDeleteDay,
   onReorderDay,
@@ -503,6 +507,7 @@ export function ItineraryCanvas({
                           dayId={day.id}
                           items={day.items}
                           isEditor={isEditor}
+                          pinTripStart={day.dayIndex === 1}
                           onToggleVisited={(item) => void toggleVisited(item)}
                           onOpenItem={(item) => {
                             setSelected(item);
@@ -515,6 +520,24 @@ export function ItineraryCanvas({
                           onUpdateItem={(itemId, patch) => {
                             void onUpdateItem(itemId, patch);
                           }}
+                          onDeleteItem={
+                            onDeleteItem || onClearTripStart
+                              ? (itemId) => {
+                                  const target = day.items.find(
+                                    (item) => item.id === itemId,
+                                  );
+                                  if (
+                                    day.dayIndex === 1 &&
+                                    isTripStartItem(target) &&
+                                    onClearTripStart
+                                  ) {
+                                    void onClearTripStart();
+                                    return;
+                                  }
+                                  void onDeleteItem?.(itemId);
+                                }
+                              : undefined
+                          }
                           onTravelModeChange={(itemId, mode) => {
                             // Google mode wins: clear custom overrides so Maps duration is used.
                             void onUpdateItem(itemId, {
@@ -536,7 +559,7 @@ export function ItineraryCanvas({
                               key={stay.id}
                               className="flex items-start gap-3 rounded-2xl bg-sandstone/15 px-3 py-3"
                             >
-                              <span className="mt-0.5 grid size-9 place-items-center rounded-xl bg-sandstone/30 text-ink">
+                              <span className="mt-0.5 grid size-9 place-items-center rounded-xl bg-sandstone/30 text-foreground">
                                 <BedDouble className="size-4" />
                               </span>
                               <div className="min-w-0">
@@ -625,9 +648,17 @@ export function ItineraryCanvas({
           );
         }}
         onDelete={
-          onDeleteItem
+          onDeleteItem || onClearTripStart
             ? async (itemId) => {
-                await onDeleteItem(itemId);
+                if (
+                  isTripStartItem(selected) &&
+                  selectedIsFirstStop &&
+                  onClearTripStart
+                ) {
+                  await onClearTripStart();
+                } else {
+                  await onDeleteItem?.(itemId);
+                }
                 setSelected(null);
               }
             : undefined

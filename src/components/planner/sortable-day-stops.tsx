@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useId, useMemo, useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -35,6 +35,7 @@ import {
   RotateCcw,
   SlidersHorizontal,
   Star,
+  Trash2,
 } from "lucide-react";
 import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,10 @@ import {
   minsToTimeInput,
   timeInputToMins,
 } from "@/lib/trips/stop-time";
+import {
+  isTripStartItem,
+  pinTripStartFirst,
+} from "@/lib/trips/trip-start";
 import { cn } from "@/lib/utils/cn";
 
 type ItemTimePatch = Partial<
@@ -75,10 +80,13 @@ type Props = {
   dayId: string;
   items: PlannerItem[];
   isEditor: boolean;
+  /** When true (Day 1), trip-start stop stays pinned as stop 1. */
+  pinTripStart?: boolean;
   onToggleVisited: (item: PlannerItem) => void;
   onOpenItem: (item: PlannerItem) => void;
   onReorder: (dayId: string, orderedIds: string[]) => void;
   onUpdateItem?: (itemId: string, patch: ItemTimePatch) => void | Promise<void>;
+  onDeleteItem?: (itemId: string) => void | Promise<void>;
   onTravelModeChange?: (itemId: string, mode: TravelMode) => void;
   onCustomTravelChange?: (
     itemId: string,
@@ -316,24 +324,29 @@ function SortableStopRow({
   total,
   isEditor,
   isFirstStop,
+  pinTripStart,
   timeFormat,
   onToggleVisited,
   onOpenItem,
   onMove,
   onUpdateItem,
+  onDeleteItem,
 }: {
   row: TimelineRow;
   index: number;
   total: number;
   isEditor: boolean;
   isFirstStop: boolean;
+  pinTripStart: boolean;
   timeFormat: "h12" | "h24";
   onToggleVisited: (item: PlannerItem) => void;
   onOpenItem: (item: PlannerItem) => void;
   onMove: (itemId: string, direction: -1 | 1) => void;
   onUpdateItem?: (itemId: string, patch: ItemTimePatch) => void | Promise<void>;
+  onDeleteItem?: (itemId: string) => void | Promise<void>;
 }) {
   const item = row.item;
+  const isTripStart = pinTripStart && isTripStartItem(item);
   const {
     attributes,
     listeners,
@@ -341,18 +354,21 @@ function SortableStopRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: item.id, disabled: !isEditor });
+  } = useSortable({ id: item.id, disabled: !isEditor || isTripStart });
 
   const checked = item.status === "visited";
   const isHotel = item.type === "hotel";
   const isCustom = item.type === "custom";
   const overnight = row.arriveMins >= 24 * 60;
+  const visitedCheckboxId = useId();
 
   const [editingTimes, setEditingTimes] = useState(false);
   const [arriveDraft, setArriveDraft] = useState("");
   const [departDraft, setDepartDraft] = useState("");
   const [savingTimes, setSavingTimes] = useState(false);
   const [timeError, setTimeError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!editingTimes) return;
@@ -368,12 +384,15 @@ function SortableStopRow({
       ? Math.max(0, draftDepartMins - draftArriveMins)
       : null;
 
+  const canEditTimes = Boolean(onUpdateItem) && (!isHotel || isFirstStop);
+
   async function saveTimes() {
-    if (!onUpdateItem || isHotel) return;
-    const arriveMins = isFirstStop
-      ? timeInputToMins(arriveDraft)
-      : row.arriveMins;
+    if (!canEditTimes || !onUpdateItem) return;
     const departMins = timeInputToMins(departDraft);
+    // Day-opening stops: schedule anchors at depart (no separate arrive).
+    const arriveMins = isFirstStop
+      ? departMins
+      : timeInputToMins(arriveDraft) ?? row.arriveMins;
     if (arriveMins == null || departMins == null) {
       setTimeError("Enter a valid time.");
       return;
@@ -416,36 +435,58 @@ function SortableStopRow({
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
           {/* Status + timeline gutter: checkbox → arrive → stay → depart */}
           <div className="flex items-start gap-3 sm:w-[5.25rem] sm:shrink-0 sm:flex-col sm:items-center sm:gap-1.5 sm:pt-0.5">
-            <Checkbox
-              checked={checked}
-              disabled={!isEditor}
-              onCheckedChange={() => onToggleVisited(item)}
-              aria-label={`Mark ${item.name} visited`}
-            />
+            <label
+              htmlFor={visitedCheckboxId}
+              className={cn(
+                "inline-flex cursor-pointer items-center gap-1.5 rounded-md md:w-full",
+                !isEditor && "cursor-default opacity-70",
+              )}
+              {...tip(checked ? "Marked visited" : "Mark as visited")}
+            >
+              <Checkbox
+                id={visitedCheckboxId}
+                checked={checked}
+                disabled={!isEditor}
+                onCheckedChange={() => onToggleVisited(item)}
+                aria-label={`Mark ${item.name} visited`}
+                className="size-5 rounded-[3px]"
+              />
+              <span className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                Done
+              </span>
+            </label>
 
-            {/* Mobile: compact Arrive → stay → Depart row */}
+            {/* Mobile: morning base / first stop = Depart only; end hotel = Overnight; else Arrive→Depart */}
             <div className="flex min-w-0 flex-1 flex-wrap items-end gap-x-2 gap-y-1 sm:hidden">
-              <div>
-                <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-                  Arrive
-                </p>
-                <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-primary">
-                  {formatClock(row.arriveMins, timeFormat)}
-                </p>
-              </div>
-              {!isHotel ? (
+              {isHotel && !isFirstStop ? (
+                <span className="mb-0.5 text-xs text-muted-foreground">
+                  Overnight
+                </span>
+              ) : (
                 <>
-                  <div className="mb-0.5 flex flex-col items-center px-0.5">
-                    <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
-                      {row.stayMins > 0
-                        ? formatDurationLabel(row.stayMins)
-                        : "—"}
-                    </span>
-                    <span
-                      aria-hidden
-                      className="mt-0.5 h-px w-6 bg-border"
-                    />
-                  </div>
+                  {!isFirstStop ? (
+                    <>
+                      <div>
+                        <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                          Arrive
+                        </p>
+                        <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-primary">
+                          {formatClock(row.arriveMins, timeFormat)}
+                        </p>
+                      </div>
+                      <div className="mb-0.5 flex flex-col items-center px-0.5">
+                        <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                          {row.stayMins > 0
+                            ? formatDurationLabel(row.stayMins)
+                            : "—"}
+                        </span>
+                        <span
+                          aria-hidden
+                          className="mt-0.5 h-px w-6 bg-border"
+                        />
+                      </div>
+                    </>
+                  ) : null}
                   <div>
                     <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                       Depart
@@ -455,10 +496,6 @@ function SortableStopRow({
                     </p>
                   </div>
                 </>
-              ) : (
-                <span className="mb-0.5 text-xs text-muted-foreground">
-                  Overnight
-                </span>
               )}
               {overnight ? (
                 <span className="mb-0.5 text-[10px] uppercase tracking-wide text-destructive">
@@ -467,29 +504,37 @@ function SortableStopRow({
               ) : null}
             </div>
 
-            {/* Desktop: stacked Arrive → stay → Depart */}
+            {/* Desktop: morning base / first stop = Depart only; end hotel = Overnight */}
             <div className="hidden w-full flex-col items-center text-center sm:flex">
-              <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-                Arrive
-              </p>
-              <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-primary">
-                {formatClock(row.arriveMins, timeFormat)}
-              </p>
-              {!isHotel ? (
+              {isHotel && !isFirstStop ? (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Overnight
+                </p>
+              ) : (
                 <>
-                  <div
-                    aria-hidden
-                    className="my-1 h-3 w-px bg-border"
-                  />
-                  <p className="text-[11px] font-medium tabular-nums text-muted-foreground">
-                    {row.stayMins > 0
-                      ? formatDurationLabel(row.stayMins)
-                      : "—"}
-                  </p>
-                  <div
-                    aria-hidden
-                    className="my-1 h-3 w-px bg-border"
-                  />
+                  {!isFirstStop ? (
+                    <>
+                      <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                        Arrive
+                      </p>
+                      <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-primary">
+                        {formatClock(row.arriveMins, timeFormat)}
+                      </p>
+                      <div
+                        aria-hidden
+                        className="my-1 h-3 w-px bg-border"
+                      />
+                      <p className="text-[11px] font-medium tabular-nums text-muted-foreground">
+                        {row.stayMins > 0
+                          ? formatDurationLabel(row.stayMins)
+                          : "—"}
+                      </p>
+                      <div
+                        aria-hidden
+                        className="my-1 h-3 w-px bg-border"
+                      />
+                    </>
+                  ) : null}
                   <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                     Depart
                   </p>
@@ -497,19 +542,16 @@ function SortableStopRow({
                     {formatClock(row.departMins, timeFormat)}
                   </p>
                 </>
-              ) : (
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Overnight
-                </p>
               )}
               {overnight ? (
                 <span className="mt-1 text-[10px] uppercase tracking-wide text-destructive">
                   +day
                 </span>
               ) : null}
+              {/* Decorative timeline marker — hollow so it isn’t mistaken for a control */}
               <span
                 aria-hidden
-                className="mt-1.5 size-2.5 shrink-0 rounded-full bg-primary ring-[3px] ring-background"
+                className="mt-1.5 size-2 shrink-0 rounded-full border-2 border-primary/45 bg-background ring-[3px] ring-background"
               />
             </div>
           </div>
@@ -533,13 +575,17 @@ function SortableStopRow({
                   >
                     {item.name}
                   </span>
-                  {isHotel ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-sandstone/25 px-2 py-0.5 text-xs font-medium text-ink">
+                  {isTripStart ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+                      <MapPin className="size-3" />
+                      Trip start
+                    </span>
+                  ) : isHotel ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-sandstone/25 text-foreground px-2 py-0.5 text-xs font-medium">
                       <BedDouble className="size-3" />
                       Hotel
                     </span>
-                  ) : null}
-                  {isCustom ? (
+                  ) : isCustom ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
                       <MapPin className="size-3" />
                       Custom
@@ -586,7 +632,7 @@ function SortableStopRow({
             </div>
 
             <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:items-end">
-              {isEditor && !isHotel && onUpdateItem ? (
+              {isEditor && canEditTimes ? (
                 <button
                   type="button"
                   onClick={() => setEditingTimes((prev) => !prev)}
@@ -602,7 +648,7 @@ function SortableStopRow({
                 </button>
               ) : null}
 
-              {isEditor && total > 1 ? (
+              {isEditor && total > 1 && !isTripStart ? (
                 <div
                   className="flex w-full overflow-hidden rounded-lg border border-border sm:w-auto sm:flex-col"
                   role="group"
@@ -610,10 +656,14 @@ function SortableStopRow({
                 >
                   <button
                     type="button"
-                    disabled={index === 0}
+                    disabled={index === 0 || (pinTripStart && index === 1)}
                     onClick={() => onMove(item.id, -1)}
                     aria-label={`Move ${item.name} up`}
-                    {...tip("Move up")}
+                    {...tip(
+                      pinTripStart && index === 1
+                        ? "Trip start stays first"
+                        : "Move up",
+                    )}
                     className="grid h-9 flex-1 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30 sm:size-8 sm:flex-none"
                   >
                     <ChevronUp className="size-4" />
@@ -643,31 +693,91 @@ function SortableStopRow({
                     <ChevronDown className="size-4" />
                   </button>
                 </div>
+              ) : isTripStart ? (
+                <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase sm:text-right">
+                  Fixed · Day 1 start
+                </p>
+              ) : null}
+
+              {isEditor && onDeleteItem ? (
+                confirmDelete ? (
+                  <div className="flex w-full flex-col gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 p-2 sm:w-44">
+                    <p className="text-xs text-foreground">
+                      {isTripStart
+                        ? "Clear trip start and remove Day 1 stop 1?"
+                        : "Remove this stop?"}
+                    </p>
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        disabled={deleting}
+                        onClick={() => {
+                          setDeleting(true);
+                          void Promise.resolve(onDeleteItem(item.id)).finally(
+                            () => setDeleting(false),
+                          );
+                        }}
+                        className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-md bg-destructive px-2 text-xs font-medium text-destructive-foreground hover:opacity-90 disabled:opacity-60"
+                      >
+                        <Trash2 className="size-3.5" />
+                        {deleting ? "…" : isTripStart ? "Clear" : "Delete"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={deleting}
+                        onClick={() => setConfirmDelete(false)}
+                        className="inline-flex h-8 flex-1 items-center justify-center rounded-md border border-border bg-background px-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-60"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    aria-label={
+                      isTripStart
+                        ? `Clear trip start ${item.name}`
+                        : `Delete ${item.name}`
+                    }
+                    {...tip(
+                      isTripStart
+                        ? "Clear trip start (Day 1 stop 1)"
+                        : "Delete stop",
+                    )}
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-sm text-muted-foreground transition-colors hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="size-3.5" />
+                    <span className="sm:hidden">
+                      {isTripStart ? "Clear" : "Delete"}
+                    </span>
+                  </button>
+                )
               ) : null}
             </div>
           </div>
         </div>
 
-        {editingTimes && isEditor && !isHotel && onUpdateItem ? (
+        {editingTimes && isEditor && canEditTimes ? (
           <div className="mt-3 rounded-xl border border-border bg-card/80 p-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                  Arrive
-                  {!isFirstStop ? (
+            <div
+              className={cn("grid gap-3", !isFirstStop && "sm:grid-cols-2")}
+            >
+              {!isFirstStop ? (
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Arrive
                     <span className="font-normal"> · from previous stop</span>
-                  ) : (
-                    <span className="font-normal"> · day start</span>
-                  )}
-                </span>
-                <input
-                  type="time"
-                  value={arriveDraft}
-                  disabled={!isFirstStop}
-                  onChange={(e) => setArriveDraft(e.target.value)}
-                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
-                />
-              </label>
+                  </span>
+                  <input
+                    type="time"
+                    value={arriveDraft}
+                    disabled
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                  />
+                </label>
+              ) : null}
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted-foreground">
                   Depart
@@ -680,15 +790,17 @@ function SortableStopRow({
                 />
               </label>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Stay{" "}
-              <span className="font-medium text-foreground">
-                {draftStayMins != null
-                  ? formatDurationLabel(draftStayMins)
-                  : "—"}
-              </span>{" "}
-              (auto)
-            </p>
+            {!isFirstStop ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                Stay{" "}
+                <span className="font-medium text-foreground">
+                  {draftStayMins != null
+                    ? formatDurationLabel(draftStayMins)
+                    : "—"}
+                </span>{" "}
+                (auto)
+              </p>
+            ) : null}
             {timeError ? (
               <p className="mt-1 text-sm text-destructive" role="alert">
                 {timeError}
@@ -724,10 +836,12 @@ export function SortableDayStops({
   dayId,
   items,
   isEditor,
+  pinTripStart = false,
   onToggleVisited,
   onOpenItem,
   onReorder,
   onUpdateItem,
+  onDeleteItem,
   onTravelModeChange,
   onCustomTravelChange,
 }: Props) {
@@ -767,10 +881,11 @@ export function SortableDayStops({
   );
 
   function commitOrder(next: PlannerItem[]) {
-    setLocalItems(next);
+    const ordered = pinTripStart ? pinTripStartFirst(next) : next;
+    setLocalItems(ordered);
     onReorder(
       dayId,
-      next.map((i) => i.id),
+      ordered.map((i) => i.id),
     );
   }
 
@@ -793,7 +908,9 @@ export function SortableDayStops({
   if (!localItems.length) {
     return (
       <p className="px-1 py-3 text-base text-muted-foreground">
-        Empty day — add a stop from Places search.
+        {pinTripStart
+          ? "Set Trip start above — it becomes Day 1 stop 1. Then add places from search."
+          : "Empty day — add a stop from Places search."}
       </p>
     );
   }
@@ -866,11 +983,13 @@ export function SortableDayStops({
                     total={localItems.length}
                     isEditor={isEditor}
                     isFirstStop={index === 0}
+                    pinTripStart={pinTripStart}
                     timeFormat={timeFormat}
                     onToggleVisited={onToggleVisited}
                     onOpenItem={onOpenItem}
                     onMove={onMove}
                     onUpdateItem={onUpdateItem}
+                    onDeleteItem={onDeleteItem}
                   />
                   {index < localItems.length - 1 ? (
                     <li className="list-none">

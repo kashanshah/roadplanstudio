@@ -8,6 +8,7 @@ import path from "path";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { eq } from "drizzle-orm";
+import { withDayOpeningBases } from "../src/data/seeds/overnight-carry-forward";
 import * as schema from "../src/lib/db/schema";
 
 const SEED_OWNER_ID = "seed-roadplan-studio";
@@ -139,6 +140,9 @@ async function main() {
     console.log(`Removed existing trip ${seed.trip.slug}`);
   }
 
+  const daysWithMorningBase = withDayOpeningBases(seed.days);
+  const tripStart = daysWithMorningBase[0]?.stops[0]?.resolved ?? null;
+
   const [trip] = await db
     .insert(schema.trips)
     .values({
@@ -147,6 +151,11 @@ async function main() {
       slug: seed.trip.slug,
       description: seed.trip.description,
       coverPhotoUrl: seed.trip.coverPhotoUrl,
+      startPlaceId: tripStart?.placeId ?? null,
+      startPlaceName: tripStart?.name ?? null,
+      startAddress: tripStart?.formattedAddress ?? null,
+      startLatitude: tripStart?.latitude ?? null,
+      startLongitude: tripStart?.longitude ?? null,
       durationDays: seed.trip.durationDays,
       totalDistanceKm: seed.trip.totalDistanceKm,
       difficulty: seed.trip.difficulty,
@@ -155,7 +164,7 @@ async function main() {
     })
     .returning();
 
-  for (const day of seed.days) {
+  for (const day of daysWithMorningBase) {
     const [createdDay] = await db
       .insert(schema.tripDays)
       .values({
@@ -170,8 +179,10 @@ async function main() {
 
     const itemRows = day.stops.map((stop, index) => {
       const types = stop.resolved?.types ?? [];
+      const isLodging = stop.type === "hotel" || stop.type === "city_overnight";
+      const isTripStart = day.dayIndex === 1 && index === 0;
       const durationMins =
-        stop.type === "hotel"
+        isLodging || isTripStart
           ? 0
           : types.includes("museum") || types.includes("art_gallery")
             ? 120
@@ -238,6 +249,7 @@ async function main() {
         address: o.resolved?.formattedAddress ?? null,
         latitude: o.resolved?.latitude ?? null,
         longitude: o.resolved?.longitude ?? null,
+        durationMins: 0,
         status: "to_visit",
         notes: o.notes ?? "Overnight",
         googleMapsUri: o.resolved?.googleMapsUri ?? null,
