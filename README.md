@@ -6,28 +6,31 @@ Premium multi-day road trip planner — [www.roadplanstudio.com](https://www.roa
 
 - **Next.js** (App Router) + TypeScript
 - **Vercel** deployment target
-- **Neon** (Serverless Postgres) — Phase 3
-- **Supabase** Auth & Storage
+- **Neon** (Serverless Postgres) + Drizzle ORM
+- **Better Auth** (sessions in Neon — no Supabase / NextAuth)
+- **S3 / R2** for media uploads
 - **Tailwind CSS**, Framer Motion, TanStack Query, Zod
+- **Google Maps** Platform
 
-## Phase 1 (current)
+## Phase 1–2 (current)
 
 - Public routes: `/`, `/discover`, `/trips/[publicSlug]`
 - Workspace: `/planner/[tripId]` (guest-friendly)
-- Auth shells: `/auth/login`, `/register`, `/forgot-password`, `/profile`
+- Auth: `/auth/login`, `/register`, `/forgot-password`, `/profile` via Better Auth
 - Email template previews: `/emails`
-- Dual theme (light/dark), brand assets in `/public/brand`
-- Supabase session middleware guards
+- Dual theme + brand assets in `/public/brand`
 
 ## Getting started
 
 ```bash
-# Node 20.9+ recommended (nvm use 22)
+nvm use 22
 cp .env.example .env.local
+# Fill DATABASE_URL, BETTER_AUTH_SECRET (openssl rand -base64 32), maps keys
 npm install
+npx @better-auth/cli@latest migrate   # creates auth tables in Neon
 npm run dev
 ```
 
-## Design source
+## Design source (Lovable)
 
-Lovable design lab: [Pacific Peaks Showcase](https://lovable.dev/projects/4a0f7ef3-96ef-4ac7-b75a-c8a91e3ba3cb)
+[Pacific Peaks Showcase](https://lovable.dev/projects/4a0f7ef3-96ef-4ac7-b75a-c8a91e3ba3cb)

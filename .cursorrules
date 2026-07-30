@@ -10,8 +10,9 @@ Ensure the entire application adheres to these specific infrastructure configura
 
 *   **Framework:** Next.js (App Router) utilizing TypeScript.
 *   **Hosting & Deployment:** Vercel (Fully optimized for Serverless/Edge runtimes, caching headers, and dynamic image optimization).
-*   **Database:** Neon (Serverless PostgreSQL). Implement connection pooling via the neondatabase/serverless driver to handle high-concurrency connection spikes efficiently.
-*   **Authentication & Services:** Supabase Auth & Supabase Storage integrated seamlessly within Next.js Middleware.
+*   **Database:** Neon (Serverless PostgreSQL). Implement connection pooling via the neondatabase/serverless driver to handle high-concurrency connection spikes efficiently. Use Drizzle ORM for application schemas and migrations.
+*   **Authentication:** Better Auth (email/password + optional OAuth). Users, sessions, and accounts are stored in Neon Postgres — **do not use Supabase or NextAuth**.
+*   **File Storage:** Amazon S3 (or S3-compatible Cloudflare R2) for cover photos, avatars, and uploads. Prefer pre-signed URLs for client uploads.
 *   **Frontend Foundations:** TailwindCSS, shadcn/ui, Framer Motion, React Hook Form, Zod, and dnd-kit (for multi-day drag-and-drop operations).
 *   **Data Fetching & State:** Next.js Server Components for high-performance, SEO-rich static rendering, paired with TanStack Query v5+ on the client side for real-time optimistic UI updating.
 *   **Location APIs:** Repository pattern encapsulating Google Maps JS, Places, Directions, and Geocoding APIs. 
@@ -40,13 +41,13 @@ RoadPlan Studio permits rapid application engagement through an upgraded guest s
 ### Guest-to-Cloud Account Progression
 *   **Anonymous Mode:** Users can build full itineraries (adding days, mapping routes, adding stops) without logging in.
     *   *Implementation:* Store ephemeral application states in a centralized React Context or local state engine. Display a high-end, Lovable-designed layout banner alerting the guest that data is restricted to their current browser tab.
-*   **Cloud Account Syncing:** Sharing options are fully restricted to registered users. Upon registration or login via Supabase Auth, catch the active in-memory guest state, trigger a bulk transactional write into Neon PostgreSQL, and redirect the user smoothly into their cloud-saved workspace.
+*   **Cloud Account Syncing:** Sharing options are fully restricted to registered users. Upon registration or login via Better Auth, catch the active in-memory guest state, trigger a bulk transactional write into Neon PostgreSQL, and redirect the user smoothly into their cloud-saved workspace.
 
 ### Core Relational Database Design (Neon PostgreSQL)
-Ensure database migrations implement strict relational cascading, unified performance indexing, and declarative Row Level Security (RLS) policies matching three sharing profiles (Private, Public, Tripmates):
+Ensure database migrations implement strict relational cascading, unified performance indexing, and access policies matching three sharing profiles (Private, Public, Tripmates). Auth tables (`user`, `session`, `account`, `verification`) are owned by Better Auth.
 
-*   **Profiles Table:** Links to Supabase Auth. Contains fields for user ID (primary key), unique email, full name, avatar URL, and updated timestamp.
-*   **Trips Table:** Contains fields for a unique trip ID (primary key), owner ID (foreign key referencing profiles), title, cover photo URL, duration in days, total distance in km, difficulty tier (Easy, Moderate, Hard), visibility tier (Private, Public), and a creation timestamp.
+*   **Profiles Table:** Links to Better Auth `user.id`. Contains fields for user ID (primary key / FK), unique email, full name, avatar URL (S3), and updated timestamp.
+*   **Trips Table:** Contains fields for a unique trip ID (primary key), owner ID (foreign key referencing profiles), title, cover photo URL (S3), duration in days, total distance in km, difficulty tier (Easy, Moderate, Hard), visibility tier (Private, Public), and a creation timestamp.
 *   **Trip Collaborators Join Table:** Manages shared tripmate access. Contains a collaborator ID, trip ID (foreign key), user ID (foreign key), and a permission level flag restricted strictly to either 'VIEWER' or 'EDITOR'. Includes a unique composite constraint pairing the trip ID and user ID together.
 *   *Note:* Establish similar cascading dependent tables for days, itinerary items (a flexible table/union supporting both tourist Attractions and Hotel Bookings/Night Stays), tracked expenses, and persistent packing checklists.
 
@@ -70,7 +71,5 @@ Ensure database migrations implement strict relational cascading, unified perfor
 
 ## 6. Coding Steps Execution
 1.  **Phase 1:** Setup the directory shell inside Next.js App Router. Construct the global SEO parameters in app/layout.tsx utilizing canonical links matching https://www.roadplanstudio.com.
-2.  **Phase 2:** Design and initialize authentication interfaces (Login, Register, Password Recovery, Profile Details Update) using Lovable MCP UI parameters linked to Supabase middleware routing mechanisms.
-3.  **Phase 3:** Establish the Neon client utility connections, deploy table migrations, and write the custom data injection script provisioning the 2026 Western Canada template.
-
-Let's begin. Proceed to build out Phase 1, starting with the core application folder layout and baseline Next.js middleware routing guards.
+2.  **Phase 2:** Wire authentication (Login, Register, Password Recovery, Profile) with Better Auth + Neon session middleware. Store media in S3/R2.
+3.  **Phase 3:** Establish Neon/Drizzle migrations and the data injection script provisioning the 2026 Western Canada template.

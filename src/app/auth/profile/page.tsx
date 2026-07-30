@@ -1,52 +1,57 @@
 import type { Metadata } from "next";
-import { Logo } from "@/components/brand/logo";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { redirect } from "next/navigation";
+import { SiteNav } from "@/components/layout/site-nav";
+import { Button } from "@/components/ui/button";
+import { getSession } from "@/lib/auth-server";
 
 export const metadata: Metadata = {
   title: "Profile",
   robots: { index: false, follow: false },
 };
 
-export default function ProfilePage() {
+export default async function ProfilePage() {
+  const session = await getSession();
+  if (!session) {
+    redirect("/auth/login?next=/auth/profile");
+  }
+
+  const { user } = session;
+
   return (
     <div className="min-h-full bg-background">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4 sm:px-6">
-          <Logo />
-          <ThemeToggle />
-        </div>
-      </header>
+      <SiteNav />
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-        <h1 className="font-display text-3xl text-foreground">
+        <p className="eyebrow text-primary">Account</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight">
           Profile details
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Update your name and avatar. Wired to Supabase Auth in Phase 2.
+          Signed in with Better Auth. Avatar uploads will use S3 in a later
+          pass.
         </p>
         <form className="mt-8 max-w-md space-y-4">
-          <label className="block space-y-1.5 text-sm">
-            <span>Full name</span>
+          <label className="block space-y-2 text-sm">
+            <span className="font-medium">Name</span>
             <input
-              name="fullName"
+              name="name"
               type="text"
-              className="w-full rounded-md border border-border bg-card px-3 py-2.5 outline-none focus:ring-2 focus:ring-ring"
+              defaultValue={user.name ?? ""}
+              className="h-10 w-full rounded-full border border-input bg-background px-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </label>
-          <label className="block space-y-1.5 text-sm">
-            <span>Email</span>
+          <label className="block space-y-2 text-sm">
+            <span className="font-medium">Email</span>
             <input
               name="email"
               type="email"
               disabled
-              className="w-full rounded-md border border-border bg-muted px-3 py-2.5 text-muted-foreground"
+              defaultValue={user.email}
+              className="h-10 w-full rounded-full border border-input bg-muted px-4 text-muted-foreground"
             />
           </label>
-          <button
-            type="submit"
-            className="rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground"
-          >
-            Save changes
-          </button>
+          <Button type="submit" disabled>
+            Save changes (coming soon)
+          </Button>
         </form>
       </main>
     </div>

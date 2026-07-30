@@ -1,15 +1,39 @@
-import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { NextResponse, type NextRequest } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
 
+/**
+ * Lightweight session gate for protected routes.
+ * Full session validation happens in server components / route handlers via auth.api.getSession.
+ */
 export async function middleware(request: NextRequest) {
-  return updateSession(request);
+  const { pathname } = request.nextUrl;
+  const sessionCookie = getSessionCookie(request);
+
+  const isAuthRoute =
+    pathname.startsWith("/auth/login") ||
+    pathname.startsWith("/auth/register") ||
+    pathname.startsWith("/auth/forgot-password");
+
+  const requiresAuth = pathname.startsWith("/auth/profile");
+
+  if (!sessionCookie && requiresAuth) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/login";
+    url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  if (sessionCookie && isAuthRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/planner/new";
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except static assets and image optimization.
-     */
-    "/((?!_next/static|_next/image|favicon.ico|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|brand/|images/|api/auth|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
