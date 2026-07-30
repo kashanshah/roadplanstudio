@@ -27,6 +27,11 @@ export const collaboratorPermissionEnum = pgEnum("collaborator_permission", [
   "VIEWER",
   "EDITOR",
 ]);
+export const joinRequestStatusEnum = pgEnum("join_request_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
 export const itemTypeEnum = pgEnum("itinerary_item_type", [
   "attraction",
   "hotel",
@@ -121,6 +126,66 @@ export const tripInvites = pgTable(
       .defaultNow(),
   },
   (t) => [uniqueIndex("trip_invites_trip_email_uidx").on(t.tripId, t.email)],
+);
+
+/** Shareable invite link (anyone with the URL). One active link per trip. */
+export const tripInviteLinks = pgTable(
+  "trip_invite_links",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    permission: collaboratorPermissionEnum("permission")
+      .notNull()
+      .default("VIEWER"),
+    /** When "false", the link cannot be used to join. */
+    enabled: text("enabled").notNull().default("true"),
+    /** When "true", joins create a pending request for owner approval. */
+    requireApproval: text("require_approval").notNull().default("false"),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => profiles.userId, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [uniqueIndex("trip_invite_links_trip_uidx").on(t.tripId)],
+);
+
+export const tripJoinRequests = pgTable(
+  "trip_join_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tripId: uuid("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    inviteLinkId: uuid("invite_link_id")
+      .notNull()
+      .references(() => tripInviteLinks.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => profiles.userId, { onDelete: "cascade" }),
+    permission: collaboratorPermissionEnum("permission")
+      .notNull()
+      .default("VIEWER"),
+    status: joinRequestStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolvedBy: text("resolved_by").references(() => profiles.userId, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [
+    uniqueIndex("trip_join_requests_trip_user_uidx").on(t.tripId, t.userId),
+  ],
 );
 
 export const tripDays = pgTable("trip_days", {
@@ -225,12 +290,43 @@ export const tripsRelations = relations(trips, ({ one, many }) => ({
   }),
   collaborators: many(tripCollaborators),
   invites: many(tripInvites),
+  inviteLinks: many(tripInviteLinks),
+  joinRequests: many(tripJoinRequests),
   days: many(tripDays),
   accommodations: many(accommodations),
   expenses: many(expenses),
   packingItems: many(packingItems),
   activityLogs: many(activityLogs),
 }));
+
+export const tripInviteLinksRelations = relations(
+  tripInviteLinks,
+  ({ one, many }) => ({
+    trip: one(trips, {
+      fields: [tripInviteLinks.tripId],
+      references: [trips.id],
+    }),
+    joinRequests: many(tripJoinRequests),
+  }),
+);
+
+export const tripJoinRequestsRelations = relations(
+  tripJoinRequests,
+  ({ one }) => ({
+    trip: one(trips, {
+      fields: [tripJoinRequests.tripId],
+      references: [trips.id],
+    }),
+    inviteLink: one(tripInviteLinks, {
+      fields: [tripJoinRequests.inviteLinkId],
+      references: [tripInviteLinks.id],
+    }),
+    user: one(profiles, {
+      fields: [tripJoinRequests.userId],
+      references: [profiles.userId],
+    }),
+  }),
+);
 
 export const tripDaysRelations = relations(tripDays, ({ one, many }) => ({
   trip: one(trips, {
