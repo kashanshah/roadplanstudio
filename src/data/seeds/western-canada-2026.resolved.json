@@ -685,6 +685,12 @@
             ],
             "googleMapsUri": "https://maps.google.com/?cid=12222094262126195320&g_mp=Cidnb29nbGUubWFwcy5wbGFjZXMudjEuUGxhY2VzLlNlYXJjaFRleHQQAhgEIAA"
           }
+        },
+        {
+          "key": "d4-annette",
+          "query": "Annette Lake, Jasper National Park, AB",
+          "type": "attraction",
+          "resolved": null
         }
       ],
       "overnight": {
