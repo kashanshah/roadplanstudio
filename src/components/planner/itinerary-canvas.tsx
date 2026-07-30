@@ -19,6 +19,7 @@ import type {
 import { PlaceDetailSheet } from "@/components/planner/place-detail-sheet";
 import { SortableDayStops } from "@/components/planner/sortable-day-stops";
 import { TemplateStrip } from "@/components/planner/template-strip";
+import { useDayTimeline } from "@/components/planner/use-day-timeline";
 import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,7 @@ import {
   type PlannerDay,
   type PlannerItem,
 } from "@/components/planner/planner-types";
+import { useDisplayPrefs } from "@/lib/prefs/display-prefs";
 import { formatDayHeading } from "@/lib/trips/format-day-label";
 import { cn } from "@/lib/utils/cn";
 
@@ -323,6 +325,26 @@ export function ItineraryCanvas({
   onSelectDay,
 }: Props) {
   const [openDays, setOpenDays] = useState<Record<string, boolean>>({});
+  const [selected, setSelected] = useState<PlannerItem | null>(null);
+  const { timeFormat } = useDisplayPrefs();
+
+  const selectedDay = useMemo(
+    () =>
+      selected
+        ? (days.find((d) => d.items.some((i) => i.id === selected.id)) ?? null)
+        : null,
+    [days, selected],
+  );
+  const { rows: selectedDayRows } = useDayTimeline(
+    selectedDay?.items ?? [],
+    timeFormat,
+  );
+  const selectedRow = selected
+    ? (selectedDayRows.find((r) => r.item.id === selected.id) ?? null)
+    : null;
+  const selectedIsFirstStop = Boolean(
+    selected && selectedDay?.items[0]?.id === selected.id,
+  );
 
   useEffect(() => {
     if (!days.length) return;
@@ -331,7 +353,6 @@ export function ItineraryCanvas({
       return Object.fromEntries(days.slice(0, 2).map((d) => [d.id, true]));
     });
   }, [days]);
-  const [selected, setSelected] = useState<PlannerItem | null>(null);
 
   const progress = useMemo(() => {
     const all = days.flatMap((d) => d.items);
@@ -491,6 +512,9 @@ export function ItineraryCanvas({
                           onReorder={(id, orderedIds) => {
                             void onReorderDay(id, orderedIds);
                           }}
+                          onUpdateItem={(itemId, patch) => {
+                            void onUpdateItem(itemId, patch);
+                          }}
                           onTravelModeChange={(itemId, mode) => {
                             void onUpdateItem(itemId, { travelMode: mode });
                           }}
@@ -585,6 +609,9 @@ export function ItineraryCanvas({
       <PlaceDetailSheet
         item={selected}
         isEditor={isEditor}
+        arriveMins={selectedRow?.arriveMins ?? null}
+        departMins={selectedRow?.departMins ?? null}
+        isFirstStop={selectedIsFirstStop}
         onClose={() => setSelected(null)}
         onUpdate={async (itemId, patch) => {
           await onUpdateItem(itemId, patch);

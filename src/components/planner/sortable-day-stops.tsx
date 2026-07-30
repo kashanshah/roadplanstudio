@@ -32,11 +32,13 @@ import {
   GripVertical,
   Heart,
   MapPin,
+  Pencil,
   RotateCcw,
   SlidersHorizontal,
   Star,
 } from "lucide-react";
 import { tip } from "@/components/ui/app-tooltip";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   formatDurationLabel,
@@ -59,7 +61,16 @@ import {
   formatClock,
   useDisplayPrefs,
 } from "@/lib/prefs/display-prefs";
+import {
+  buildStopTimePatch,
+  minsToTimeInput,
+  timeInputToMins,
+} from "@/lib/trips/stop-time";
 import { cn } from "@/lib/utils/cn";
+
+type ItemTimePatch = Partial<
+  Pick<PlannerItem, "durationMins" | "timingMode" | "timingMins">
+>;
 
 type Props = {
   dayId: string;
@@ -68,6 +79,7 @@ type Props = {
   onToggleVisited: (item: PlannerItem) => void;
   onOpenItem: (item: PlannerItem) => void;
   onReorder: (dayId: string, orderedIds: string[]) => void;
+  onUpdateItem?: (itemId: string, patch: ItemTimePatch) => void | Promise<void>;
   onTravelModeChange?: (itemId: string, mode: TravelMode) => void;
   onCustomTravelChange?: (
     itemId: string,
@@ -294,19 +306,23 @@ function SortableStopRow({
   index,
   total,
   isEditor,
+  isFirstStop,
   timeFormat,
   onToggleVisited,
   onOpenItem,
   onMove,
+  onUpdateItem,
 }: {
   row: TimelineRow;
   index: number;
   total: number;
   isEditor: boolean;
+  isFirstStop: boolean;
   timeFormat: "h12" | "h24";
   onToggleVisited: (item: PlannerItem) => void;
   onOpenItem: (item: PlannerItem) => void;
   onMove: (itemId: string, direction: -1 | 1) => void;
+  onUpdateItem?: (itemId: string, patch: ItemTimePatch) => void | Promise<void>;
 }) {
   const item = row.item;
   const {
@@ -322,6 +338,53 @@ function SortableStopRow({
   const isHotel = item.type === "hotel";
   const isCustom = item.type === "custom";
   const overnight = row.arriveMins >= 24 * 60;
+
+  const [editingTimes, setEditingTimes] = useState(false);
+  const [arriveDraft, setArriveDraft] = useState("");
+  const [departDraft, setDepartDraft] = useState("");
+  const [savingTimes, setSavingTimes] = useState(false);
+  const [timeError, setTimeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!editingTimes) return;
+    setArriveDraft(minsToTimeInput(row.arriveMins));
+    setDepartDraft(minsToTimeInput(row.departMins));
+    setTimeError(null);
+  }, [editingTimes, row.arriveMins, row.departMins]);
+
+  const draftArriveMins = timeInputToMins(arriveDraft);
+  const draftDepartMins = timeInputToMins(departDraft);
+  const draftStayMins =
+    draftArriveMins != null && draftDepartMins != null
+      ? Math.max(0, draftDepartMins - draftArriveMins)
+      : null;
+
+  async function saveTimes() {
+    if (!onUpdateItem || isHotel) return;
+    const arriveMins = isFirstStop
+      ? timeInputToMins(arriveDraft)
+      : row.arriveMins;
+    const departMins = timeInputToMins(departDraft);
+    if (arriveMins == null || departMins == null) {
+      setTimeError("Enter a valid time.");
+      return;
+    }
+    if (departMins < arriveMins) {
+      setTimeError("Depart must be at or after arrive.");
+      return;
+    }
+    setSavingTimes(true);
+    setTimeError(null);
+    try {
+      await onUpdateItem(
+        item.id,
+        buildStopTimePatch({ arriveMins, departMins, isFirstStop }),
+      );
+      setEditingTimes(false);
+    } finally {
+      setSavingTimes(false);
+    }
+  }
 
   return (
     <li
@@ -342,17 +405,32 @@ function SortableStopRow({
         )}
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-          {/* Status + timeline gutter: checkbox → time → spine (desktop). */}
-          <div className="flex items-center gap-3 sm:w-[4.25rem] sm:shrink-0 sm:flex-col sm:items-center sm:gap-1.5 sm:pt-0.5">
+          {/* Status + timeline gutter: checkbox → arrive/depart → spine */}
+          <div className="flex items-center gap-3 sm:w-[4.5rem] sm:shrink-0 sm:flex-col sm:items-center sm:gap-1 sm:pt-0.5">
             <Checkbox
               checked={checked}
               disabled={!isEditor}
               onCheckedChange={() => onToggleVisited(item)}
               aria-label={`Mark ${item.name} visited`}
             />
-            <span className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-primary">
-              {formatClock(row.arriveMins, timeFormat)}
-            </span>
+            <div className="min-w-0 text-left sm:text-center">
+              <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                Arrive
+              </p>
+              <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-primary">
+                {formatClock(row.arriveMins, timeFormat)}
+              </p>
+              {!isHotel ? (
+                <>
+                  <p className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                    Depart
+                  </p>
+                  <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-foreground">
+                    {formatClock(row.departMins, timeFormat)}
+                  </p>
+                </>
+              ) : null}
+            </div>
             {overnight ? (
               <span className="text-[10px] uppercase tracking-wide text-destructive">
                 +day
@@ -411,14 +489,12 @@ function SortableStopRow({
                       <BedDouble className="size-3.5" />
                       Overnight stay
                     </span>
-                  ) : (
+                  ) : row.stayMins > 0 ? (
                     <span className="inline-flex items-center gap-1 text-foreground/80">
                       <Clock className="size-3.5 text-primary" />
-                      {row.stayMins > 0
-                        ? `${formatDurationLabel(row.stayMins)} at location`
-                        : "No time at location"}
+                      {formatDurationLabel(row.stayMins)} stay
                     </span>
-                  )}
+                  ) : null}
                   {item.address ? (
                     <span className="inline-flex min-w-0 max-w-full items-center gap-1">
                       <MapPin className="size-3.5 shrink-0" />
@@ -442,50 +518,136 @@ function SortableStopRow({
               </button>
             </div>
 
-            {isEditor && total > 1 ? (
-              <div
-                className="flex w-full shrink-0 overflow-hidden rounded-lg border border-border sm:mt-0.5 sm:w-auto sm:flex-col"
-                role="group"
-                aria-label={`Reorder ${item.name}`}
-              >
+            <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:items-end">
+              {isEditor && !isHotel && onUpdateItem ? (
                 <button
                   type="button"
-                  disabled={index === 0}
-                  onClick={() => onMove(item.id, -1)}
-                  aria-label={`Move ${item.name} up`}
-                  {...tip("Move up")}
-                  className="grid h-9 flex-1 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30 sm:size-8 sm:flex-none"
-                >
-                  <ChevronUp className="size-4" />
-                </button>
-                <button
-                  type="button"
+                  onClick={() => setEditingTimes((prev) => !prev)}
                   className={cn(
-                    "grid h-9 flex-1 touch-none place-items-center border-x border-border text-muted-foreground hover:bg-secondary hover:text-foreground sm:size-8 sm:flex-none sm:border-x-0 sm:border-y",
-                    "cursor-grab active:cursor-grabbing",
-                    isDragging && "cursor-grabbing bg-secondary",
+                    "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-3 text-sm transition-colors",
+                    editingTimes
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
                   )}
-                  aria-label={`Drag to reorder ${item.name}`}
-                  {...tip("Drag to reorder")}
-                  {...attributes}
-                  {...listeners}
                 >
-                  <GripVertical className="size-4" />
+                  <Pencil className="size-3.5" />
+                  Edit times
                 </button>
-                <button
-                  type="button"
-                  disabled={index === total - 1}
-                  onClick={() => onMove(item.id, 1)}
-                  aria-label={`Move ${item.name} down`}
-                  {...tip("Move down")}
-                  className="grid h-9 flex-1 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30 sm:size-8 sm:flex-none"
+              ) : null}
+
+              {isEditor && total > 1 ? (
+                <div
+                  className="flex w-full overflow-hidden rounded-lg border border-border sm:w-auto sm:flex-col"
+                  role="group"
+                  aria-label={`Reorder ${item.name}`}
                 >
-                  <ChevronDown className="size-4" />
-                </button>
-              </div>
-            ) : null}
+                  <button
+                    type="button"
+                    disabled={index === 0}
+                    onClick={() => onMove(item.id, -1)}
+                    aria-label={`Move ${item.name} up`}
+                    {...tip("Move up")}
+                    className="grid h-9 flex-1 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30 sm:size-8 sm:flex-none"
+                  >
+                    <ChevronUp className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "grid h-9 flex-1 touch-none place-items-center border-x border-border text-muted-foreground hover:bg-secondary hover:text-foreground sm:size-8 sm:flex-none sm:border-x-0 sm:border-y",
+                      "cursor-grab active:cursor-grabbing",
+                      isDragging && "cursor-grabbing bg-secondary",
+                    )}
+                    aria-label={`Drag to reorder ${item.name}`}
+                    {...tip("Drag to reorder")}
+                    {...attributes}
+                    {...listeners}
+                  >
+                    <GripVertical className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={index === total - 1}
+                    onClick={() => onMove(item.id, 1)}
+                    aria-label={`Move ${item.name} down`}
+                    {...tip("Move down")}
+                    className="grid h-9 flex-1 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30 sm:size-8 sm:flex-none"
+                  >
+                    <ChevronDown className="size-4" />
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
+
+        {editingTimes && isEditor && !isHotel && onUpdateItem ? (
+          <div className="mt-3 rounded-xl border border-border bg-card/80 p-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Arrive
+                  {!isFirstStop ? (
+                    <span className="font-normal"> · from previous stop</span>
+                  ) : (
+                    <span className="font-normal"> · day start</span>
+                  )}
+                </span>
+                <input
+                  type="time"
+                  value={arriveDraft}
+                  disabled={!isFirstStop}
+                  onChange={(e) => setArriveDraft(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                  Depart
+                </span>
+                <input
+                  type="time"
+                  value={departDraft}
+                  onChange={(e) => setDepartDraft(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Stay{" "}
+              <span className="font-medium text-foreground">
+                {draftStayMins != null
+                  ? formatDurationLabel(draftStayMins)
+                  : "—"}
+              </span>{" "}
+              (auto)
+            </p>
+            {timeError ? (
+              <p className="mt-1 text-sm text-destructive" role="alert">
+                {timeError}
+              </p>
+            ) : null}
+            <div className="mt-3 flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={savingTimes}
+                onClick={() => void saveTimes()}
+              >
+                {savingTimes ? "Saving…" : "Save times"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={savingTimes}
+                onClick={() => setEditingTimes(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </li>
   );
@@ -498,6 +660,7 @@ export function SortableDayStops({
   onToggleVisited,
   onOpenItem,
   onReorder,
+  onUpdateItem,
   onTravelModeChange,
   onCustomTravelChange,
 }: Props) {
@@ -635,10 +798,12 @@ export function SortableDayStops({
                     index={index}
                     total={localItems.length}
                     isEditor={isEditor}
+                    isFirstStop={index === 0}
                     timeFormat={timeFormat}
                     onToggleVisited={onToggleVisited}
                     onOpenItem={onOpenItem}
                     onMove={onMove}
+                    onUpdateItem={onUpdateItem}
                   />
                   {index < localItems.length - 1 ? (
                     <li className="list-none">
