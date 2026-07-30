@@ -128,6 +128,7 @@ export const WESTERN_CANADA_DAYS: ManifestDay[] = [
       { key: "d4-athabasca", query: "Athabasca Falls, Jasper National Park, AB", type: "attraction" },
       { key: "d4-jasper", query: "Jasper, AB", type: "attraction", notes: "Jasper town" },
       { key: "d4-maligne", query: "Maligne Lake, Jasper National Park, AB", type: "attraction", optional: true, notes: "if time permits" },
+      { key: "d4-annette", query: "Annette Lake, Jasper National Park, AB", type: "attraction" },
     ],
     overnight: {
       key: "d4-hotel",
