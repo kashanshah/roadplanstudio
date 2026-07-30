@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RemixTripButton } from "@/components/trips/remix-trip-button";
 import { getTripTemplate, tripTemplates } from "@/data/trips/templates";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
-import { localeMetadataBase } from "@/lib/i18n/seo";
+import { tripShareMetadata } from "@/lib/i18n/seo";
 import { getPublicTripBySlug } from "@/lib/trips/public";
 
 type Props = {
@@ -33,52 +33,36 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (data) {
     const { trip } = data;
     const indexable = trip.visibility === "public";
+    const imageUrl =
+      trip.coverPhotoUrl ||
+      (template ? template.coverImage : null) ||
+      `/trips/${trip.slug}/opengraph-image`;
     return {
-      ...localeMetadataBase(
-        "en",
-        `/trips/${trip.slug}`,
-        trip.title,
-        trip.description ?? template?.description ?? "",
-      ),
-      openGraph: {
-        ...localeMetadataBase(
-          "en",
-          `/trips/${trip.slug}`,
-          trip.title,
-          trip.description ?? "",
-        ).openGraph,
-        images: trip.coverPhotoUrl
-          ? [{ url: trip.coverPhotoUrl }]
-          : template
-            ? [{ url: template.coverImage }]
-            : undefined,
-      },
+      ...tripShareMetadata({
+        locale: "en",
+        path: `/trips/${trip.slug}`,
+        title: trip.title,
+        description: trip.description ?? template?.description ?? "",
+        imageUrl,
+        imageAlt: template?.coverAlt ?? trip.title,
+        keywords: template?.seoKeywords,
+      }),
       robots: indexable
         ? { index: true, follow: true }
         : { index: false, follow: false },
-      keywords: template?.seoKeywords,
     };
   }
 
   if (template) {
-    return {
-      ...localeMetadataBase(
-        "en",
-        `/trips/${template.slug}`,
-        template.title,
-        template.description,
-      ),
+    return tripShareMetadata({
+      locale: "en",
+      path: `/trips/${template.slug}`,
+      title: template.title,
+      description: template.description,
+      imageUrl: template.coverImage,
+      imageAlt: template.coverAlt,
       keywords: template.seoKeywords,
-      openGraph: {
-        ...localeMetadataBase(
-          "en",
-          `/trips/${template.slug}`,
-          template.title,
-          template.description,
-        ).openGraph,
-        images: [{ url: template.coverImage, alt: template.coverAlt }],
-      },
-    };
+    });
   }
 
   return {

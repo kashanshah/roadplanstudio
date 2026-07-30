@@ -64,26 +64,20 @@ export const metadata: Metadata = {
     alternateLocale: ["fr_FR", "es_ES", "de_DE", "ja_JP"],
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: SITE_NAME,
+    title: `${SITE_NAME} — Plan the drive. Feel the route.`,
     description: SITE_DESCRIPTION,
-    images: [
-      {
-        url: "/images/hero-road.jpg",
-        width: 1920,
-        height: 1080,
-        alt: SITE_NAME,
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: SITE_NAME,
+    title: `${SITE_NAME} — Plan the drive. Feel the route.`,
     description: SITE_DESCRIPTION,
-    images: ["/images/hero-road.jpg"],
   },
   icons: {
-    icon: [{ url: "/brand/favicon.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/brand/icon-512.svg" }],
+    icon: [
+      { url: "/icon", type: "image/png" },
+      { url: "/brand/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/apple-icon", sizes: "180x180", type: "image/png" }],
     shortcut: ["/brand/favicon.svg"],
   },
   manifest: "/site.webmanifest",
@@ -91,6 +85,7 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  category: "travel",
 };
 
 export const viewport: Viewport = {
@@ -113,6 +108,7 @@ export default function RootLayout({
     name: SITE_NAME,
     url: SITE_URL,
     logo: `${SITE_URL}/brand/logo-mark.svg`,
+    image: `${SITE_URL}/opengraph-image`,
     sameAs: [SITE_URL],
   };
 
