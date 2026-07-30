@@ -3,6 +3,10 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  useDisplayPrefs,
+  type TimeFormat,
+} from "@/lib/prefs/display-prefs";
 
 type ProfileData = {
   fullName: string | null;
@@ -10,6 +14,7 @@ type ProfileData = {
   language: string;
   distanceUnit: "km" | "mi";
   temperatureUnit: "c" | "f";
+  timeFormat: "h12" | "h24";
   notificationPrefs: {
     emailMarketing: boolean;
     tripUpdates: boolean;
@@ -24,6 +29,7 @@ type Props = {
 
 export function ProfilePreferencesForm({ email, initial }: Props) {
   const router = useRouter();
+  const { setTimeFormat } = useDisplayPrefs();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +40,9 @@ export function ProfilePreferencesForm({ email, initial }: Props) {
     setError(null);
     setMessage(null);
     const form = new FormData(e.currentTarget);
+    const timeFormat = (String(form.get("timeFormat") || "h12") === "h24"
+      ? "h24"
+      : "h12") as TimeFormat;
     const res = await fetch("/api/account/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -43,6 +52,7 @@ export function ProfilePreferencesForm({ email, initial }: Props) {
         language: String(form.get("language") || "en"),
         distanceUnit: String(form.get("distanceUnit") || "km"),
         temperatureUnit: String(form.get("temperatureUnit") || "c"),
+        timeFormat,
         notificationPrefs: {
           emailMarketing: form.get("emailMarketing") === "on",
           tripUpdates: form.get("tripUpdates") === "on",
@@ -55,6 +65,7 @@ export function ProfilePreferencesForm({ email, initial }: Props) {
       setError("Could not save profile");
       return;
     }
+    setTimeFormat(timeFormat);
     setMessage("Profile saved");
     router.refresh();
   }
@@ -142,6 +153,20 @@ export function ProfilePreferencesForm({ email, initial }: Props) {
             </select>
           </label>
         </div>
+        <label className="block space-y-2 text-base">
+          <span className="font-medium">Time format</span>
+          <select
+            name="timeFormat"
+            defaultValue={initial.timeFormat}
+            className="h-12 w-full rounded-full border border-input bg-background px-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="h12">12-hour (AM/PM)</option>
+            <option value="h24">24-hour</option>
+          </select>
+          <span className="block text-sm text-muted-foreground">
+            Applies to itinerary clocks across all your trips.
+          </span>
+        </label>
         <fieldset className="space-y-2 text-base">
           <legend className="font-medium">Notifications</legend>
           {(

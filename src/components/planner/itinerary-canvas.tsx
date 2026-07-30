@@ -5,24 +5,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BedDouble,
   ChevronDown,
-  Clock,
-  Heart,
-  MapPin,
-  Star,
+  Plus,
 } from "lucide-react";
 import { AddStopSearch } from "@/components/planner/add-stop-search";
 import { PlaceDetailSheet } from "@/components/planner/place-detail-sheet";
+import { SortableDayStops } from "@/components/planner/sortable-day-stops";
 import { TemplateStrip } from "@/components/planner/template-strip";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import {
-  formatDuration,
   nextCheckboxStatus,
-  statusLabel,
   type PlaceDetailsPayload,
   type PlannerAccommodation,
   type PlannerDay,
   type PlannerItem,
-  type StopStatus,
 } from "@/components/planner/planner-types";
 import { cn } from "@/lib/utils/cn";
 
@@ -33,23 +28,20 @@ type Props = {
   showTemplates?: boolean;
   onUpdateItem: (
     itemId: string,
-    patch: Partial<Pick<PlannerItem, "status" | "durationMins" | "notes">>,
+    patch: Partial<
+      Pick<PlannerItem, "status" | "durationMins" | "notes" | "travelMode">
+    >,
   ) => Promise<void> | void;
+  onReorderDay: (dayId: string, orderedItemIds: string[]) => Promise<void> | void;
   onAddPlace?: (
     dayId: string,
     place: PlaceDetailsPayload,
     asHotel: boolean,
   ) => Promise<void> | void;
+  onAddDay?: () => Promise<void> | void;
   onFocusStop?: (item: PlannerItem) => void;
+  onSelectDay?: (dayId: string) => void;
 };
-
-function dayScheduleMins(items: PlannerItem[]) {
-  return items.reduce((sum, item) => {
-    if (item.type === "hotel") return sum;
-    if (item.status === "skipped" || item.status === "cancelled") return sum;
-    return sum + (item.durationMins ?? 60);
-  }, 0);
-}
 
 function lodgingForDay(
   day: PlannerDay,
@@ -80,8 +72,11 @@ export function ItineraryCanvas({
   isEditor,
   showTemplates,
   onUpdateItem,
+  onReorderDay,
   onAddPlace,
+  onAddDay,
   onFocusStop,
+  onSelectDay,
 }: Props) {
   const [openDays, setOpenDays] = useState<Record<string, boolean>>({});
 
@@ -102,7 +97,11 @@ export function ItineraryCanvas({
   }, [days]);
 
   function toggleDay(id: string) {
-    setOpenDays((prev) => ({ ...prev, [id]: !prev[id] }));
+    setOpenDays((prev) => {
+      const nextOpen = !prev[id];
+      if (nextOpen) onSelectDay?.(id);
+      return { ...prev, [id]: nextOpen };
+    });
   }
 
   async function toggleVisited(item: PlannerItem) {
@@ -148,7 +147,6 @@ export function ItineraryCanvas({
       <ul className="space-y-4">
         {days.map((day) => {
           const open = openDays[day.id] ?? false;
-          const schedule = dayScheduleMins(day.items);
           const lodging = lodgingForDay(day, accommodations);
 
           return (
@@ -175,7 +173,6 @@ export function ItineraryCanvas({
                       day.items.length
                         ? `${day.items.length} stops`
                         : "No stops",
-                      schedule ? `~${formatDuration(schedule)} on foot` : null,
                     ]
                       .filter(Boolean)
                       .join(" · ")}
@@ -199,104 +196,23 @@ export function ItineraryCanvas({
                     className="overflow-hidden"
                   >
                     <div className="border-t border-border px-3 pb-4 pt-2 sm:px-4">
-                      {day.items.length === 0 ? (
-                        <p className="px-1 py-3 text-base text-muted-foreground">
-                          Empty day — add a stop from Places search.
-                        </p>
-                      ) : (
-                        <ul className="space-y-2">
-                          {day.items.map((item) => {
-                            const checked = item.status === "visited";
-                            const isHotel = item.type === "hotel";
-                            return (
-                              <li key={item.id}>
-                                <div
-                                  className={cn(
-                                    "group flex items-start gap-3 rounded-2xl px-2 py-3 transition-colors hover:bg-secondary/50 sm:px-3",
-                                    checked && "opacity-70",
-                                  )}
-                                >
-                                  <Checkbox
-                                    checked={checked}
-                                    disabled={!isEditor}
-                                    onCheckedChange={() =>
-                                      void toggleVisited(item)
-                                    }
-                                    aria-label={`Mark ${item.name} visited`}
-                                    className="mt-1"
-                                  />
-                                  <button
-                                    type="button"
-                                    className="min-w-0 flex-1 text-left"
-                                    onClick={() => {
-                                      setSelected(item);
-                                      onFocusStop?.(item);
-                                    }}
-                                  >
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span
-                                        className={cn(
-                                          "text-base font-semibold sm:text-lg",
-                                          checked && "line-through",
-                                        )}
-                                      >
-                                        {item.name}
-                                      </span>
-                                      {isHotel ? (
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-sandstone/25 px-2 py-0.5 text-xs font-medium text-ink">
-                                          <BedDouble className="size-3" />
-                                          Hotel
-                                        </span>
-                                      ) : null}
-                                      {item.status === "favorite" ? (
-                                        <Heart className="size-3.5 fill-destructive text-destructive" />
-                                      ) : null}
-                                      {item.status !== "to_visit" &&
-                                      item.status !== "visited" ? (
-                                        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
-                                          {statusLabel(item.status as StopStatus)}
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                                      {item.address ? (
-                                        <span className="inline-flex items-center gap-1">
-                                          <MapPin className="size-3.5" />
-                                          <span className="line-clamp-1">
-                                            {item.address}
-                                          </span>
-                                        </span>
-                                      ) : null}
-                                      {formatDuration(item.durationMins) ? (
-                                        <span className="inline-flex items-center gap-1">
-                                          <Clock className="size-3.5" />
-                                          {formatDuration(item.durationMins)}
-                                        </span>
-                                      ) : (
-                                        <span className="inline-flex items-center gap-1">
-                                          <Clock className="size-3.5" />
-                                          Set duration
-                                        </span>
-                                      )}
-                                      {item.googlePlaceId ? (
-                                        <span className="inline-flex items-center gap-1 text-primary">
-                                          <Star className="size-3.5" />
-                                          Places
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                    {item.notes ? (
-                                      <p className="mt-1 line-clamp-2 text-sm text-foreground/75">
-                                        {item.notes}
-                                      </p>
-                                    ) : null}
-                                  </button>
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
+                      <SortableDayStops
+                        dayId={day.id}
+                        items={day.items}
+                        isEditor={isEditor}
+                        onToggleVisited={(item) => void toggleVisited(item)}
+                        onOpenItem={(item) => {
+                          setSelected(item);
+                          onSelectDay?.(day.id);
+                          onFocusStop?.(item);
+                        }}
+                        onReorder={(id, orderedIds) => {
+                          void onReorderDay(id, orderedIds);
+                        }}
+                        onTravelModeChange={(itemId, mode) => {
+                          void onUpdateItem(itemId, { travelMode: mode });
+                        }}
+                      />
 
                       {lodging.length ? (
                         <div className="mt-3 space-y-2 border-t border-dashed border-border pt-3">
@@ -353,6 +269,18 @@ export function ItineraryCanvas({
           );
         })}
       </ul>
+
+      {isEditor && onAddDay ? (
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full text-base sm:w-auto"
+          onClick={() => void onAddDay()}
+        >
+          <Plus className="size-4" />
+          Add another day
+        </Button>
+      ) : null}
 
       <PlaceDetailSheet
         item={selected}

@@ -20,6 +20,10 @@ const guestItemSchema = z.object({
   longitude: z.number().nullable().optional(),
   googlePlaceId: z.string().nullable().optional(),
   durationMins: z.number().int().nullable().optional(),
+  travelMode: z
+    .enum(["driving", "walking", "bicycling", "transit"])
+    .optional()
+    .default("driving"),
   status: z
     .enum(["to_visit", "visited", "skipped", "cancelled", "favorite"])
     .default("to_visit"),
@@ -106,6 +110,7 @@ export async function POST(request: Request) {
             longitude: item.longitude ?? null,
             googlePlaceId: item.googlePlaceId ?? null,
             durationMins: item.durationMins ?? null,
+            travelMode: item.travelMode ?? "driving",
             status: item.status,
             notes: item.notes ?? null,
           })),

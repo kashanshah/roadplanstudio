@@ -12,13 +12,12 @@ import {
 } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo";
 import { AccountMenu } from "@/components/auth/account-menu";
+import { PreferencesMenu } from "@/components/layout/preferences-menu";
 import { VerifyEmailBanner } from "@/components/auth/verify-email-banner";
 import { useAuthGate } from "@/components/auth/auth-gate-provider";
 import { GuestBanner } from "@/components/layout/guest-banner";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { ItineraryCanvas } from "@/components/planner/itinerary-canvas";
 import { PlannerEmptyState } from "@/components/planner/planner-empty-state";
-import type { MapStop } from "@/components/planner/trip-map";
 import type {
   PlaceDetailsPayload,
   PlannerAccommodation,
@@ -33,9 +32,9 @@ import { useSession } from "@/lib/auth-client";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 import type { GuestStopStatus } from "@/lib/trips/guest-trip";
 
-const TripMap = dynamic(
+const TripMapPanel = dynamic(
   () =>
-    import("@/components/planner/trip-map").then((m) => m.TripMap),
+    import("@/components/planner/planner-maps").then((m) => m.PlannerMaps),
   {
     ssr: false,
     loading: () => (
@@ -88,7 +87,8 @@ export function PlannerShell({ tripId }: Props) {
   const isVerified = !!session?.user.emailVerified;
   const isAnonymous = isDraftRoute && !isLoggedIn;
   const { requireAuth } = useAuthGate();
-  const { draft, hydrated, clearDraft, updateDraft } = useGuestTrip();
+  const { draft, hydrated, clearDraft, updateDraft, startPlanning } =
+    useGuestTrip();
   const [shareOpen, setShareOpen] = useState(false);
   const [matesOpen, setMatesOpen] = useState(false);
   const [cloud, setCloud] = useState<CloudTripPayload | null>(null);
@@ -96,6 +96,14 @@ export function PlannerShell({ tripId }: Props) {
   const [loadingCloud, setLoadingCloud] = useState(!isDraftRoute);
   const [saving, setSaving] = useState(false);
   const [focusStopId, setFocusStopId] = useState<string | null>(null);
+  const [activeDayId, setActiveDayId] = useState<string | null>(null);
+  const [dismissedStarter, setDismissedStarter] = useState(false);
+
+  // Blank /planner/new always gets a local draft so users can plan without a template.
+  useEffect(() => {
+    if (!isDraftRoute || !hydrated) return;
+    if (!draft) startPlanning();
+  }, [isDraftRoute, hydrated, draft, startPlanning]);
 
   useEffect(() => {
     if (isDraftRoute) {
@@ -129,6 +137,7 @@ export function PlannerShell({ tripId }: Props) {
               googlePlaceId: i.googlePlaceId ?? null,
               googleMapsUri: i.googleMapsUri ?? null,
               durationMins: i.durationMins ?? null,
+              travelMode: i.travelMode ?? "driving",
               latitude: i.latitude ?? null,
               longitude: i.longitude ?? null,
             })),
@@ -184,7 +193,10 @@ export function PlannerShell({ tripId }: Props) {
         date: d.date ?? null,
         routeSummary: d.routeSummary ?? null,
         notes: d.notes ?? null,
-        items: d.items.map((i) => ({
+        items: d.items
+          .slice()
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((i) => ({
           id: i.id,
           name: i.name,
           address: i.address ?? null,
@@ -196,6 +208,7 @@ export function PlannerShell({ tripId }: Props) {
           googlePlaceId: i.googlePlaceId ?? null,
           googleMapsUri: null,
           durationMins: i.durationMins ?? null,
+          travelMode: i.travelMode ?? "driving",
           status: normalizeStatus(i.status),
         })),
       }));
@@ -205,23 +218,12 @@ export function PlannerShell({ tripId }: Props) {
 
   const accommodations = cloud?.accommodations ?? [];
   const hasTimelineContent = days.some((d) => d.items.length > 0);
-  const showEmptyState = isDraftRoute && !hasTimelineContent;
+  const showStarter =
+    isDraftRoute && !hasTimelineContent && !dismissedStarter && !!draft;
 
-  const mapStops = useMemo((): MapStop[] => {
-    return days.flatMap((d) =>
-      d.items
-        .filter((i) => i.latitude != null && i.longitude != null)
-        .map((i) => ({
-          id: i.id,
-          name: i.name,
-          latitude: i.latitude as number,
-          longitude: i.longitude as number,
-          type: i.type,
-          dayIndex: d.dayIndex,
-          status: i.status,
-        })),
-    );
-  }, [days]);
+  useEffect(() => {
+    if (!activeDayId && days[0]?.id) setActiveDayId(days[0].id);
+  }, [days, activeDayId]);
 
   async function claimDraft() {
     if (!draft) return;
@@ -297,7 +299,9 @@ export function PlannerShell({ tripId }: Props) {
 
   async function updateItem(
     itemId: string,
-    patch: Partial<Pick<PlannerItem, "status" | "durationMins" | "notes">>,
+    patch: Partial<
+      Pick<PlannerItem, "status" | "durationMins" | "notes" | "travelMode">
+    >,
   ) {
     if (!isEditor) return;
 
@@ -344,6 +348,61 @@ export function PlannerShell({ tripId }: Props) {
     }
   }
 
+  async function reorderDay(dayId: string, orderedItemIds: string[]) {
+    if (!isEditor) return;
+
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        days: current.days.map((day) => {
+          if (day.id !== dayId) return day;
+          const byId = new Map(day.items.map((item) => [item.id, item]));
+          return {
+            ...day,
+            items: orderedItemIds
+              .map((id, index) => {
+                const item = byId.get(id);
+                if (!item) return null;
+                return { ...item, sortOrder: index };
+              })
+              .filter((item): item is NonNullable<typeof item> => item != null),
+          };
+        }),
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        days: prev.days.map((day) => {
+          if (day.id !== dayId) return day;
+          const byId = new Map(day.items.map((item) => [item.id, item]));
+          return {
+            ...day,
+            items: orderedItemIds
+              .map((id, index) => {
+                const item = byId.get(id);
+                if (!item) return null;
+                return { ...item, sortOrder: index };
+              })
+              .filter((item): item is PlannerItem => item != null),
+          };
+        }),
+      };
+    });
+
+    const res = await fetch(`/api/trips/${tripId}/items/reorder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dayId, orderedItemIds }),
+    });
+    if (!res.ok) {
+      console.error("Failed to reorder items");
+    }
+  }
+
   async function addPlace(
     dayId: string,
     place: PlaceDetailsPayload,
@@ -372,6 +431,7 @@ export function PlannerShell({ tripId }: Props) {
                 longitude: place.longitude,
                 googlePlaceId: place.placeId,
                 durationMins: place.estimatedDurationMins || null,
+                travelMode: "driving" as const,
                 status: "to_visit" as const,
                 notes: null,
               },
@@ -412,6 +472,7 @@ export function PlannerShell({ tripId }: Props) {
                   {
                     ...data.item,
                     status: normalizeStatus(data.item.status),
+                    travelMode: data.item.travelMode ?? "driving",
                   },
                 ],
               }
@@ -419,6 +480,57 @@ export function PlannerShell({ tripId }: Props) {
         ),
       };
     });
+  }
+
+  async function addDay() {
+    if (!isEditor) return;
+
+    if (isDraftRoute) {
+      updateDraft((current) => {
+        const dayIndex = current.days.length + 1;
+        const day = {
+          id: crypto.randomUUID(),
+          dayIndex,
+          title: `Day ${dayIndex}`,
+          items: [],
+        };
+        return {
+          ...current,
+          durationDays: dayIndex,
+          days: [...current.days, day],
+        };
+      });
+      return;
+    }
+
+    if (!isLoggedIn) {
+      requireAuth("save");
+      return;
+    }
+
+    const res = await fetch(`/api/trips/${tripId}/days`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as {
+      day: PlannerDay;
+    };
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        days: [
+          ...prev.days,
+          {
+            ...data.day,
+            items: data.day.items ?? [],
+          },
+        ],
+      };
+    });
+    setActiveDayId(data.day.id);
   }
 
   return (
@@ -479,7 +591,7 @@ export function PlannerShell({ tripId }: Props) {
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Tripmates</span>
             </Button>
-            <ThemeToggle />
+            <PreferencesMenu />
             <AccountMenu />
           </div>
         </div>
@@ -529,17 +641,19 @@ export function PlannerShell({ tripId }: Props) {
                 <Link href="/discover">Browse public trips</Link>
               </Button>
             </div>
-          ) : showEmptyState ? (
-            <div className="space-y-5">
-              <PlannerEmptyState
-                isLoggedIn={isLoggedIn}
-                hasDraft={!!draft}
-                onSaveDraft={isLoggedIn ? onSave : undefined}
-                saving={saving}
-              />
-            </div>
           ) : (
             <>
+              {showStarter ? (
+                <div className="mb-5">
+                  <PlannerEmptyState
+                    isLoggedIn={isLoggedIn}
+                    onStartBlank={() => {
+                      setDismissedStarter(true);
+                      if (days[0]?.id) setActiveDayId(days[0].id);
+                    }}
+                  />
+                </div>
+              ) : null}
               {cloud?.trip.description ||
               (isDraftRoute &&
                 (draft?.startLocation || draft?.endLocation)) ? (
@@ -555,39 +669,46 @@ export function PlannerShell({ tripId }: Props) {
                   Viewer access — checkboxes and Places edits are locked.
                 </p>
               ) : null}
-              <ItineraryCanvas
-                days={days}
-                accommodations={accommodations}
-                isEditor={isEditor}
-                showTemplates={isDraftRoute}
-                onUpdateItem={updateItem}
-                onAddPlace={addPlace}
-                onFocusStop={(item) => setFocusStopId(item.id)}
-              />
+              {days.length > 0 ? (
+                <ItineraryCanvas
+                  days={days}
+                  accommodations={accommodations}
+                  isEditor={isEditor}
+                  showTemplates={
+                    isDraftRoute && !hasTimelineContent && dismissedStarter
+                  }
+                  onUpdateItem={updateItem}
+                  onReorderDay={reorderDay}
+                  onAddPlace={addPlace}
+                  onAddDay={addDay}
+                  onFocusStop={(item) => setFocusStopId(item.id)}
+                  onSelectDay={setActiveDayId}
+                />
+              ) : (
+                <p className="text-base text-muted-foreground">
+                  Preparing your blank itinerary…
+                </p>
+              )}
             </>
           )}
         </section>
 
         <section className="min-w-0 lg:sticky lg:top-20">
-          <div className="mb-3 flex items-end justify-between gap-3 px-1">
+          <div className="mb-3 px-1">
             <h2 className="font-display text-3xl font-semibold sm:text-4xl">
-              Map
+              Maps
             </h2>
-            {mapStops.length > 0 ? (
-              <p className="text-sm text-muted-foreground sm:text-base">
-                {mapStops.length} mapped stops
-              </p>
-            ) : null}
           </div>
           {loadingCloud || (isDraftRoute && !hydrated) ? (
             <div className="grid min-h-[420px] place-items-center rounded-2xl border border-border bg-muted/40 sm:min-h-[520px]">
               <p className="text-base text-muted-foreground">Loading map…</p>
             </div>
           ) : (
-            <TripMap
-              stops={mapStops}
+            <TripMapPanel
+              days={days}
               focusStopId={focusStopId}
-              className="h-[min(70vh,640px)]"
+              activeDayId={activeDayId}
+              onActiveDayChange={setActiveDayId}
             />
           )}
         </section>

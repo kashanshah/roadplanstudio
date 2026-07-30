@@ -8,7 +8,7 @@ import { useState } from "react";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { Wordmark } from "@/components/brand/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { PreferencesMenu } from "@/components/layout/preferences-menu";
 import { useSession } from "@/lib/auth-client";
 import {
   localizedPath,
@@ -141,9 +141,7 @@ export function SiteNav({ overlay = false }: { overlay?: boolean }) {
             className="hidden xl:flex"
             tone={overlay ? "onDark" : "default"}
           />
-          <ThemeToggle
-            className={overlay ? "border-snow/25 bg-snow/10 text-snow" : ""}
-          />
+          <PreferencesMenu tone={overlay ? "onDark" : "default"} />
           <AccountMenu
             tone={overlay ? "onDark" : "default"}
             className="hidden sm:block"

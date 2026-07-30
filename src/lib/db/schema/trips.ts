@@ -39,6 +39,12 @@ export const stopStatusEnum = pgEnum("stop_status", [
   "cancelled",
   "favorite",
 ]);
+export const travelModeEnum = pgEnum("travel_mode", [
+  "driving",
+  "walking",
+  "bicycling",
+  "transit",
+]);
 
 export const trips = pgTable(
   "trips",
@@ -133,6 +139,8 @@ export const itineraryItems = pgTable("itinerary_items", {
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
   durationMins: integer("duration_mins"),
+  /** How you travel from this stop to the next one on the same day. */
+  travelMode: travelModeEnum("travel_mode").notNull().default("driving"),
   status: stopStatusEnum("status").notNull().default("to_visit"),
   notes: text("notes"),
   googleMapsUri: text("google_maps_uri"),

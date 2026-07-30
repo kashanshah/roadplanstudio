@@ -22,6 +22,7 @@ export default async function AccountProfilePage() {
         language: profile.language,
         distanceUnit: profile.distanceUnit,
         temperatureUnit: profile.temperatureUnit,
+        timeFormat: profile.timeFormat ?? "h12",
         notificationPrefs: profile.notificationPrefs,
       }}
     />

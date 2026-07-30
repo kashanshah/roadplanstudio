@@ -12,6 +12,7 @@ const schema = z.object({
   language: z.string().max(10).optional(),
   distanceUnit: z.enum(["km", "mi"]).optional(),
   temperatureUnit: z.enum(["c", "f"]).optional(),
+  timeFormat: z.enum(["h12", "h24"]).optional(),
   notificationPrefs: z
     .object({
       emailMarketing: z.boolean(),
@@ -21,6 +22,15 @@ const schema = z.object({
     .optional(),
   avatarUrl: z.string().url().nullable().optional(),
 });
+
+export async function GET() {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const profile = await ensureProfile(session.user);
+  return NextResponse.json({ profile });
+}
 
 export async function PATCH(request: Request) {
   const session = await getSession();

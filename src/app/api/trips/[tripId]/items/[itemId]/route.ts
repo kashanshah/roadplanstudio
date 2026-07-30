@@ -13,6 +13,9 @@ const patchSchema = z.object({
     .enum(["to_visit", "visited", "skipped", "cancelled", "favorite"])
     .optional(),
   durationMins: z.number().int().min(0).max(24 * 60).nullable().optional(),
+  travelMode: z
+    .enum(["driving", "walking", "bicycling", "transit"])
+    .optional(),
   notes: z.string().max(4000).nullable().optional(),
   name: z.string().min(1).max(200).optional(),
   sortOrder: z.number().int().min(0).optional(),

@@ -17,6 +17,8 @@ export type GuestItineraryItem = {
   longitude?: number | null;
   googlePlaceId?: string | null;
   durationMins?: number | null;
+  /** Mode used to travel from this stop to the next. Defaults to driving. */
+  travelMode?: "driving" | "walking" | "bicycling" | "transit";
   status: GuestStopStatus;
   notes?: string | null;
 };
