@@ -64,7 +64,7 @@ export function PackingListPanel({
   if (!isEditor && sorted.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-stretch sm:justify-end">
+    <div className="fixed inset-0 z-50 flex items-end justify-center pt-[env(safe-area-inset-top)] sm:items-stretch sm:justify-end sm:p-0">
       <button
         type="button"
         aria-label="Close packing list"
@@ -76,8 +76,8 @@ export function PackingListPanel({
         aria-modal="true"
         aria-labelledby="packing-sheet-title"
         className={cn(
-          "relative z-10 flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-border bg-card shadow-elevated",
-          "sm:my-3 sm:mr-3 sm:max-h-[calc(100vh-1.5rem)] sm:w-[min(100%,400px)] sm:rounded-3xl",
+          "relative z-10 flex max-h-[min(92dvh,calc(100dvh-env(safe-area-inset-top)))] w-full flex-col overflow-hidden rounded-t-3xl border border-border bg-card shadow-elevated",
+          "sm:my-3 sm:mr-3 sm:max-h-[calc(100dvh-1.5rem-env(safe-area-inset-top))] sm:w-[min(100%,400px)] sm:rounded-3xl",
         )}
       >
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">

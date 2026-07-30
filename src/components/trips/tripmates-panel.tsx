@@ -308,13 +308,14 @@ export function TripmatesPanel({ tripId, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/55 p-3 sm:items-center sm:p-6">
+    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-ink/55">
       <button
         type="button"
-        className="absolute inset-0"
+        className="fixed inset-0"
         aria-label="Close"
         onClick={onClose}
       />
+      <div className="relative flex min-h-full items-end justify-center p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:p-6 sm:pt-[max(1.5rem,env(safe-area-inset-top))] sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <div
         role="dialog"
         aria-labelledby="tripmates-title"
@@ -637,6 +638,7 @@ export function TripmatesPanel({ tripId, onClose }: Props) {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

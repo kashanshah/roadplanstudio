@@ -30,13 +30,14 @@ export function TemplatePickerModal({ open, onClose }: Props) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain">
       <button
         type="button"
         aria-label="Close template picker"
-        className="absolute inset-0 bg-black/45"
+        className="fixed inset-0 bg-black/45"
         onClick={onClose}
       />
+      <div className="relative flex min-h-full items-end justify-center pt-[max(0px,env(safe-area-inset-top))] pb-[max(0px,env(safe-area-inset-bottom))] sm:items-center sm:p-4 sm:pt-[max(1rem,env(safe-area-inset-top))] sm:pb-[max(1rem,env(safe-area-inset-bottom))]">
       <div
         role="dialog"
         aria-modal="true"
@@ -97,6 +98,7 @@ export function TemplatePickerModal({ open, onClose }: Props) {
             Browse all discover trips
           </Link>
         </div>
+      </div>
       </div>
     </div>
   );

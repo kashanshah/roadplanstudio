@@ -280,7 +280,7 @@ export function PlaceDetailSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-stretch sm:justify-end">
+    <div className="fixed inset-0 z-50 flex items-end justify-center pt-[env(safe-area-inset-top)] sm:items-stretch sm:justify-end sm:p-0">
       <button
         type="button"
         aria-label="Close place details"
@@ -289,8 +289,8 @@ export function PlaceDetailSheet({
       />
       <aside
         className={cn(
-          "relative z-10 flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-border bg-card shadow-elevated",
-          "sm:my-3 sm:mr-3 sm:max-h-[calc(100vh-1.5rem)] sm:w-[min(100%,420px)] sm:rounded-3xl",
+          "relative z-10 flex max-h-[min(92dvh,calc(100dvh-env(safe-area-inset-top)))] w-full flex-col overflow-hidden rounded-t-3xl border border-border bg-card shadow-elevated",
+          "sm:my-3 sm:mr-3 sm:max-h-[calc(100dvh-1.5rem-env(safe-area-inset-top))] sm:w-[min(100%,420px)] sm:rounded-3xl",
         )}
       >
         <div className="relative h-44 shrink-0 bg-secondary sm:h-52">

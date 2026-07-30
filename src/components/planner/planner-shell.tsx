@@ -70,6 +70,76 @@ function dayEndSnapshot(
   return end ? toDayEndPlaceFields(end) : null;
 }
 
+function TripTitleEditor({
+  title,
+  canEdit,
+  onSave,
+}: {
+  title: string;
+  canEdit: boolean;
+  onSave: (next: string) => Promise<void> | void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(title);
+
+  useEffect(() => {
+    if (!editing) setDraft(title);
+  }, [title, editing]);
+
+  async function commit() {
+    const next = draft.trim().slice(0, 200);
+    setEditing(false);
+    if (!next || next === title) {
+      setDraft(title);
+      return;
+    }
+    await onSave(next);
+  }
+
+  if (!canEdit) {
+    return (
+      <p className="truncate text-sm font-medium text-foreground sm:text-lg">
+        {title}
+      </p>
+    );
+  }
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        maxLength={200}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => void commit()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            void commit();
+          }
+          if (e.key === "Escape") {
+            setDraft(title);
+            setEditing(false);
+          }
+        }}
+        className="w-full min-w-0 rounded-md border border-input bg-background px-1.5 py-0.5 text-sm font-medium outline-none focus:ring-2 focus:ring-ring sm:text-lg"
+        aria-label="Trip title"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className="block w-full min-w-0 truncate rounded-md text-left text-sm font-medium text-foreground transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-lg"
+      {...tip("Rename trip")}
+    >
+      {title}
+    </button>
+  );
+}
+
 function applyMorningBaseSync<
   TDay extends {
     id: string;
@@ -1279,6 +1349,41 @@ export function PlannerShell({ tripId }: Props) {
     });
   }
 
+  async function updateTripTitle(nextTitle: string) {
+    if (!isEditor) return;
+    const title = nextTitle.trim().slice(0, 200);
+    if (!title) return;
+
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        title,
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        trip: { ...prev.trip, title },
+      };
+    });
+
+    const res = await fetch(`/api/trips/${tripId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    });
+    if (!res.ok) {
+      const refresh = await fetch(`/api/trips/${tripId}`);
+      if (refresh.ok) {
+        const data = (await refresh.json()) as CloudTripPayload;
+        setCloud(data);
+      }
+    }
+  }
+
   async function updateTripNotes(notes: string | null) {
     if (!isEditor) return;
 
@@ -1554,9 +1659,11 @@ export function PlannerShell({ tripId }: Props) {
                 <LogoMark className="h-8 w-8 sm:h-9 sm:w-9" />
               </Link>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-foreground sm:text-lg">
-                  {title}
-                </p>
+                <TripTitleEditor
+                  title={title}
+                  canEdit={isEditor}
+                  onSave={updateTripTitle}
+                />
                 <p className="hidden truncate text-sm text-muted-foreground sm:flex sm:items-center sm:gap-1.5 leading-none">
                   {!isDraftRoute && cloud && !isEditor ? (
                     <Lock className="h-3.5 w-3.5 shrink-0" />

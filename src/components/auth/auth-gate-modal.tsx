@@ -158,35 +158,36 @@ export function AuthGateModal({ open, intent, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/55 p-4 sm:items-center"
+      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-ink/55"
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-gate-title"
     >
       <button
         type="button"
-        className="absolute inset-0 cursor-default"
+        className="fixed inset-0 cursor-default"
         aria-label="Close"
         onClick={onClose}
       />
-      <div className="relative z-10 max-h-[min(92dvh,720px)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-border bg-card p-6 shadow-elevated sm:p-8">
-        <button
-          type="button"
-          onClick={onClose}
-          className="sticky top-0 float-right z-10 -mr-1 -mt-1 grid size-10 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-          aria-label="Close"
-          {...tip("Close")}
-        >
-          <X className="h-5 w-5" />
-        </button>
+      <div className="relative flex min-h-full items-end justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center">
+        <div className="relative z-10 w-full max-w-md rounded-3xl border border-border bg-card p-6 pt-14 shadow-elevated sm:p-8 sm:pt-14">
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-3 top-3 grid size-10 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Close"
+            {...tip("Close")}
+          >
+            <X className="h-5 w-5" />
+          </button>
 
-        <p className="eyebrow text-primary">Account required</p>
-        <h2
-          id="auth-gate-title"
-          className="mt-3 font-display text-3xl font-semibold tracking-tight"
-        >
-          {copy.title}
-        </h2>
+          <p className="eyebrow text-primary">Account required</p>
+          <h2
+            id="auth-gate-title"
+            className="mt-3 font-display text-3xl font-semibold tracking-tight"
+          >
+            {copy.title}
+          </h2>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
           {copy.body}
         </p>
@@ -322,6 +323,7 @@ export function AuthGateModal({ open, intent, onClose }: Props) {
             </Button>
           </form>
         )}
+        </div>
       </div>
     </div>
   );
