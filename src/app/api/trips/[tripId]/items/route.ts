@@ -18,6 +18,14 @@ const createSchema = z.object({
   durationMins: z.number().int().min(0).max(24 * 60).nullable().optional(),
   timingMode: z.enum(["arrive_by", "depart_at"]).nullable().optional(),
   timingMins: z.number().int().min(0).max(24 * 60 - 1).nullable().optional(),
+  customTravelDurationMins: z
+    .number()
+    .int()
+    .min(0)
+    .max(24 * 60)
+    .nullable()
+    .optional(),
+  customTravelDistanceKm: z.number().min(0).max(50000).nullable().optional(),
   address: z.string().max(500).nullable().optional(),
   latitude: z.number().nullable().optional(),
   longitude: z.number().nullable().optional(),
@@ -64,6 +72,8 @@ export async function POST(request: Request, ctx: Ctx) {
     durationMins: number | null;
     timingMode: "arrive_by" | "depart_at" | null;
     timingMins: number | null;
+    customTravelDurationMins: number | null;
+    customTravelDistanceKm: number | null;
   } = {
     googlePlaceId: parsed.data.googlePlaceId ?? null,
     name: parsed.data.name || "New stop",
@@ -74,6 +84,8 @@ export async function POST(request: Request, ctx: Ctx) {
     durationMins: parsed.data.durationMins ?? null,
     timingMode: parsed.data.timingMode ?? null,
     timingMins: parsed.data.timingMins ?? null,
+    customTravelDurationMins: parsed.data.customTravelDurationMins ?? null,
+    customTravelDistanceKm: parsed.data.customTravelDistanceKm ?? null,
   };
 
   if (parsed.data.googlePlaceId) {
@@ -91,6 +103,8 @@ export async function POST(request: Request, ctx: Ctx) {
             parsed.data.durationMins ?? details.estimatedDurationMins,
           timingMode: parsed.data.timingMode ?? null,
           timingMins: parsed.data.timingMins ?? null,
+          customTravelDurationMins: parsed.data.customTravelDurationMins ?? null,
+          customTravelDistanceKm: parsed.data.customTravelDistanceKm ?? null,
         };
       }
     } catch {

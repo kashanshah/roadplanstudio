@@ -152,6 +152,8 @@ export const itineraryItems = pgTable("itinerary_items", {
   durationMins: integer("duration_mins"),
   timingMode: stopTimeAnchorTypeEnum("timing_mode"),
   timingMins: integer("timing_mins"),
+  customTravelDurationMins: integer("custom_travel_duration_mins"),
+  customTravelDistanceKm: doublePrecision("custom_travel_distance_km"),
   /** How you travel from this stop to the next one on the same day. */
   travelMode: travelModeEnum("travel_mode").notNull().default("driving"),
   status: stopStatusEnum("status").notNull().default("to_visit"),

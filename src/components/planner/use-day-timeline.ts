@@ -150,7 +150,22 @@ export function useDayTimeline(
         for (let j = i + 1; j < items.length; j++) {
           const next = items[j];
           if (isActiveStop(next) && hasCoords(next)) {
-            legAfter = legByPair.get(`${item.id}->${next.id}`) ?? null;
+            const routeLeg = legByPair.get(`${item.id}->${next.id}`) ?? null;
+            const customDuration = item.customTravelDurationMins;
+            const customDistanceKm = item.customTravelDistanceKm;
+            if (customDuration != null || customDistanceKm != null) {
+              legAfter = {
+                durationMins: customDuration ?? routeLeg?.durationMins ?? 0,
+                distanceKm: customDistanceKm ?? routeLeg?.distanceKm ?? 0,
+                distanceMeters: Math.round(
+                  (customDistanceKm ?? routeLeg?.distanceKm ?? 0) * 1000,
+                ),
+                estimated: true,
+                travelMode: normalizeTravelMode(item.travelMode),
+              };
+            } else {
+              legAfter = routeLeg;
+            }
             break;
           }
         }

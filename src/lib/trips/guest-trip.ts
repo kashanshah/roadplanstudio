@@ -22,6 +22,8 @@ export type GuestItineraryItem = {
   durationMins?: number | null;
   timingMode?: GuestStopTimingMode | null;
   timingMins?: number | null;
+  customTravelDurationMins?: number | null;
+  customTravelDistanceKm?: number | null;
   /** Mode used to travel from this stop to the next. Defaults to driving. */
   travelMode?: "driving" | "walking" | "bicycling" | "transit";
   status: GuestStopStatus;

@@ -26,6 +26,10 @@ export type PlannerItem = {
   timingMode: StopTimingMode | null;
   /** Minutes from local midnight (0-1439) for arrive/depart anchor. */
   timingMins: number | null;
+  /** Optional manual override for travel time to next stop. */
+  customTravelDurationMins: number | null;
+  /** Optional manual override for travel distance to next stop (km). */
+  customTravelDistanceKm: number | null;
   /** Mode used to travel from this stop to the next. */
   travelMode: TravelMode;
   status: StopStatus;

@@ -48,6 +48,13 @@ type Props = {
   onUpdateDay?: (dayId: string, patch: DayPatch) => Promise<void> | void;
   onDeleteDay?: (dayId: string) => Promise<void> | void;
   onReorderDay: (dayId: string, orderedItemIds: string[]) => Promise<void> | void;
+  onCustomTravelChange?: (
+    itemId: string,
+    patch: Pick<
+      PlannerItem,
+      "customTravelDurationMins" | "customTravelDistanceKm"
+    >,
+  ) => Promise<void> | void;
   onAddPlace?: (
     dayId: string,
     place: PlaceDetailsPayload,
@@ -295,6 +302,7 @@ export function ItineraryCanvas({
   onUpdateDay,
   onDeleteDay,
   onReorderDay,
+  onCustomTravelChange,
   onAddPlace,
   onAddCustomPlace,
   onAddDay,
@@ -473,6 +481,9 @@ export function ItineraryCanvas({
                           }}
                           onTravelModeChange={(itemId, mode) => {
                             void onUpdateItem(itemId, { travelMode: mode });
+                          }}
+                          onCustomTravelChange={(itemId, patch) => {
+                            void onCustomTravelChange?.(itemId, patch);
                           }}
                         />
                       )}

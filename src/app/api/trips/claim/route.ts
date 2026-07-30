@@ -24,6 +24,14 @@ const guestItemSchema = z.object({
   durationMins: z.number().int().nullable().optional(),
   timingMode: z.enum(["arrive_by", "depart_at"]).nullable().optional(),
   timingMins: z.number().int().min(0).max(24 * 60 - 1).nullable().optional(),
+  customTravelDurationMins: z
+    .number()
+    .int()
+    .min(0)
+    .max(24 * 60)
+    .nullable()
+    .optional(),
+  customTravelDistanceKm: z.number().min(0).max(50000).nullable().optional(),
   travelMode: z
     .enum(["driving", "walking", "bicycling", "transit"])
     .optional()
@@ -138,6 +146,8 @@ export async function POST(request: Request) {
             durationMins: item.durationMins ?? null,
             timingMode: item.timingMode ?? null,
             timingMins: item.timingMins ?? null,
+            customTravelDurationMins: item.customTravelDurationMins ?? null,
+            customTravelDistanceKm: item.customTravelDistanceKm ?? null,
             travelMode: item.travelMode ?? "driving",
             status: item.status,
             notes: item.notes ?? null,
