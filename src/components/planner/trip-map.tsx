@@ -18,49 +18,59 @@ export type MapStop = {
   status?: string;
 };
 
+export type TripMapMode = "directions" | "straight";
+
 type Props = {
   stops: MapStop[];
   className?: string;
   focusStopId?: string | null;
+  mode?: TripMapMode;
+  title?: string;
+  emptyMessage?: string;
 };
 
 const DEFAULT_CENTER = { lat: 52.5, lng: -119.5 };
 
-function FitBounds({ stops }: { stops: MapStop[] }) {
+function FitBounds({
+  stops,
+  path,
+}: {
+  stops: MapStop[];
+  path?: Array<{ lat: number; lng: number }>;
+}) {
   const map = useMap();
 
   useEffect(() => {
-    if (!map || stops.length === 0) return;
+    if (!map) return;
+    const points =
+      path && path.length
+        ? path
+        : stops.map((s) => ({ lat: s.latitude, lng: s.longitude }));
+    if (!points.length) return;
 
-    if (stops.length === 1) {
-      map.setCenter({ lat: stops[0].latitude, lng: stops[0].longitude });
+    if (points.length === 1) {
+      map.setCenter(points[0]);
       map.setZoom(10);
       return;
     }
 
     const bounds = new google.maps.LatLngBounds();
-    for (const stop of stops) {
-      bounds.extend({ lat: stop.latitude, lng: stop.longitude });
-    }
+    for (const point of points) bounds.extend(point);
     map.fitBounds(bounds, 64);
-  }, [map, stops]);
+  }, [map, stops, path]);
 
   return null;
 }
 
-function RoutePolyline({ stops }: { stops: MapStop[] }) {
+/** Straight-line geodesic path between stops (full-trip overview). */
+function StraightPolyline({ stops }: { stops: MapStop[] }) {
   const map = useMap();
 
   useEffect(() => {
     if (!map || stops.length < 2) return;
 
-    const path = stops.map((s) => ({
-      lat: s.latitude,
-      lng: s.longitude,
-    }));
-
     const line = new google.maps.Polyline({
-      path,
+      path: stops.map((s) => ({ lat: s.latitude, lng: s.longitude })),
       geodesic: true,
       strokeColor: "#1A6B63",
       strokeOpacity: 0.85,
@@ -72,6 +82,100 @@ function RoutePolyline({ stops }: { stops: MapStop[] }) {
       line.setMap(null);
     };
   }, [map, stops]);
+
+  return null;
+}
+
+/** Road-following path from server Directions (stable vs browser Directions key). */
+function DirectionsPolyline({
+  stops,
+  onPath,
+}: {
+  stops: MapStop[];
+  onPath: (path: Array<{ lat: number; lng: number }> | null) => void;
+}) {
+  const map = useMap();
+  const fingerprint = stops
+    .map((s) => `${s.id}:${s.latitude},${s.longitude}`)
+    .join("|");
+
+  useEffect(() => {
+    if (!map || stops.length < 2) {
+      onPath(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    let line: google.maps.Polyline | null = null;
+    let cancelled = false;
+    const stopSnapshot = stops;
+
+    fetch("/api/maps/route-legs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        points: stopSnapshot.map((s) => ({
+          latitude: s.latitude,
+          longitude: s.longitude,
+        })),
+      }),
+    })
+      .then(async (res) => {
+        const data = (await res.json()) as {
+          path?: Array<{ lat: number; lng: number }>;
+          source?: "directions" | "estimated";
+          error?: string;
+        };
+        if (!res.ok) throw new Error(data.error || "Route failed");
+        return data;
+      })
+      .then((data) => {
+        if (cancelled || !map) return;
+        const path =
+          data.path && data.path.length >= 2
+            ? data.path
+            : stopSnapshot.map((s) => ({
+                lat: s.latitude,
+                lng: s.longitude,
+              }));
+        const isRoad = data.source === "directions";
+        line = new google.maps.Polyline({
+          path,
+          geodesic: !isRoad,
+          strokeColor: isRoad ? "#1A6B63" : "#C4A882",
+          strokeOpacity: 0.95,
+          strokeWeight: isRoad ? 5 : 4,
+          map,
+        });
+        onPath(path);
+      })
+      .catch((err: unknown) => {
+        if (controller.signal.aborted || cancelled) return;
+        console.error(err);
+        const fallback = stopSnapshot.map((s) => ({
+          lat: s.latitude,
+          lng: s.longitude,
+        }));
+        line = new google.maps.Polyline({
+          path: fallback,
+          geodesic: true,
+          strokeColor: "#C4A882",
+          strokeOpacity: 0.9,
+          strokeWeight: 4,
+          map,
+        });
+        onPath(fallback);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      line?.setMap(null);
+      onPath(null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fingerprint drives refetch
+  }, [map, fingerprint]);
 
   return null;
 }
@@ -93,11 +197,18 @@ function MapCanvas({
   stops,
   selected,
   onSelect,
+  mode,
 }: {
   stops: MapStop[];
   selected: MapStop | null;
   onSelect: (stop: MapStop) => void;
+  mode: TripMapMode;
 }) {
+  const [routePath, setRoutePath] = useState<Array<{
+    lat: number;
+    lng: number;
+  }> | null>(null);
+
   const center = useMemo(() => {
     if (!stops.length) return DEFAULT_CENTER;
     const lat =
@@ -110,7 +221,7 @@ function MapCanvas({
   return (
     <Map
       defaultCenter={center}
-      defaultZoom={5}
+      defaultZoom={mode === "directions" ? 8 : 5}
       gestureHandling="greedy"
       disableDefaultUI={false}
       className="h-full w-full"
@@ -118,8 +229,15 @@ function MapCanvas({
       streetViewControl={false}
       fullscreenControl
     >
-      <FitBounds stops={stops} />
-      <RoutePolyline stops={stops} />
+      <FitBounds
+        stops={stops}
+        path={mode === "directions" ? routePath ?? undefined : undefined}
+      />
+      {mode === "directions" ? (
+        <DirectionsPolyline stops={stops} onPath={setRoutePath} />
+      ) : (
+        <StraightPolyline stops={stops} />
+      )}
       <FocusStop stop={selected} />
       {stops.map((stop) => (
         <Marker
@@ -133,7 +251,14 @@ function MapCanvas({
   );
 }
 
-export function TripMap({ stops, className, focusStopId }: Props) {
+export function TripMap({
+  stops,
+  className,
+  focusStopId,
+  mode = "straight",
+  title,
+  emptyMessage,
+}: Props) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const [selected, setSelected] = useState<MapStop | null>(null);
 
@@ -162,7 +287,8 @@ export function TripMap({ stops, className, focusStopId }: Props) {
         className={`grid place-items-center rounded-2xl border border-dashed border-border bg-muted/40 p-6 text-center ${className ?? ""}`}
       >
         <p className="max-w-sm text-base text-muted-foreground">
-          No mapped stops yet. Remix a template or add places with coordinates.
+          {emptyMessage ??
+            "No mapped stops yet. Remix a template or add places with coordinates."}
         </p>
       </div>
     );
@@ -171,17 +297,24 @@ export function TripMap({ stops, className, focusStopId }: Props) {
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-border ${className ?? ""}`}>
       <APIProvider apiKey={apiKey}>
-        <div className="h-full min-h-[420px] w-full sm:min-h-[520px]">
+        <div className="h-full min-h-[360px] w-full sm:min-h-[420px]">
           <MapCanvas
+            key={`${mode}-${stops.map((s) => s.id).join(",")}`}
             stops={stops}
             selected={selected}
             onSelect={setSelected}
+            mode={mode}
           />
         </div>
       </APIProvider>
       <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/75 to-transparent p-4 pt-16">
         <p className="text-sm text-snow/90 sm:text-base">
-          {selected ? selected.name : `${stops.length} stops on the route`}
+          {selected
+            ? selected.name
+            : title ??
+              (mode === "directions"
+                ? `${stops.length} stops · road directions`
+                : `${stops.length} stops · straight overview`)}
         </p>
         <div className="pointer-events-auto mt-2 flex max-w-full gap-2 overflow-x-auto pb-1">
           {stops.slice(0, 12).map((stop) => (

@@ -18,7 +18,6 @@ import { GuestBanner } from "@/components/layout/guest-banner";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { ItineraryCanvas } from "@/components/planner/itinerary-canvas";
 import { PlannerEmptyState } from "@/components/planner/planner-empty-state";
-import type { MapStop } from "@/components/planner/trip-map";
 import type {
   PlaceDetailsPayload,
   PlannerAccommodation,
@@ -33,9 +32,9 @@ import { useSession } from "@/lib/auth-client";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 import type { GuestStopStatus } from "@/lib/trips/guest-trip";
 
-const TripMap = dynamic(
+const TripMapPanel = dynamic(
   () =>
-    import("@/components/planner/trip-map").then((m) => m.TripMap),
+    import("@/components/planner/planner-maps").then((m) => m.PlannerMaps),
   {
     ssr: false,
     loading: () => (
@@ -96,6 +95,7 @@ export function PlannerShell({ tripId }: Props) {
   const [loadingCloud, setLoadingCloud] = useState(!isDraftRoute);
   const [saving, setSaving] = useState(false);
   const [focusStopId, setFocusStopId] = useState<string | null>(null);
+  const [activeDayId, setActiveDayId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isDraftRoute) {
@@ -184,7 +184,10 @@ export function PlannerShell({ tripId }: Props) {
         date: d.date ?? null,
         routeSummary: d.routeSummary ?? null,
         notes: d.notes ?? null,
-        items: d.items.map((i) => ({
+        items: d.items
+          .slice()
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((i) => ({
           id: i.id,
           name: i.name,
           address: i.address ?? null,
@@ -207,21 +210,9 @@ export function PlannerShell({ tripId }: Props) {
   const hasTimelineContent = days.some((d) => d.items.length > 0);
   const showEmptyState = isDraftRoute && !hasTimelineContent;
 
-  const mapStops = useMemo((): MapStop[] => {
-    return days.flatMap((d) =>
-      d.items
-        .filter((i) => i.latitude != null && i.longitude != null)
-        .map((i) => ({
-          id: i.id,
-          name: i.name,
-          latitude: i.latitude as number,
-          longitude: i.longitude as number,
-          type: i.type,
-          dayIndex: d.dayIndex,
-          status: i.status,
-        })),
-    );
-  }, [days]);
+  useEffect(() => {
+    if (!activeDayId && days[0]?.id) setActiveDayId(days[0].id);
+  }, [days, activeDayId]);
 
   async function claimDraft() {
     if (!draft) return;
@@ -341,6 +332,61 @@ export function PlannerShell({ tripId }: Props) {
     if (!res.ok) {
       // Soft fail — UI already optimistic; refetch would be ideal later.
       console.error("Failed to update item");
+    }
+  }
+
+  async function reorderDay(dayId: string, orderedItemIds: string[]) {
+    if (!isEditor) return;
+
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        days: current.days.map((day) => {
+          if (day.id !== dayId) return day;
+          const byId = new Map(day.items.map((item) => [item.id, item]));
+          return {
+            ...day,
+            items: orderedItemIds
+              .map((id, index) => {
+                const item = byId.get(id);
+                if (!item) return null;
+                return { ...item, sortOrder: index };
+              })
+              .filter((item): item is NonNullable<typeof item> => item != null),
+          };
+        }),
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        days: prev.days.map((day) => {
+          if (day.id !== dayId) return day;
+          const byId = new Map(day.items.map((item) => [item.id, item]));
+          return {
+            ...day,
+            items: orderedItemIds
+              .map((id, index) => {
+                const item = byId.get(id);
+                if (!item) return null;
+                return { ...item, sortOrder: index };
+              })
+              .filter((item): item is PlannerItem => item != null),
+          };
+        }),
+      };
+    });
+
+    const res = await fetch(`/api/trips/${tripId}/items/reorder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dayId, orderedItemIds }),
+    });
+    if (!res.ok) {
+      console.error("Failed to reorder items");
     }
   }
 
@@ -561,33 +607,31 @@ export function PlannerShell({ tripId }: Props) {
                 isEditor={isEditor}
                 showTemplates={isDraftRoute}
                 onUpdateItem={updateItem}
+                onReorderDay={reorderDay}
                 onAddPlace={addPlace}
                 onFocusStop={(item) => setFocusStopId(item.id)}
+                onSelectDay={setActiveDayId}
               />
             </>
           )}
         </section>
 
         <section className="min-w-0 lg:sticky lg:top-20">
-          <div className="mb-3 flex items-end justify-between gap-3 px-1">
+          <div className="mb-3 px-1">
             <h2 className="font-display text-3xl font-semibold sm:text-4xl">
-              Map
+              Maps
             </h2>
-            {mapStops.length > 0 ? (
-              <p className="text-sm text-muted-foreground sm:text-base">
-                {mapStops.length} mapped stops
-              </p>
-            ) : null}
           </div>
           {loadingCloud || (isDraftRoute && !hydrated) ? (
             <div className="grid min-h-[420px] place-items-center rounded-2xl border border-border bg-muted/40 sm:min-h-[520px]">
               <p className="text-base text-muted-foreground">Loading map…</p>
             </div>
           ) : (
-            <TripMap
-              stops={mapStops}
+            <TripMapPanel
+              days={days}
               focusStopId={focusStopId}
-              className="h-[min(70vh,640px)]"
+              activeDayId={activeDayId}
+              onActiveDayChange={setActiveDayId}
             />
           )}
         </section>

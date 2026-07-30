@@ -9,6 +9,7 @@ import {
 export const planEnum = pgEnum("plan", ["free", "premium"]);
 export const distanceUnitEnum = pgEnum("distance_unit", ["km", "mi"]);
 export const temperatureUnitEnum = pgEnum("temperature_unit", ["c", "f"]);
+export const timeFormatEnum = pgEnum("time_format", ["h12", "h24"]);
 
 export const profiles = pgTable("profiles", {
   userId: text("user_id").primaryKey(),
@@ -20,6 +21,8 @@ export const profiles = pgTable("profiles", {
   temperatureUnit: temperatureUnitEnum("temperature_unit")
     .notNull()
     .default("c"),
+  /** Personal display preference — not trip-specific. */
+  timeFormat: timeFormatEnum("time_format").notNull().default("h12"),
   notificationPrefs: jsonb("notification_prefs")
     .$type<{
       emailMarketing: boolean;

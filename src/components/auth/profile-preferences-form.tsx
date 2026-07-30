@@ -10,6 +10,7 @@ type ProfileData = {
   language: string;
   distanceUnit: "km" | "mi";
   temperatureUnit: "c" | "f";
+  timeFormat: "h12" | "h24";
   notificationPrefs: {
     emailMarketing: boolean;
     tripUpdates: boolean;
@@ -43,6 +44,7 @@ export function ProfilePreferencesForm({ email, initial }: Props) {
         language: String(form.get("language") || "en"),
         distanceUnit: String(form.get("distanceUnit") || "km"),
         temperatureUnit: String(form.get("temperatureUnit") || "c"),
+        timeFormat: String(form.get("timeFormat") || "h12"),
         notificationPrefs: {
           emailMarketing: form.get("emailMarketing") === "on",
           tripUpdates: form.get("tripUpdates") === "on",
@@ -142,6 +144,20 @@ export function ProfilePreferencesForm({ email, initial }: Props) {
             </select>
           </label>
         </div>
+        <label className="block space-y-2 text-base">
+          <span className="font-medium">Time format</span>
+          <select
+            name="timeFormat"
+            defaultValue={initial.timeFormat}
+            className="h-12 w-full rounded-full border border-input bg-background px-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="h12">12-hour (AM/PM)</option>
+            <option value="h24">24-hour</option>
+          </select>
+          <span className="block text-sm text-muted-foreground">
+            Applies to itinerary clocks across all your trips.
+          </span>
+        </label>
         <fieldset className="space-y-2 text-base">
           <legend className="font-medium">Notifications</legend>
           {(

@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { AuthGateProvider } from "@/components/auth/auth-gate-provider";
+import { DisplayPrefsProvider } from "@/lib/prefs/display-prefs";
 import { GuestTripProvider } from "@/lib/trips/guest-trip-provider";
 
 export function AppProviders({ children }: { children: ReactNode }) {
@@ -21,7 +22,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       <GuestTripProvider>
-        <AuthGateProvider>{children}</AuthGateProvider>
+        <DisplayPrefsProvider>
+          <AuthGateProvider>{children}</AuthGateProvider>
+        </DisplayPrefsProvider>
       </GuestTripProvider>
     </QueryClientProvider>
   );
