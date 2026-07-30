@@ -160,6 +160,7 @@ export function TripTemplatePage({
             <div className="flex flex-col gap-3">
               <RemixTripButton
                 slug={trip.slug}
+                fullWidthOnMobile
                 label={dict.common.startPlanning}
               />
               <Button asChild size="lg" variant="outline" className="text-base">

@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 import type { GuestTripDraft } from "@/lib/trips/guest-trip";
+import { cn } from "@/lib/utils/cn";
 
 type Props = {
   slug: string;
   className?: string;
+  fullWidthOnMobile?: boolean;
   /** Button label when idle. Defaults to "Start planning". */
   label?: string;
 };
@@ -17,6 +19,7 @@ type Props = {
 export function RemixTripButton({
   slug,
   className,
+  fullWidthOnMobile = false,
   label = "Start planning",
 }: Props) {
   const router = useRouter();
@@ -36,14 +39,15 @@ export function RemixTripButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ templateSlug: slug }),
       });
-      setPending(false);
-      if (!res.ok) {
-        setError("Could not start a trip from this template");
+      if (res.ok) {
+        setPending(false);
+        const data = (await res.json()) as { trip: { id: string } };
+        router.push(`/planner/${data.trip.id}`);
         return;
       }
-      const data = (await res.json()) as { trip: { id: string } };
-      router.push(`/planner/${data.trip.id}`);
-      return;
+
+      // If the template isn't available in cloud yet, fall back to a guest draft
+      // so users can still enter the planner immediately.
     }
 
     // Guest: load template as a local draft in the planner.
@@ -61,11 +65,11 @@ export function RemixTripButton({
   }
 
   return (
-    <div className={className}>
+    <div className={cn(fullWidthOnMobile ? "w-full sm:w-auto" : null, className)}>
       <Button
         type="button"
         size="lg"
-        className="text-base"
+        className={cn("text-base", fullWidthOnMobile ? "w-full sm:w-auto" : null)}
         disabled={pending}
         onClick={() => void onRemix()}
       >
