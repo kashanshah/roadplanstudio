@@ -117,11 +117,12 @@ function TravelConnector({
     >,
   ) => void;
 }) {
-  const mode = (leg?.travelMode ?? fromItem.travelMode ?? "driving") as TravelMode;
-  const Icon = MODE_ICON[mode];
+  const storedMode = (fromItem.travelMode ?? "driving") as TravelMode;
+  const mode = (leg?.travelMode ?? storedMode) as TravelMode;
   const hasCustom =
     fromItem.customTravelDurationMins != null ||
     fromItem.customTravelDistanceKm != null;
+  const Icon = hasCustom ? SlidersHorizontal : MODE_ICON[mode];
   const [editingCustom, setEditingCustom] = useState(false);
   const [customDurationDraft, setCustomDurationDraft] = useState(
     fromItem.customTravelDurationMins != null
@@ -177,12 +178,13 @@ function TravelConnector({
       <div className="flex max-w-full flex-wrap items-center gap-2">
         <div className="inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground">
           <Icon className="size-3.5 shrink-0 text-map-route" />
-          {loading && !leg ? (
+          {loading && !leg && !hasCustom ? (
             <span>Calculating route…</span>
           ) : leg ? (
             <>
               <span className="font-medium text-foreground">
-                {formatDurationLabel(leg.durationMins)} {travelModeLabel(mode)}
+                {formatDurationLabel(leg.durationMins)}{" "}
+                {hasCustom ? "custom" : travelModeLabel(mode)}
               </span>
               <span aria-hidden>·</span>
               <span>
@@ -190,110 +192,118 @@ function TravelConnector({
                   ? `${Math.round(leg.distanceKm)} km`
                   : `${leg.distanceKm} km`}
               </span>
-              {leg.estimated ? (
+              {!hasCustom && leg.estimated ? (
                 <span className="text-xs">(est.)</span>
               ) : null}
-              {hasCustom ? <span className="text-xs">(custom)</span> : null}
             </>
           ) : (
             <span>No route data</span>
           )}
         </div>
 
-        {isEditor && onTravelModeChange ? (
+        {isEditor && (onTravelModeChange || onCustomTravelChange) ? (
           <div
             role="group"
             aria-label="Travel mode"
             className="inline-flex rounded-full border border-border bg-background p-0.5"
           >
-            {TRAVEL_MODES.map((m) => {
-              const ModeIcon = MODE_ICON[m];
-              const active = mode === m;
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  aria-label={travelModeTitle(m)}
-                  aria-pressed={active}
-                  {...tip(travelModeTitle(m))}
-                  onClick={() => {
-                    if (m !== mode) onTravelModeChange(fromItem.id, m);
-                  }}
-                  className={cn(
-                    "grid size-10 place-items-center rounded-full transition-colors",
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <ModeIcon className="size-3.5" />
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-
-        {isEditor && onCustomTravelChange ? (
-          <>
-            <button
-              type="button"
-              onClick={() => setEditingCustom((prev) => !prev)}
-              className={cn(
-                "inline-flex h-10 items-center gap-1 rounded-full border px-3 text-sm",
-                editingCustom || hasCustom
-                  ? "border-primary text-primary"
-                  : "border-border text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <SlidersHorizontal className="size-3.5" />
-              Custom
-            </button>
-            {hasCustom ? (
+            {onTravelModeChange
+              ? TRAVEL_MODES.map((m) => {
+                  const ModeIcon = MODE_ICON[m];
+                  // Custom overrides Google modes — none of these stay selected.
+                  const active = !hasCustom && storedMode === m;
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      aria-label={travelModeTitle(m)}
+                      aria-pressed={active}
+                      {...tip(travelModeTitle(m))}
+                      onClick={() => {
+                        setEditingCustom(false);
+                        // Selecting a Google mode clears custom (via parent) and uses Maps.
+                        if (m !== storedMode || hasCustom) {
+                          onTravelModeChange(fromItem.id, m);
+                        }
+                      }}
+                      className={cn(
+                        "grid size-10 place-items-center rounded-full transition-colors",
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <ModeIcon className="size-3.5" />
+                    </button>
+                  );
+                })
+              : null}
+            {onCustomTravelChange ? (
               <button
                 type="button"
-                onClick={() =>
-                  onCustomTravelChange(fromItem.id, {
-                    customTravelDurationMins: null,
-                    customTravelDistanceKm: null,
-                  })
-                }
-                className="inline-flex h-10 items-center gap-1 rounded-full border border-border px-3 text-sm text-muted-foreground hover:text-foreground"
+                aria-label="Custom travel"
+                aria-pressed={hasCustom}
+                {...tip("Custom travel")}
+                onClick={() => setEditingCustom((prev) => !prev)}
+                className={cn(
+                  "grid size-10 place-items-center rounded-full transition-colors",
+                  hasCustom || editingCustom
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
               >
-                <RotateCcw className="size-3.5" />
-                Reset
+                <SlidersHorizontal className="size-3.5" />
               </button>
             ) : null}
-          </>
+          </div>
         ) : null}
       </div>
 
       {editingCustom && isEditor && onCustomTravelChange ? (
-        <div className="mt-2 grid gap-2 rounded-xl border border-border bg-background p-2 sm:grid-cols-[1fr_1fr_auto]">
-          <input
-            type="number"
-            min={0}
-            step={1}
-            value={customDurationDraft}
-            onChange={(e) => setCustomDurationDraft(e.target.value)}
-            placeholder="Travel mins"
-            className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-          />
-          <input
-            type="number"
-            min={0}
-            step={0.1}
-            value={customDistanceDraft}
-            onChange={(e) => setCustomDistanceDraft(e.target.value)}
-            placeholder="Distance km"
-            className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-          />
-          <button
-            type="button"
-            onClick={saveCustomLeg}
-            className="h-10 rounded-lg bg-primary px-3 text-sm text-primary-foreground"
-          >
-            Save
-          </button>
+        <div className="mt-2 space-y-2 rounded-xl border border-border bg-background p-2">
+          <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={customDurationDraft}
+              onChange={(e) => setCustomDurationDraft(e.target.value)}
+              placeholder="Travel mins"
+              className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+            <input
+              type="number"
+              min={0}
+              step={0.1}
+              value={customDistanceDraft}
+              onChange={(e) => setCustomDistanceDraft(e.target.value)}
+              placeholder="Distance km"
+              className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+            <button
+              type="button"
+              onClick={saveCustomLeg}
+              className="h-10 rounded-lg bg-primary px-3 text-sm text-primary-foreground"
+            >
+              Save
+            </button>
+          </div>
+          {hasCustom ? (
+            <button
+              type="button"
+              onClick={() => {
+                onCustomTravelChange(fromItem.id, {
+                  customTravelDurationMins: null,
+                  customTravelDistanceKm: null,
+                });
+                setEditingCustom(false);
+              }}
+              className="inline-flex h-9 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="size-3.5" />
+              Clear custom — use Google route
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>

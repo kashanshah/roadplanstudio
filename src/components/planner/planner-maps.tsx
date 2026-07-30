@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { TripMap, type MapStop } from "@/components/planner/trip-map";
 import type { PlannerDay } from "@/components/planner/planner-types";
+import {
+  buildTimelineRows,
+  useDayTimeline,
+  type TimelineRow,
+} from "@/components/planner/use-day-timeline";
+import { useDisplayPrefs } from "@/lib/prefs/display-prefs";
 import { cn } from "@/lib/utils/cn";
 
 type MapTab = "daily" | "trip";
@@ -15,7 +21,7 @@ type Props = {
   className?: string;
 };
 
-function stopsFromDay(day: PlannerDay): MapStop[] {
+function baseStopsFromDay(day: PlannerDay): MapStop[] {
   return day.items
     .filter(
       (i) =>
@@ -32,12 +38,25 @@ function stopsFromDay(day: PlannerDay): MapStop[] {
       type: i.type,
       dayIndex: day.dayIndex,
       status: i.status,
+      address: i.address,
+      notes: i.notes,
+      googleMapsUri: i.googleMapsUri,
       travelMode: i.travelMode ?? "driving",
     }));
 }
 
-function allTripStops(days: PlannerDay[]): MapStop[] {
-  return days.flatMap((d) => stopsFromDay(d));
+function withSchedule(stops: MapStop[], rows: TimelineRow[]): MapStop[] {
+  const byId = new Map(rows.map((r) => [r.item.id, r]));
+  return stops.map((stop) => {
+    const row = byId.get(stop.id);
+    if (!row) return stop;
+    return {
+      ...stop,
+      arriveMins: row.arriveMins,
+      departMins: row.departMins,
+      stayMins: row.stayMins,
+    };
+  });
 }
 
 export function PlannerMaps({
@@ -48,8 +67,10 @@ export function PlannerMaps({
   className,
 }: Props) {
   const [tab, setTab] = useState<MapTab>("daily");
+  const { timeFormat } = useDisplayPrefs();
+
   const mappedDays = useMemo(
-    () => days.filter((d) => stopsFromDay(d).length > 0),
+    () => days.filter((d) => baseStopsFromDay(d).length > 0),
     [days],
   );
 
@@ -63,6 +84,11 @@ export function PlannerMaps({
   const selectedDay =
     mappedDays.find((d) => d.id === selectedDayId) ?? mappedDays[0] ?? null;
 
+  const { rows: dailyRows } = useDayTimeline(
+    selectedDay?.items ?? [],
+    timeFormat,
+  );
+
   useEffect(() => {
     if (!focusStopId) return;
     const day = days.find((d) => d.items.some((i) => i.id === focusStopId));
@@ -72,8 +98,18 @@ export function PlannerMaps({
     }
   }, [focusStopId, days, onActiveDayChange]);
 
-  const dailyStops = selectedDay ? stopsFromDay(selectedDay) : [];
-  const tripStops = allTripStops(days);
+  const dailyStops = useMemo(() => {
+    if (!selectedDay) return [];
+    return withSchedule(baseStopsFromDay(selectedDay), dailyRows);
+  }, [selectedDay, dailyRows]);
+
+  const tripStops = useMemo(
+    () =>
+      days.flatMap((day) =>
+        withSchedule(baseStopsFromDay(day), buildTimelineRows(day.items)),
+      ),
+    [days],
+  );
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -137,6 +173,7 @@ export function PlannerMaps({
           mode="directions"
           stops={dailyStops}
           focusStopId={focusStopId}
+          timeFormat={timeFormat}
           title={
             selectedDay
               ? `Day ${selectedDay.dayIndex} · road directions`
@@ -151,6 +188,7 @@ export function PlannerMaps({
           mode="straight"
           stops={tripStops}
           focusStopId={focusStopId}
+          timeFormat={timeFormat}
           title={`${tripStops.length} stops · straight-line overview`}
           emptyMessage="No mapped stops yet for the full-trip overview."
           className="h-[min(62vh,560px)]"

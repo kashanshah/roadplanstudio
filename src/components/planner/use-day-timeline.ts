@@ -127,88 +127,7 @@ export function useDayTimeline(
   }, [fingerprint, routedStops, modes]);
 
   const timeline = useMemo(() => {
-    const legByPair = new Map<string, TravelLeg>();
-    for (let i = 0; i < legs.length; i++) {
-      const from = routedStops[i];
-      const to = routedStops[i + 1];
-      if (from && to) {
-        legByPair.set(`${from.id}->${to.id}`, legs[i]);
-      }
-    }
-
-    let cursor = DAY_START_MINS;
-    const rows: TimelineRow[] = [];
-
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const stayMins = defaultStayMins(item);
-      const arriveMins = cursor;
-      const departMins = arriveMins + stayMins;
-
-      let legAfter: TravelLeg | null = null;
-      if (isActiveStop(item)) {
-        for (let j = i + 1; j < items.length; j++) {
-          const next = items[j];
-          if (!isActiveStop(next)) continue;
-          const routeLeg =
-            hasCoords(item) && hasCoords(next)
-              ? legByPair.get(`${item.id}->${next.id}`) ?? null
-              : null;
-          const customDuration = item.customTravelDurationMins;
-          const customDistanceKm = item.customTravelDistanceKm;
-          if (customDuration != null || customDistanceKm != null) {
-            legAfter = {
-              durationMins: customDuration ?? routeLeg?.durationMins ?? 0,
-              distanceKm: customDistanceKm ?? routeLeg?.distanceKm ?? 0,
-              distanceMeters: Math.round(
-                (customDistanceKm ?? routeLeg?.distanceKm ?? 0) * 1000,
-              ),
-              estimated: true,
-              travelMode: normalizeTravelMode(item.travelMode),
-            };
-          } else {
-            legAfter = routeLeg;
-          }
-          break;
-        }
-      }
-
-      rows.push({
-        item,
-        arriveMins,
-        stayMins,
-        departMins,
-        legAfter,
-      });
-
-      cursor = departMins + (legAfter?.durationMins ?? 0);
-    }
-
-    const firstAnchored = rows.find(
-      (row) =>
-        row.item.timingMode &&
-        row.item.timingMins != null &&
-        row.item.timingMins >= 0 &&
-        row.item.timingMins < 24 * 60,
-    );
-    if (firstAnchored) {
-      const anchorCurrent =
-        firstAnchored.item.timingMode === "depart_at"
-          ? firstAnchored.departMins
-          : firstAnchored.arriveMins;
-      const delta = firstAnchored.item.timingMins! - anchorCurrent;
-      if (delta !== 0) {
-        for (let i = 0; i < rows.length; i++) {
-          const row = rows[i]!;
-          rows[i] = {
-            ...row,
-            arriveMins: row.arriveMins + delta,
-            departMins: row.departMins + delta,
-          };
-        }
-      }
-    }
-
+    const rows = buildTimelineRows(items, legs);
     const visitMins = rows.reduce((sum, r) => sum + r.stayMins, 0);
     const travelMins = rows.reduce(
       (sum, r) => sum + (r.legAfter?.durationMins ?? 0),
@@ -231,7 +150,98 @@ export function useDayTimeline(
       startClock: formatClock(startMins, timeFormat),
       daySpanHours: Math.round((totalMins / 60) * 10) / 10,
     };
-  }, [items, legs, routedStops, timeFormat]);
+  }, [items, legs, timeFormat]);
 
   return { ...timeline, loading };
+}
+
+/** Pure schedule builder — used by the map popup and the day timeline hook. */
+export function buildTimelineRows(
+  items: PlannerItem[],
+  legs: TravelLeg[] = [],
+): TimelineRow[] {
+  const routedStops = items.filter((i) => isActiveStop(i) && hasCoords(i));
+  const legByPair = new Map<string, TravelLeg>();
+  for (let i = 0; i < legs.length; i++) {
+    const from = routedStops[i];
+    const to = routedStops[i + 1];
+    if (from && to) {
+      legByPair.set(`${from.id}->${to.id}`, legs[i]);
+    }
+  }
+
+  let cursor = DAY_START_MINS;
+  const rows: TimelineRow[] = [];
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]!;
+    const stayMins = defaultStayMins(item);
+    const arriveMins = cursor;
+    const departMins = arriveMins + stayMins;
+
+    let legAfter: TravelLeg | null = null;
+    if (isActiveStop(item)) {
+      for (let j = i + 1; j < items.length; j++) {
+        const next = items[j]!;
+        if (!isActiveStop(next)) continue;
+        const routeLeg =
+          hasCoords(item) && hasCoords(next)
+            ? (legByPair.get(`${item.id}->${next.id}`) ?? null)
+            : null;
+        const customDuration = item.customTravelDurationMins;
+        const customDistanceKm = item.customTravelDistanceKm;
+        if (customDuration != null || customDistanceKm != null) {
+          legAfter = {
+            durationMins: customDuration ?? routeLeg?.durationMins ?? 0,
+            distanceKm: customDistanceKm ?? routeLeg?.distanceKm ?? 0,
+            distanceMeters: Math.round(
+              (customDistanceKm ?? routeLeg?.distanceKm ?? 0) * 1000,
+            ),
+            estimated: true,
+            travelMode: normalizeTravelMode(item.travelMode),
+          };
+        } else {
+          legAfter = routeLeg;
+        }
+        break;
+      }
+    }
+
+    rows.push({
+      item,
+      arriveMins,
+      stayMins,
+      departMins,
+      legAfter,
+    });
+
+    cursor = departMins + (legAfter?.durationMins ?? 0);
+  }
+
+  const firstAnchored = rows.find(
+    (row) =>
+      row.item.timingMode &&
+      row.item.timingMins != null &&
+      row.item.timingMins >= 0 &&
+      row.item.timingMins < 24 * 60,
+  );
+  if (firstAnchored) {
+    const anchorCurrent =
+      firstAnchored.item.timingMode === "depart_at"
+        ? firstAnchored.departMins
+        : firstAnchored.arriveMins;
+    const delta = firstAnchored.item.timingMins! - anchorCurrent;
+    if (delta !== 0) {
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i]!;
+        rows[i] = {
+          ...row,
+          arriveMins: row.arriveMins + delta,
+          departMins: row.departMins + delta,
+        };
+      }
+    }
+  }
+
+  return rows;
 }

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Luggage,
   Share2,
   Users,
   Save,
@@ -113,6 +114,7 @@ export function PlannerShell({ tripId }: Props) {
     useGuestTrip();
   const [shareOpen, setShareOpen] = useState(false);
   const [matesOpen, setMatesOpen] = useState(false);
+  const [packingOpen, setPackingOpen] = useState(false);
   const [cloud, setCloud] = useState<CloudTripPayload | null>(null);
   const [cloudError, setCloudError] = useState<string | null>(null);
   const [loadingCloud, setLoadingCloud] = useState(!isDraftRoute);
@@ -1121,6 +1123,28 @@ export function PlannerShell({ tripId }: Props) {
               endLocation={draft?.endLocation ?? null}
               packingItems={packingList}
             />
+            {(isEditor || packingList.length > 0) &&
+            !loadingCloud &&
+            (isDraftRoute ? hydrated : !!cloud) ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="min-h-10 min-w-10 px-2 text-base sm:px-3.5"
+                onClick={() => setPackingOpen(true)}
+                aria-label="Packing list"
+                {...tip("Packing list")}
+              >
+                <Luggage className="h-4 w-4" />
+                <span className="hidden sm:inline">Packing</span>
+                {packingList.length > 0 ? (
+                  <span className="hidden rounded-full bg-secondary px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-secondary-foreground sm:inline">
+                    {packingList.filter((i) => i.packed).length}/
+                    {packingList.length}
+                  </span>
+                ) : null}
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="ghost"
@@ -1292,16 +1316,6 @@ export function PlannerShell({ tripId }: Props) {
                   />
                 </>
               ) : null}
-              {!loadingCloud && (isDraftRoute ? hydrated : !!cloud) ? (
-                <PackingListPanel
-                  items={packingList}
-                  isEditor={isEditor}
-                  onAdd={addPackingItem}
-                  onToggle={togglePackingItem}
-                  onDelete={deletePackingItem}
-                  onSeedDefaults={seedPackingDefaults}
-                />
-              ) : null}
               {!isDraftRoute && cloud && !isEditor ? (
                 <p className="mb-4 rounded-2xl bg-secondary px-4 py-3 text-base text-muted-foreground">
                   Viewer access — checkboxes and Places edits are locked.
@@ -1373,6 +1387,16 @@ export function PlannerShell({ tripId }: Props) {
       {matesOpen && !isDraftRoute && canManage ? (
         <TripmatesPanel tripId={tripId} onClose={() => setMatesOpen(false)} />
       ) : null}
+      <PackingListPanel
+        open={packingOpen}
+        onClose={() => setPackingOpen(false)}
+        items={packingList}
+        isEditor={isEditor}
+        onAdd={addPackingItem}
+        onToggle={togglePackingItem}
+        onDelete={deletePackingItem}
+        onSeedDefaults={seedPackingDefaults}
+      />
     </div>
   );
 }

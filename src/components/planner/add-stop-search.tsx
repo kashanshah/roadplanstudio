@@ -115,11 +115,15 @@ export function AddStopSearch({
     setDepartTime("");
   }
 
+  const biasLat = bias?.lat;
+  const biasLng = bias?.lng;
+
   useEffect(() => {
     if (!open || mode !== "search" || query.trim().length < 2) {
       if (mode === "search") {
-        setResults([]);
-        setError(null);
+        // Avoid setState([]) every run — a new [] always retriggers render.
+        setResults((prev) => (prev.length === 0 ? prev : []));
+        setError((prev) => (prev == null ? prev : null));
       }
       return;
     }
@@ -129,9 +133,9 @@ export function AddStopSearch({
       setLoading(true);
       setError(null);
       const params = new URLSearchParams({ q: query.trim() });
-      if (bias) {
-        params.set("lat", String(bias.lat));
-        params.set("lng", String(bias.lng));
+      if (biasLat != null && biasLng != null) {
+        params.set("lat", String(biasLat));
+        params.set("lng", String(biasLng));
       }
       fetch(`/api/places/search?${params}`, { signal: controller.signal })
         .then(async (res) => {
@@ -156,7 +160,7 @@ export function AddStopSearch({
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [query, open, bias, dayId, mode]);
+  }, [query, open, biasLat, biasLng, dayId, mode]);
 
   async function addPlace(place: PlaceDetailsPayload, asHotel: boolean) {
     setAddingId(place.placeId);

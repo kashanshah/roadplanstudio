@@ -516,7 +516,12 @@ export function ItineraryCanvas({
                             void onUpdateItem(itemId, patch);
                           }}
                           onTravelModeChange={(itemId, mode) => {
-                            void onUpdateItem(itemId, { travelMode: mode });
+                            // Google mode wins: clear custom overrides so Maps duration is used.
+                            void onUpdateItem(itemId, {
+                              travelMode: mode,
+                              customTravelDurationMins: null,
+                              customTravelDistanceKm: null,
+                            });
                           }}
                           onCustomTravelChange={(itemId, patch) => {
                             void onCustomTravelChange?.(itemId, patch);

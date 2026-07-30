@@ -3,10 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   APIProvider,
+  InfoWindow,
   Map,
   Marker,
   useMap,
 } from "@vis.gl/react-google-maps";
+import { statusLabel, type StopStatus } from "@/components/planner/planner-types";
+import {
+  formatDurationLabel,
+} from "@/components/planner/use-day-timeline";
+import { formatClock, type TimeFormat } from "@/lib/prefs/display-prefs";
 
 export type MapStop = {
   id: string;
@@ -16,9 +22,21 @@ export type MapStop = {
   type?: string;
   dayIndex?: number;
   status?: string;
+  address?: string | null;
+  notes?: string | null;
+  googleMapsUri?: string | null;
+  arriveMins?: number | null;
+  departMins?: number | null;
+  stayMins?: number | null;
   /** Mode from this stop to the next (for daily directions). */
   travelMode?: "driving" | "walking" | "bicycling" | "transit";
 };
+
+function stopTypeLabel(type?: string) {
+  if (type === "hotel") return "Hotel";
+  if (type === "custom") return "Custom";
+  return "Stop";
+}
 
 export type TripMapMode = "directions" | "straight";
 
@@ -29,6 +47,7 @@ type Props = {
   mode?: TripMapMode;
   title?: string;
   emptyMessage?: string;
+  timeFormat?: TimeFormat;
 };
 
 const DEFAULT_CENTER = { lat: 52.5, lng: -119.5 };
@@ -202,11 +221,13 @@ function MapCanvas({
   selected,
   onSelect,
   mode,
+  timeFormat,
 }: {
   stops: MapStop[];
   selected: MapStop | null;
-  onSelect: (stop: MapStop) => void;
+  onSelect: (stop: MapStop | null) => void;
   mode: TripMapMode;
+  timeFormat: TimeFormat;
 }) {
   const [routePath, setRoutePath] = useState<Array<{
     lat: number;
@@ -232,6 +253,7 @@ function MapCanvas({
       mapTypeControl={false}
       streetViewControl={false}
       fullscreenControl
+      onClick={() => onSelect(null)}
     >
       <FitBounds
         stops={stops}
@@ -243,14 +265,110 @@ function MapCanvas({
         <StraightPolyline stops={stops} />
       )}
       <FocusStop stop={selected} />
-      {stops.map((stop) => (
+      {stops.map((stop, index) => (
         <Marker
           key={stop.id}
           position={{ lat: stop.latitude, lng: stop.longitude }}
-          title={stop.name}
-          onClick={() => onSelect(stop)}
+          title={`${index + 1}. ${stop.name}`}
+          label={{
+            text: String(index + 1),
+            color: "#ffffff",
+            fontWeight: "700",
+            fontSize: "12px",
+            className: "map-pin-label",
+          }}
+          zIndex={selected?.id === stop.id ? 1000 : index + 1}
+          onClick={(e) => {
+            e.stop();
+            onSelect(stop);
+          }}
         />
       ))}
+      {selected ? (
+        <InfoWindow
+          position={{ lat: selected.latitude, lng: selected.longitude }}
+          maxWidth={300}
+          pixelOffset={[0, -36]}
+          onCloseClick={() => onSelect(null)}
+          headerContent={
+            <span className="font-display text-base font-semibold text-foreground">
+              {stops.findIndex((s) => s.id === selected.id) + 1}. {selected.name}
+            </span>
+          }
+        >
+          <div className="max-w-[260px] space-y-2.5 pb-1 pt-0.5 text-sm text-foreground">
+            <div className="flex flex-wrap gap-1.5">
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                {stopTypeLabel(selected.type)}
+              </span>
+              {selected.dayIndex != null ? (
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                  Day {selected.dayIndex}
+                </span>
+              ) : null}
+              {selected.status ? (
+                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary">
+                  {statusLabel(selected.status as StopStatus)}
+                </span>
+              ) : null}
+            </div>
+
+            {selected.arriveMins != null ? (
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-xl bg-secondary/70 px-2.5 py-2 text-xs">
+                <span className="text-muted-foreground">Arrive</span>
+                <span className="font-mono font-semibold tabular-nums text-primary">
+                  {formatClock(selected.arriveMins, timeFormat)}
+                </span>
+                {selected.type !== "hotel" && selected.departMins != null ? (
+                  <>
+                    <span className="text-muted-foreground">Depart</span>
+                    <span className="font-mono font-semibold tabular-nums">
+                      {formatClock(selected.departMins, timeFormat)}
+                    </span>
+                  </>
+                ) : null}
+                {selected.type !== "hotel" &&
+                selected.stayMins != null &&
+                selected.stayMins > 0 ? (
+                  <>
+                    <span className="text-muted-foreground">Stay</span>
+                    <span className="font-medium">
+                      {formatDurationLabel(selected.stayMins)}
+                    </span>
+                  </>
+                ) : selected.type === "hotel" ? (
+                  <>
+                    <span className="text-muted-foreground">Stay</span>
+                    <span className="font-medium">Overnight</span>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+
+            {selected.address ? (
+              <p className="leading-snug text-muted-foreground">
+                {selected.address}
+              </p>
+            ) : null}
+            {selected.notes ? (
+              <p className="line-clamp-3 leading-snug text-foreground/80">
+                {selected.notes}
+              </p>
+            ) : null}
+            {selected.googleMapsUri ? (
+              <a
+                href={selected.googleMapsUri}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex font-medium text-primary underline-offset-2 hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Open in Google Maps
+              </a>
+            ) : null}
+          </div>
+        </InfoWindow>
+      ) : null}
     </Map>
   );
 }
@@ -262,6 +380,7 @@ export function TripMap({
   mode = "straight",
   title,
   emptyMessage,
+  timeFormat = "h12",
 }: Props) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const [selected, setSelected] = useState<MapStop | null>(null);
@@ -271,6 +390,13 @@ export function TripMap({
     const match = stops.find((s) => s.id === focusStopId) ?? null;
     if (match) setSelected(match);
   }, [focusStopId, stops]);
+
+  // Keep the open popup in sync when schedule times refresh.
+  useEffect(() => {
+    if (!selected) return;
+    const fresh = stops.find((s) => s.id === selected.id) ?? null;
+    setSelected(fresh);
+  }, [stops, selected?.id]);
 
   if (!apiKey) {
     return (
@@ -308,6 +434,7 @@ export function TripMap({
             selected={selected}
             onSelect={setSelected}
             mode={mode}
+            timeFormat={timeFormat}
           />
         </div>
       </APIProvider>
@@ -321,7 +448,7 @@ export function TripMap({
                 : `${stops.length} stops · straight overview`)}
         </p>
         <div className="pointer-events-auto mt-2 flex max-w-full gap-2 overflow-x-auto pb-1">
-          {stops.slice(0, 12).map((stop) => (
+          {stops.slice(0, 12).map((stop, index) => (
             <button
               key={stop.id}
               type="button"
@@ -332,7 +459,7 @@ export function TripMap({
                   : "bg-snow/15 text-snow hover:bg-snow/25"
               }`}
             >
-              {stop.name}
+              {index + 1}. {stop.name}
             </button>
           ))}
           {stops.length > 12 ? (
