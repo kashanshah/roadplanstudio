@@ -14,6 +14,10 @@ export type TripPdfStop = {
   notes: string | null;
   status: StopStatus;
   durationMins: number | null;
+  timingMode: "arrive_by" | "depart_at" | null;
+  timingMins: number | null;
+  customTravelDurationMins: number | null;
+  customTravelDistanceKm: number | null;
   travelMode: TravelMode;
   latitude: number | null;
   longitude: number | null;
