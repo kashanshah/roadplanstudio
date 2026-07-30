@@ -73,11 +73,11 @@ export function TripmatesPanel({ tripId, onClose }: Props) {
         aria-label="Close"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-elevated sm:p-8">
+      <div className="relative z-10 max-h-[min(92dvh,720px)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-border bg-card p-6 shadow-elevated sm:p-8">
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 rounded-full p-2 text-muted-foreground hover:bg-muted"
+          className="sticky top-0 float-right z-10 -mr-1 -mt-1 grid size-10 place-items-center rounded-full text-muted-foreground hover:bg-muted"
           aria-label="Close"
         >
           <X className="h-5 w-5" />

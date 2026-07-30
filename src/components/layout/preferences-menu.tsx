@@ -88,7 +88,7 @@ export function PreferencesMenu({ tone = "default", className }: Props) {
                     aria-checked={!isDark}
                     onClick={() => setTheme("light")}
                     className={cn(
-                      "flex-1 rounded-full px-3 py-1.5 text-sm font-medium leading-none",
+                      "flex-1 rounded-full px-3 py-2.5 text-sm font-medium leading-none min-h-10",
                       !isDark
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground",
@@ -102,7 +102,7 @@ export function PreferencesMenu({ tone = "default", className }: Props) {
                     aria-checked={isDark}
                     onClick={() => setTheme("dark")}
                     className={cn(
-                      "flex-1 rounded-full px-3 py-1.5 text-sm font-medium leading-none",
+                      "flex-1 rounded-full px-3 py-2.5 text-sm font-medium leading-none min-h-10",
                       isDark
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground",
@@ -125,7 +125,7 @@ export function PreferencesMenu({ tone = "default", className }: Props) {
                     aria-checked={timeFormat === "h12"}
                     onClick={() => setTimeFormat("h12")}
                     className={cn(
-                      "flex-1 rounded-full px-3 py-1.5 text-sm font-medium leading-none",
+                      "flex-1 rounded-full px-3 py-2.5 text-sm font-medium leading-none min-h-10",
                       timeFormat === "h12"
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground",
@@ -139,7 +139,7 @@ export function PreferencesMenu({ tone = "default", className }: Props) {
                     aria-checked={timeFormat === "h24"}
                     onClick={() => setTimeFormat("h24")}
                     className={cn(
-                      "flex-1 rounded-full px-3 py-1.5 text-sm font-medium leading-none",
+                      "flex-1 rounded-full px-3 py-2.5 text-sm font-medium leading-none min-h-10",
                       timeFormat === "h24"
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground",

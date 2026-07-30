@@ -104,7 +104,7 @@ function TravelConnector({
     <div className="relative ml-[2.85rem] py-2 sm:ml-[3.35rem]">
       <span className="absolute -left-[1.15rem] top-0 bottom-0 w-px bg-map-route/50 sm:-left-[1.35rem]" />
       <div className="flex max-w-full flex-wrap items-center gap-2">
-        <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground">
+        <div className="inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground">
           <Icon className="size-3.5 shrink-0 text-map-route" />
           {loading && !leg ? (
             <span>Calculating route…</span>
@@ -146,7 +146,7 @@ function TravelConnector({
                     if (m !== mode) onTravelModeChange(fromItem.id, m);
                   }}
                   className={cn(
-                    "grid size-7 place-items-center rounded-full transition-colors",
+                    "grid size-10 place-items-center rounded-full transition-colors",
                     active
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground",
@@ -230,7 +230,7 @@ function SortableStopRow({
           <button
             type="button"
             className={cn(
-              "mt-1 touch-none rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground",
+              "mt-1 hidden touch-none rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground sm:block",
               "cursor-grab active:cursor-grabbing",
               isDragging && "cursor-grabbing",
             )}
@@ -261,7 +261,7 @@ function SortableStopRow({
             </span>
             <span
               className={cn(
-                "text-base font-semibold sm:text-lg",
+                "break-words text-base font-semibold sm:text-lg",
                 checked && "line-through",
               )}
             >
@@ -298,9 +298,9 @@ function SortableStopRow({
               </span>
             )}
             {item.address ? (
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="size-3.5" />
-                <span className="line-clamp-1">{item.address}</span>
+              <span className="inline-flex min-w-0 max-w-full items-center gap-1">
+                <MapPin className="size-3.5 shrink-0" />
+                <span className="min-w-0 line-clamp-1 break-all">{item.address}</span>
               </span>
             ) : null}
             {item.googlePlaceId ? (

@@ -48,7 +48,7 @@ export function GuestBanner() {
           <button
             type="button"
             onClick={() => setDismissed(true)}
-            className="rounded-full p-1.5 text-muted-foreground hover:bg-background/60 hover:text-foreground"
+            className="grid size-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-background/60 hover:text-foreground"
             aria-label="Dismiss guest banner"
           >
             <X className="h-4 w-4" />

@@ -16,11 +16,17 @@ import { signOut, useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
-  tone?: "default" | "onDark" | "compact";
+  tone?: "default" | "onDark";
+  /** Icon-only trigger on narrow screens to save header space. */
+  compact?: boolean;
   className?: string;
 };
 
-export function AccountMenu({ tone = "default", className }: Props) {
+export function AccountMenu({
+  tone = "default",
+  compact = false,
+  className,
+}: Props) {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -65,13 +71,21 @@ export function AccountMenu({ tone = "default", className }: Props) {
         size="sm"
         variant={tone === "onDark" ? "onDark" : "default"}
         className={cn(
-          "inline-flex items-center justify-center leading-none",
-          tone === "compact" ? "hidden sm:inline-flex" : "",
+          "inline-flex min-h-10 items-center justify-center leading-none",
+          compact && "px-3",
           className,
         )}
       >
-        <Link href={`/auth/login?next=${encodeURIComponent(pathname || "/")}`} className="sm:inline-flex">
-          Sign in
+        <Link href={`/auth/login?next=${encodeURIComponent(pathname || "/")}`}>
+          {compact ? (
+            <>
+              <UserRound className="size-4 sm:hidden" aria-hidden />
+              <span className="sr-only sm:hidden">Sign in</span>
+              <span className="hidden sm:inline">Sign in</span>
+            </>
+          ) : (
+            "Sign in"
+          )}
         </Link>
       </Button>
     );
@@ -99,17 +113,21 @@ export function AccountMenu({ tone = "default", className }: Props) {
         aria-expanded={open}
         aria-haspopup="menu"
         className={cn(
-          "inline-flex h-9 max-w-[10rem] items-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors",
+          "inline-flex h-10 items-center gap-1.5 rounded-full text-sm font-medium transition-colors",
+          compact ? "max-w-none px-2.5 sm:max-w-[10rem] sm:px-3" : "max-w-[10rem] px-3",
           tone === "onDark"
             ? "border border-snow/25 bg-snow/10 text-snow hover:bg-snow/20"
             : "border border-border bg-card text-foreground hover:bg-secondary",
         )}
       >
         <UserRound className="size-3.5 shrink-0" />
-        <span className="truncate">{label}</span>
+        <span className={cn("truncate", compact && "hidden sm:inline")}>
+          {label}
+        </span>
         <ChevronDown
           className={cn(
             "size-3.5 shrink-0 opacity-70 transition-transform",
+            compact && "hidden sm:block",
             open && "rotate-180",
           )}
         />

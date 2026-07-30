@@ -218,7 +218,7 @@ export function LandingPage() {
               Vancouver, Clearwater and Edmonton — a circular loop with lodging
               and attractions ready to remix.
             </p>
-            <dl className="mt-8 grid grid-cols-3 gap-4 border-t border-border pt-6">
+            <dl className="mt-8 grid grid-cols-1 gap-4 border-t border-border pt-6 sm:grid-cols-3">
               {[
                 ["Distance", "~4,200 km"],
                 ["Days", "13"],
@@ -228,7 +228,7 @@ export function LandingPage() {
                   <dt className="text-sm tracking-widest text-muted-foreground uppercase">
                     {k}
                   </dt>
-                  <dd className="mt-1 font-display text-2xl font-semibold">
+                  <dd className="mt-1 font-display text-xl font-semibold sm:text-2xl">
                     {v}
                   </dd>
                 </div>

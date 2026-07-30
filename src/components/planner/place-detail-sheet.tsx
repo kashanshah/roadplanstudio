@@ -247,7 +247,7 @@ export function PlaceDetailSheet({
                 disabled={!isEditor}
                 onClick={() => void onUpdate(item.id, { status })}
                 className={cn(
-                  "rounded-full px-3 py-1.5 text-sm transition-colors",
+                  "min-h-10 rounded-full px-4 py-2 text-sm transition-colors",
                   item.status === status
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/70",

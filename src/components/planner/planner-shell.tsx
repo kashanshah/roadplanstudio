@@ -31,6 +31,7 @@ import { TripmatesPanel } from "@/components/trips/tripmates-panel";
 import { useSession } from "@/lib/auth-client";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 import type { GuestStopStatus } from "@/lib/trips/guest-trip";
+import { cn } from "@/lib/utils/cn";
 
 const TripMapPanel = dynamic(
   () =>
@@ -98,6 +99,9 @@ export function PlannerShell({ tripId }: Props) {
   const [focusStopId, setFocusStopId] = useState<string | null>(null);
   const [activeDayId, setActiveDayId] = useState<string | null>(null);
   const [dismissedStarter, setDismissedStarter] = useState(false);
+  const [mobilePane, setMobilePane] = useState<"itinerary" | "map">(
+    "itinerary",
+  );
 
   // Blank /planner/new always gets a local draft so users can plan without a template.
   useEffect(() => {
@@ -666,16 +670,16 @@ export function PlannerShell({ tripId }: Props) {
       {isAnonymous ? <GuestBanner /> : null}
       {!isAnonymous ? <VerifyEmailBanner /> : null}
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link href="/" aria-label="RoadPlan Studio home">
-              <LogoMark className="h-9 w-9" />
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:h-16 sm:gap-3 sm:px-6">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <Link href="/" aria-label="RoadPlan Studio home" className="shrink-0">
+              <LogoMark className="h-8 w-8 sm:h-9 sm:w-9" />
             </Link>
             <div className="min-w-0">
-              <p className="truncate text-base font-medium text-foreground sm:text-lg">
+              <p className="truncate text-sm font-medium text-foreground sm:text-lg">
                 {title}
               </p>
-              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <p className="hidden truncate text-sm text-muted-foreground sm:flex sm:items-center sm:gap-1.5">
                 {!isDraftRoute && cloud && !isEditor ? (
                   <Lock className="h-3.5 w-3.5 shrink-0" />
                 ) : null}
@@ -683,13 +687,13 @@ export function PlannerShell({ tripId }: Props) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
             {isDraftRoute ? (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="hidden text-base sm:inline-flex"
+                className="hidden text-base md:inline-flex"
                 onClick={onSave}
                 disabled={saving || (isLoggedIn && !draft)}
               >
@@ -701,9 +705,10 @@ export function PlannerShell({ tripId }: Props) {
               type="button"
               variant="ghost"
               size="sm"
-              className="text-base"
+              className="min-h-10 min-w-10 px-2 text-base sm:px-3.5"
               onClick={onShare}
               disabled={!isDraftRoute && !!cloud && !canManage}
+              aria-label="Share"
             >
               <Share2 className="h-4 w-4" />
               <span className="hidden sm:inline">Share</span>
@@ -712,21 +717,64 @@ export function PlannerShell({ tripId }: Props) {
               type="button"
               variant="ghost"
               size="sm"
-              className="text-base"
+              className="min-h-10 min-w-10 px-2 text-base sm:px-3.5"
               onClick={onTripmates}
               disabled={!isDraftRoute && !!cloud && !canManage}
+              aria-label="Tripmates"
             >
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Tripmates</span>
             </Button>
             <PreferencesMenu />
-            <AccountMenu />
+            <AccountMenu compact />
           </div>
         </div>
       </header>
 
+      <div className="sticky top-14 z-30 border-b border-border bg-background/95 px-3 py-2 backdrop-blur-md sm:top-16 lg:hidden">
+        <div
+          role="tablist"
+          aria-label="Planner view"
+          className="mx-auto flex max-w-7xl rounded-full border border-border bg-card p-1"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobilePane === "itinerary"}
+            onClick={() => setMobilePane("itinerary")}
+            className={cn(
+              "min-h-10 flex-1 rounded-full px-3 text-sm font-medium transition-colors",
+              mobilePane === "itinerary"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Itinerary
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mobilePane === "map"}
+            onClick={() => setMobilePane("map")}
+            className={cn(
+              "min-h-10 flex-1 rounded-full px-3 text-sm font-medium transition-colors",
+              mobilePane === "map"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Map
+          </button>
+        </div>
+      </div>
+
       <main className="mx-auto grid w-full max-w-7xl flex-1 gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start">
-        <section className="min-w-0">
+        <section
+          className={cn(
+            "min-w-0",
+            mobilePane !== "itinerary" && "hidden lg:block",
+          )}
+        >
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-sm font-medium uppercase tracking-[0.14em] text-primary">
@@ -812,7 +860,10 @@ export function PlannerShell({ tripId }: Props) {
                   onReorderDay={reorderDay}
                   onAddPlace={addPlace}
                   onAddDay={addDay}
-                  onFocusStop={(item) => setFocusStopId(item.id)}
+                  onFocusStop={(item) => {
+                    setFocusStopId(item.id);
+                    setMobilePane("map");
+                  }}
                   onSelectDay={setActiveDayId}
                 />
               ) : (
@@ -824,7 +875,12 @@ export function PlannerShell({ tripId }: Props) {
           )}
         </section>
 
-        <section className="min-w-0 lg:sticky lg:top-20">
+        <section
+          className={cn(
+            "min-w-0 lg:sticky lg:top-20",
+            mobilePane !== "map" && "hidden lg:block",
+          )}
+        >
           <div className="mb-3 px-1">
             <h2 className="font-display text-3xl font-semibold sm:text-4xl">
               Maps

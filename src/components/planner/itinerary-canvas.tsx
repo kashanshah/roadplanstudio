@@ -395,7 +395,7 @@ export function ItineraryCanvas({
                     <h3 className="mt-1 font-display text-xl font-semibold sm:text-2xl">
                       {day.title}
                     </h3>
-                    <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+                    <p className="mt-1 line-clamp-2 break-words text-sm text-muted-foreground sm:text-base">
                       {isRest && !day.items.length
                         ? "Recovery day — no travel planned"
                         : [

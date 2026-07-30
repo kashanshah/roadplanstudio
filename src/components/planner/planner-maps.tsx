@@ -83,7 +83,7 @@ export function PlannerMaps({
             type="button"
             onClick={() => setTab("daily")}
             className={cn(
-              "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+              "min-h-10 rounded-full px-3.5 py-2 text-sm font-medium transition-colors",
               tab === "daily"
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
@@ -95,7 +95,7 @@ export function PlannerMaps({
             type="button"
             onClick={() => setTab("trip")}
             className={cn(
-              "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+              "min-h-10 rounded-full px-3.5 py-2 text-sm font-medium transition-colors",
               tab === "trip"
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
@@ -104,7 +104,7 @@ export function PlannerMaps({
             Full trip
           </button>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="hidden text-sm text-muted-foreground md:block">
           {tab === "daily"
             ? "Route for the selected day (uses each leg’s travel mode)"
             : "Straight-line overview of the whole trip"}
@@ -119,7 +119,7 @@ export function PlannerMaps({
               type="button"
               onClick={() => onActiveDayChange?.(day.id)}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-sm transition-colors",
+                "min-h-10 shrink-0 rounded-full px-3.5 py-2 text-sm transition-colors",
                 selectedDay?.id === day.id
                   ? "bg-secondary text-foreground ring-1 ring-primary/40"
                   : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
