@@ -162,6 +162,10 @@ export function TripTemplatePage({
                 slug={trip.slug}
                 fullWidthOnMobile
                 label={dict.common.startPlanning}
+                className="w-full sm:w-full"
+                additionalClasses={{
+                  buttonClasses: "w-full sm:w-full"
+                }}
               />
               <Button asChild size="lg" variant="outline" className="text-base">
                 <Link href={localizedPath(locale, "/discover")}>

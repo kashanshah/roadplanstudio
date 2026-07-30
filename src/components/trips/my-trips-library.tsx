@@ -22,7 +22,7 @@ function formatUpdated(date: Date) {
   }).format(date);
 }
 
-function TripRow({
+function TripCard({
   trip,
   deleting,
   confirmingDelete,
@@ -49,68 +49,69 @@ function TripRow({
     .join(" · ");
 
   return (
-    <div className="border-t border-border py-5 first:border-t-0">
-      <div className="group flex gap-4 transition-colors hover:border-primary sm:gap-5">
-        <Link
-          href={`/planner/${trip.id}`}
-          className="contents"
-          aria-label={`Open trip ${trip.title}`}
-        >
-          <div className="relative h-20 w-28 shrink-0 overflow-hidden bg-spruce sm:h-24 sm:w-36">
-            {trip.coverPhotoUrl ? (
-              <Image
-                src={trip.coverPhotoUrl}
-                alt=""
-                fill
-                className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                sizes="144px"
-              />
-            ) : (
-              <div
-                aria-hidden
-                className="absolute inset-0 bg-[linear-gradient(140deg,oklch(0.174_0.012_175.5)_0%,oklch(0.42_0.05_175)_100%)]"
-              />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-display text-xl font-semibold tracking-tight group-hover:text-primary sm:text-2xl">
-                {trip.title}
-              </h2>
-              {trip.role !== "owner" ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
-                  <Users className="size-3" />
-                  {roleLabel(trip.role)}
-                </span>
-              ) : null}
-            </div>
-            <p className="mt-1 text-sm tracking-wide text-muted-foreground uppercase">
-              {meta}
-            </p>
-            {trip.description ? (
-              <p className="mt-2 line-clamp-2 text-base text-muted-foreground">
-                {trip.description}
-              </p>
-            ) : null}
-            <p className="mt-2 text-sm text-muted-foreground">
-              Updated {formatUpdated(trip.updatedAt)}
-            </p>
-          </div>
-        </Link>
-      </div>
+    <article className="flex h-full flex-col border-t border-border pt-5 transition-colors hover:border-primary">
+      <Link
+        href={`/planner/${trip.id}`}
+        className="group flex min-h-0 flex-1 flex-col"
+        aria-label={`Open trip ${trip.title}`}
+      >
+        <div className="relative mb-4 aspect-[16/10] overflow-hidden bg-spruce">
+          {trip.coverPhotoUrl ? (
+            <Image
+              src={trip.coverPhotoUrl}
+              alt=""
+              fill
+              className="object-cover transition duration-500 group-hover:scale-[1.03]"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
+          ) : (
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-[linear-gradient(140deg,oklch(0.174_0.012_175.5)_0%,oklch(0.42_0.05_175)_100%)]"
+            />
+          )}
+        </div>
+
+        <p className="text-sm tracking-widest text-muted-foreground uppercase">
+          {meta}
+        </p>
+
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <h2 className="font-display text-2xl font-semibold tracking-tight group-hover:text-primary">
+            {trip.title}
+          </h2>
+          {trip.role !== "owner" ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+              <Users className="size-3" />
+              {roleLabel(trip.role)}
+            </span>
+          ) : null}
+        </div>
+
+        {trip.description ? (
+          <p className="mt-2 line-clamp-2 text-base text-muted-foreground">
+            {trip.description}
+          </p>
+        ) : null}
+
+        <p className="mt-3 text-sm text-muted-foreground">
+          Updated {formatUpdated(trip.updatedAt)}
+        </p>
+      </Link>
+
       {trip.role === "owner" ? (
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="mt-4 flex flex-col gap-2 border-t border-border/70 pt-3">
           {confirmingDelete ? (
             <>
               <p className="text-sm text-muted-foreground">
                 Delete this trip permanently?
               </p>
-              <div className="flex w-full gap-2 sm:w-auto">
+              <div className="flex gap-2">
                 <Button
                   type="button"
                   size="sm"
                   variant="destructive"
-                  className="flex-1 sm:flex-none"
+                  className="flex-1"
                   disabled={deleting}
                   onClick={() => onDelete(trip.id)}
                 >
@@ -120,7 +121,7 @@ function TripRow({
                   type="button"
                   size="sm"
                   variant="secondary"
-                  className="flex-1 sm:flex-none"
+                  className="flex-1"
                   disabled={deleting}
                   onClick={() => onToggleConfirm(trip.id)}
                 >
@@ -133,7 +134,7 @@ function TripRow({
               type="button"
               size="sm"
               variant="ghost"
-              className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-auto"
+              className="w-full justify-start px-0 text-destructive hover:bg-transparent hover:text-destructive"
               onClick={() => onToggleConfirm(trip.id)}
             >
               <Trash2 className="size-4" />
@@ -147,6 +148,42 @@ function TripRow({
           ) : null}
         </div>
       ) : null}
+    </article>
+  );
+}
+
+function TripGrid({
+  trips,
+  deletingTripId,
+  confirmingTripId,
+  deleteError,
+  onToggleConfirm,
+  onDelete,
+  allowDelete,
+}: {
+  trips: UserTripSummary[];
+  deletingTripId: string | null;
+  confirmingTripId: string | null;
+  deleteError: string | null;
+  onToggleConfirm: (tripId: string) => void;
+  onDelete: (tripId: string) => void;
+  allowDelete: boolean;
+}) {
+  return (
+    <div className="mt-6 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+      {trips.map((trip) => (
+        <TripCard
+          key={trip.id}
+          trip={trip}
+          deleting={allowDelete && deletingTripId === trip.id}
+          confirmingDelete={allowDelete && confirmingTripId === trip.id}
+          deleteError={
+            allowDelete && confirmingTripId === trip.id ? deleteError : null
+          }
+          onToggleConfirm={onToggleConfirm}
+          onDelete={onDelete}
+        />
+      ))}
     </div>
   );
 }
@@ -221,25 +258,21 @@ export function MyTripsLibrary({ trips }: { trips: UserTripSummary[] }) {
             </div>
           </div>
         ) : (
-          <div className="mt-12 space-y-12">
+          <div className="mt-12 space-y-14">
             {owned.length > 0 ? (
               <section>
                 <h2 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
                   Owned · {owned.length}
                 </h2>
-                <div className="mt-4">
-                  {owned.map((trip) => (
-                    <TripRow
-                      key={trip.id}
-                      trip={trip}
-                      deleting={deletingTripId === trip.id}
-                      confirmingDelete={confirmingTripId === trip.id}
-                      deleteError={confirmingTripId === trip.id ? deleteError : null}
-                      onToggleConfirm={onToggleConfirm}
-                      onDelete={(tripId) => void onDelete(tripId)}
-                    />
-                  ))}
-                </div>
+                <TripGrid
+                  trips={owned}
+                  deletingTripId={deletingTripId}
+                  confirmingTripId={confirmingTripId}
+                  deleteError={deleteError}
+                  onToggleConfirm={onToggleConfirm}
+                  onDelete={(tripId) => void onDelete(tripId)}
+                  allowDelete
+                />
               </section>
             ) : null}
             {shared.length > 0 ? (
@@ -247,19 +280,15 @@ export function MyTripsLibrary({ trips }: { trips: UserTripSummary[] }) {
                 <h2 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
                   Shared with you · {shared.length}
                 </h2>
-                <div className="mt-4">
-                  {shared.map((trip) => (
-                    <TripRow
-                      key={trip.id}
-                      trip={trip}
-                      deleting={false}
-                      confirmingDelete={false}
-                      deleteError={null}
-                      onToggleConfirm={() => {}}
-                      onDelete={() => {}}
-                    />
-                  ))}
-                </div>
+                <TripGrid
+                  trips={shared}
+                  deletingTripId={null}
+                  confirmingTripId={null}
+                  deleteError={null}
+                  onToggleConfirm={() => {}}
+                  onDelete={() => {}}
+                  allowDelete={false}
+                />
               </section>
             ) : null}
           </div>

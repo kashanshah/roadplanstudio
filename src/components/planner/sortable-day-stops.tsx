@@ -156,8 +156,12 @@ function TravelConnector({
   }
 
   return (
-    <div className="relative ml-[2.85rem] py-2 sm:ml-[3.35rem]">
-      <span className="absolute -left-[1.15rem] top-0 bottom-0 w-px bg-map-route/50 sm:-left-[1.35rem]" />
+    <div className="relative py-2 pl-4 sm:pl-[5.75rem]">
+      {/* Spine continues the stop-row timeline gutter (center of sm:w-[4.25rem] + px-3). */}
+      <span
+        aria-hidden
+        className="absolute left-1.5 top-0 bottom-0 w-px bg-map-route/50 sm:left-[2.875rem] sm:-translate-x-1/2"
+      />
       <div className="flex max-w-full flex-wrap items-center gap-2">
         <div className="inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground">
           <Icon className="size-3.5 shrink-0 text-map-route" />
@@ -337,8 +341,15 @@ function SortableStopRow({
         )}
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-          <div className="flex items-center gap-3 sm:w-14 sm:shrink-0 sm:flex-col sm:items-center sm:pt-0.5">
-            <span className="font-mono text-sm font-semibold tabular-nums text-primary">
+          {/* Status + timeline gutter: checkbox → time → spine (desktop). */}
+          <div className="flex items-center gap-3 sm:w-[4.25rem] sm:shrink-0 sm:flex-col sm:items-center sm:gap-1.5 sm:pt-0.5">
+            <Checkbox
+              checked={checked}
+              disabled={!isEditor}
+              onCheckedChange={() => onToggleVisited(item)}
+              aria-label={`Mark ${item.name} visited`}
+            />
+            <span className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-primary">
               {formatClock(row.arriveMins, timeFormat)}
             </span>
             {overnight ? (
@@ -346,28 +357,14 @@ function SortableStopRow({
                 +day
               </span>
             ) : null}
-            <span className="hidden size-3 place-items-center rounded-full bg-primary ring-4 ring-background sm:mt-2 sm:grid" />
-            <div className="ml-auto sm:hidden">
-              <Checkbox
-                checked={checked}
-                disabled={!isEditor}
-                onCheckedChange={() => onToggleVisited(item)}
-                aria-label={`Mark ${item.name} visited`}
-              />
-            </div>
+            <span
+              aria-hidden
+              className="mt-0.5 hidden size-2.5 shrink-0 rounded-full bg-primary ring-[3px] ring-background sm:block"
+            />
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start sm:gap-2">
             <div className="flex min-w-0 flex-1 items-start gap-2">
-              <div className="mt-1 hidden sm:block">
-                <Checkbox
-                  checked={checked}
-                  disabled={!isEditor}
-                  onCheckedChange={() => onToggleVisited(item)}
-                  aria-label={`Mark ${item.name} visited`}
-                />
-              </div>
-
               <button
                 type="button"
                 className="group/place min-w-0 flex-1 cursor-pointer rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"

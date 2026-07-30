@@ -14,6 +14,9 @@ type Props = {
   fullWidthOnMobile?: boolean;
   /** Button label when idle. Defaults to "Start planning". */
   label?: string;
+  additionalClasses?: {
+    buttonClasses?: string;
+  };
 };
 
 export function RemixTripButton({
@@ -21,6 +24,7 @@ export function RemixTripButton({
   className,
   fullWidthOnMobile = false,
   label = "Start planning",
+  additionalClasses,
 }: Props) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -69,7 +73,7 @@ export function RemixTripButton({
       <Button
         type="button"
         size="lg"
-        className={cn("text-base", fullWidthOnMobile ? "w-full sm:w-auto" : null)}
+        className={cn("text-base", fullWidthOnMobile ? "w-full sm:w-auto" : null, additionalClasses?.buttonClasses)}
         disabled={pending}
         onClick={() => void onRemix()}
       >

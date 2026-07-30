@@ -1,3 +1,5 @@
+import { westernCanadaTemplateDays } from "@/data/seeds/western-canada-template";
+
 export type TripDifficulty = "easy" | "moderate" | "hard";
 
 export type TripTemplateStop = {
@@ -73,44 +75,7 @@ export const tripTemplates: TripTemplate[] = [
       "Banff Jasper itinerary",
       "Icefields Parkway drive",
     ],
-    days: [
-      {
-        title: "Saskatoon → Calgary",
-        summary: "Prairie horizons into foothills.",
-        stops: [
-          {
-            name: "Saskatoon",
-            type: "waypoint",
-            lat: 52.1332,
-            lng: -106.6700,
-          },
-          {
-            name: "Calgary",
-            type: "lodging",
-            lat: 51.0447,
-            lng: -114.0719,
-          },
-        ],
-      },
-      {
-        title: "Calgary → Banff",
-        summary: "Enter the Rockies.",
-        stops: [
-          {
-            name: "Banff Town",
-            type: "lodging",
-            lat: 51.1784,
-            lng: -115.5708,
-          },
-          {
-            name: "Lake Louise",
-            type: "attraction",
-            lat: 51.4254,
-            lng: -116.1773,
-          },
-        ],
-      },
-    ],
+    days: westernCanadaTemplateDays(),
   },
   {
     slug: "pacific-coast-highway",

@@ -8,6 +8,7 @@ import {
   trips,
 } from "@/lib/db/schema";
 import { getTripTemplate } from "@/data/trips/templates";
+import { westernCanadaStaticTemplateSource } from "@/data/seeds/western-canada-template";
 import { ensureProfile } from "@/lib/trips/ensure-profile";
 import type { GuestDay, GuestTripDraft } from "@/lib/trips/guest-trip";
 
@@ -62,6 +63,11 @@ function isUuid(value: string) {
 }
 
 function loadStaticTemplateTrip(slug: string): TemplateSource | null {
+  // Prefer the Places-resolved Western Canada seed over the thin marketing stub.
+  if (slug === "western-canada-2026") {
+    return westernCanadaStaticTemplateSource() as TemplateSource;
+  }
+
   const template = getTripTemplate(slug);
   if (!template) {
     return null;
@@ -191,24 +197,14 @@ export async function loadTemplateTripWithFallback(
 }
 
 /**
- * Guest draft resolver: prefer static marketing templates so Start Trip from
- * Discover never depends on DB health. Fall back to public DB trips for
- * user-shared itineraries that aren't in the static catalog.
+ * Guest draft resolver: prefer the seeded public DB trip when available so
+ * Start planning gets the full itinerary. Fall back to static catalog (and for
+ * Western Canada, the Places-resolved seed) when DB is unavailable.
  */
 export async function loadTemplateForGuestDraft(
   slug: string,
 ): Promise<TemplateSource | null> {
-  const staticTemplate = loadStaticTemplateTrip(slug);
-  if (staticTemplate) {
-    return staticTemplate;
-  }
-
-  try {
-    return await loadTemplateTrip(slug);
-  } catch (err) {
-    console.error("loadTemplateTrip failed for guest draft", { slug, err });
-    return null;
-  }
+  return loadTemplateTripWithFallback(slug);
 }
 
 /** Public/guest-safe draft shape for remixing a template locally. */
