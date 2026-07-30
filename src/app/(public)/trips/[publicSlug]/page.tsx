@@ -2,18 +2,27 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
-import { getPublicTripBySlug } from "@/lib/trips/public";
+import { TripTemplatePage } from "@/components/trips/trip-template-page";
 import { SiteFooter, SiteNav } from "@/components/layout/site-nav";
 import { Button } from "@/components/ui/button";
 import { RemixTripButton } from "@/components/trips/remix-trip-button";
+import { getTripTemplate, tripTemplates } from "@/data/trips/templates";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { localeMetadataBase } from "@/lib/i18n/seo";
+import { getPublicTripBySlug } from "@/lib/trips/public";
 
 type Props = {
   params: Promise<{ publicSlug: string }>;
 };
 
+export function generateStaticParams() {
+  return tripTemplates.map((t) => ({ publicSlug: t.slug }));
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { publicSlug } = await params;
+  const template = getTripTemplate(publicSlug);
+
   let data = null;
   try {
     data = await getPublicTripBySlug(publicSlug);
@@ -21,31 +30,60 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     data = null;
   }
 
-  if (!data) {
+  if (data) {
+    const { trip } = data;
+    const indexable = trip.visibility === "public";
     return {
-      title: "Trip not found",
-      robots: { index: false, follow: false },
+      ...localeMetadataBase(
+        "en",
+        `/trips/${trip.slug}`,
+        trip.title,
+        trip.description ?? template?.description ?? "",
+      ),
+      openGraph: {
+        ...localeMetadataBase(
+          "en",
+          `/trips/${trip.slug}`,
+          trip.title,
+          trip.description ?? "",
+        ).openGraph,
+        images: trip.coverPhotoUrl
+          ? [{ url: trip.coverPhotoUrl }]
+          : template
+            ? [{ url: template.coverImage }]
+            : undefined,
+      },
+      robots: indexable
+        ? { index: true, follow: true }
+        : { index: false, follow: false },
+      keywords: template?.seoKeywords,
     };
   }
 
-  const { trip } = data;
-  const indexable = trip.visibility === "public";
+  if (template) {
+    return {
+      ...localeMetadataBase(
+        "en",
+        `/trips/${template.slug}`,
+        template.title,
+        template.description,
+      ),
+      keywords: template.seoKeywords,
+      openGraph: {
+        ...localeMetadataBase(
+          "en",
+          `/trips/${template.slug}`,
+          template.title,
+          template.description,
+        ).openGraph,
+        images: [{ url: template.coverImage, alt: template.coverAlt }],
+      },
+    };
+  }
 
   return {
-    title: trip.title,
-    description: trip.description ?? undefined,
-    alternates: {
-      canonical: `${SITE_URL}/trips/${trip.slug}`,
-    },
-    openGraph: {
-      title: trip.title,
-      description: trip.description ?? undefined,
-      url: `${SITE_URL}/trips/${trip.slug}`,
-      images: trip.coverPhotoUrl ? [{ url: trip.coverPhotoUrl }] : undefined,
-    },
-    robots: indexable
-      ? { index: true, follow: true }
-      : { index: false, follow: false },
+    title: "Trip not found",
+    robots: { index: false, follow: false },
   };
 }
 
@@ -57,9 +95,15 @@ export default async function PublicTripPage({ params }: Props) {
   } catch {
     data = null;
   }
-  if (!data) notFound();
+
+  if (!data) {
+    const template = getTripTemplate(publicSlug);
+    if (template) return <TripTemplatePage trip={template} locale="en" />;
+    notFound();
+  }
 
   const { trip, owner, days, accommodations } = data;
+  const template = getTripTemplate(publicSlug);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -135,11 +179,11 @@ export default async function PublicTripPage({ params }: Props) {
       />
       <SiteNav />
       <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
-        {trip.coverPhotoUrl ? (
+        {trip.coverPhotoUrl || template?.coverImage ? (
           <div className="relative mb-8 aspect-[21/9] overflow-hidden rounded-3xl">
             <Image
-              src={trip.coverPhotoUrl}
-              alt=""
+              src={trip.coverPhotoUrl || template!.coverImage}
+              alt={template?.coverAlt || trip.title}
               fill
               className="object-cover"
               sizes="(max-width: 896px) 100vw, 896px"

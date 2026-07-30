@@ -8,6 +8,7 @@ import {
   KeyRound,
   LogOut,
   Mail,
+  Map,
   Settings,
   UserRound,
 } from "lucide-react";
@@ -147,9 +148,17 @@ export function AccountMenu({
             </p>
           </div>
           <Link
-            href="/account"
+            href="/planner"
             role="menuitem"
             className="mt-1 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-popover-foreground hover:bg-secondary"
+          >
+            <Map className="size-4" />
+            Your trips
+          </Link>
+          <Link
+            href="/account"
+            role="menuitem"
+            className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-popover-foreground hover:bg-secondary"
           >
             <Settings className="size-4" />
             Account settings

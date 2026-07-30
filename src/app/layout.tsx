@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Fraunces } from "next/font/google";
+import { DM_Sans, Fraunces, Noto_Sans_JP } from "next/font/google";
 import { AppProviders } from "@/components/providers/app-providers";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/constants";
@@ -17,6 +17,13 @@ const fraunces = Fraunces({
   display: "swap",
 });
 
+const notoSansJp = Noto_Sans_JP({
+  variable: "--font-noto-sans-jp",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -30,27 +37,40 @@ export const metadata: Metadata = {
   publisher: SITE_NAME,
   keywords: [
     "road trip planner",
+    "international road trip",
     "itinerary",
     "travel map",
     "Western Canada",
+    "Iceland Ring Road",
+    "Alps road trip",
+    "Hokkaido self drive",
     "tripmates",
     "RoadPlan Studio",
   ],
   alternates: {
     canonical: "/",
+    languages: {
+      en: "/",
+      fr: "/fr",
+      es: "/es",
+      de: "/de",
+      ja: "/ja",
+      "x-default": "/",
+    },
   },
   openGraph: {
     type: "website",
     locale: "en_CA",
+    alternateLocale: ["fr_FR", "es_ES", "de_DE", "ja_JP"],
     url: SITE_URL,
     siteName: SITE_NAME,
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
     images: [
       {
-        url: "/brand/icon-512.svg",
-        width: 512,
-        height: 512,
+        url: "/images/hero-road.jpg",
+        width: 1920,
+        height: 1080,
         alt: SITE_NAME,
       },
     ],
@@ -59,7 +79,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
-    images: ["/brand/icon-512.svg"],
+    images: ["/images/hero-road.jpg"],
   },
   icons: {
     icon: [{ url: "/brand/favicon.svg", type: "image/svg+xml" }],
@@ -112,7 +132,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${dmSans.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${dmSans.variable} ${fraunces.variable} ${notoSansJp.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <script

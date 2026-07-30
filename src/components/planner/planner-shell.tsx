@@ -672,7 +672,11 @@ export function PlannerShell({ tripId }: Props) {
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:h-16 sm:gap-3 sm:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-            <Link href="/" aria-label="RoadPlan Studio home" className="shrink-0">
+            <Link
+              href={isLoggedIn ? "/planner" : "/"}
+              aria-label={isLoggedIn ? "Your trips" : "RoadPlan Studio home"}
+              className="shrink-0"
+            >
               <LogoMark className="h-8 w-8 sm:h-9 sm:w-9" />
             </Link>
             <div className="min-w-0">
@@ -682,6 +686,17 @@ export function PlannerShell({ tripId }: Props) {
               <p className="hidden truncate text-sm text-muted-foreground sm:flex sm:items-center sm:gap-1.5">
                 {!isDraftRoute && cloud && !isEditor ? (
                   <Lock className="h-3.5 w-3.5 shrink-0" />
+                ) : null}
+                {isLoggedIn ? (
+                  <>
+                    <Link
+                      href="/planner"
+                      className="hover:text-foreground hover:underline hover:underline-offset-2"
+                    >
+                      Your trips
+                    </Link>
+                    <span aria-hidden>·</span>
+                  </>
                 ) : null}
                 {roleLabel}
               </p>

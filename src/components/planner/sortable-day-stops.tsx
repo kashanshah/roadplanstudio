@@ -252,7 +252,7 @@ function SortableStopRow({
 
         <button
           type="button"
-          className="min-w-0 flex-1 text-left"
+          className="group/place min-w-0 flex-1 cursor-pointer rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() => onOpenItem(item)}
         >
           <div className="flex flex-wrap items-center gap-2">
@@ -261,7 +261,7 @@ function SortableStopRow({
             </span>
             <span
               className={cn(
-                "break-words text-base font-semibold sm:text-lg",
+                "break-words text-base font-semibold underline-offset-4 transition-colors group-hover/place:text-primary group-hover/place:underline sm:text-lg",
                 checked && "line-through",
               )}
             >
