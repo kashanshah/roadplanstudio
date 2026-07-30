@@ -352,8 +352,10 @@ export function ItineraryCanvas({
       skipDayScrollRef.current = false;
       return;
     }
-    const el = dayRefs.current.get(openDayId);
-    if (!el) return;
+    const dayNode = dayRefs.current.get(openDayId);
+    if (!dayNode) return;
+    // Capture after the guard so nested timers keep a definite element.
+    const dayEl: HTMLLIElement = dayNode;
 
     let cancelled = false;
     let correctTimer: number | undefined;
@@ -366,7 +368,7 @@ export function ItineraryCanvas({
     function alignDay(behavior: ScrollBehavior) {
       if (cancelled) return;
       const top =
-        window.scrollY + el.getBoundingClientRect().top - headerOffset();
+        window.scrollY + dayEl.getBoundingClientRect().top - headerOffset();
       window.scrollTo({ top: Math.max(0, top), behavior });
     }
 
@@ -377,7 +379,7 @@ export function ItineraryCanvas({
       alignDay("smooth");
       correctTimer = window.setTimeout(() => {
         const drift = Math.abs(
-          el.getBoundingClientRect().top - headerOffset(),
+          dayEl.getBoundingClientRect().top - headerOffset(),
         );
         if (drift > 8) alignDay("auto");
       }, 340);
