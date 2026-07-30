@@ -10,9 +10,15 @@ import type { GuestTripDraft } from "@/lib/trips/guest-trip";
 type Props = {
   slug: string;
   className?: string;
+  /** Button label when idle. Defaults to "Start planning". */
+  label?: string;
 };
 
-export function RemixTripButton({ slug, className }: Props) {
+export function RemixTripButton({
+  slug,
+  className,
+  label = "Start planning",
+}: Props) {
   const router = useRouter();
   const { data: session } = useSession();
   const { loadDraft } = useGuestTrip();
@@ -23,6 +29,7 @@ export function RemixTripButton({ slug, className }: Props) {
     setPending(true);
     setError(null);
 
+    // Signed-in: duplicate template into a new owned cloud trip.
     if (session) {
       const res = await fetch("/api/trips", {
         method: "POST",
@@ -31,7 +38,7 @@ export function RemixTripButton({ slug, className }: Props) {
       });
       setPending(false);
       if (!res.ok) {
-        setError("Could not copy this trip");
+        setError("Could not start a trip from this template");
         return;
       }
       const data = (await res.json()) as { trip: { id: string } };
@@ -39,7 +46,10 @@ export function RemixTripButton({ slug, className }: Props) {
       return;
     }
 
-    const res = await fetch(`/api/trips/templates/${encodeURIComponent(slug)}/draft`);
+    // Guest: load template as a local draft in the planner.
+    const res = await fetch(
+      `/api/trips/templates/${encodeURIComponent(slug)}/draft`,
+    );
     setPending(false);
     if (!res.ok) {
       setError("Could not load this template");
@@ -57,13 +67,9 @@ export function RemixTripButton({ slug, className }: Props) {
         size="lg"
         className="text-base"
         disabled={pending}
-        onClick={onRemix}
+        onClick={() => void onRemix()}
       >
-        {pending
-          ? "Copying…"
-          : session
-            ? "Copy to my trips"
-            : "Remix in planner"}
+        {pending ? "Starting…" : label}
       </Button>
       {error ? (
         <p className="mt-2 text-base text-destructive" role="alert">

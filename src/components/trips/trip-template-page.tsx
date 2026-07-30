@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { TripTemplate } from "@/data/trips/templates";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { SITE_URL } from "@/lib/constants";
 import { SiteFooter, SiteNav } from "@/components/layout/site-nav";
+import { RemixTripButton } from "@/components/trips/remix-trip-button";
 import { Button } from "@/components/ui/button";
 import type { Locale } from "@/lib/i18n/config";
 import { localizedPath } from "@/lib/i18n/config";
@@ -157,9 +158,10 @@ export function TripTemplatePage({
             </dl>
 
             <div className="flex flex-col gap-3">
-              <Button asChild size="lg" className="text-base">
-                <Link href="/planner/new">{dict.common.startPlanning}</Link>
-              </Button>
+              <RemixTripButton
+                slug={trip.slug}
+                label={dict.common.startPlanning}
+              />
               <Button asChild size="lg" variant="outline" className="text-base">
                 <Link href={localizedPath(locale, "/discover")}>
                   {dict.common.discoverTrips}
@@ -167,8 +169,9 @@ export function TripTemplatePage({
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Template by {SITE_NAME}. Remix in the planner — sign in later to
-              save and share.
+              Uses this itinerary as a template. Signed-in users get a new owned
+              trip; guests plan locally in the browser until they save an
+              account.
             </p>
           </aside>
         </div>
