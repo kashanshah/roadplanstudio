@@ -12,7 +12,10 @@ import { statusLabel, type StopStatus } from "@/components/planner/planner-types
 import {
   formatDurationLabel,
 } from "@/components/planner/use-day-timeline";
-import { formatClock, type TimeFormat } from "@/lib/prefs/display-prefs";
+import {
+  formatClockWithDayOffset,
+  type TimeFormat,
+} from "@/lib/prefs/display-prefs";
 
 export type MapStop = {
   id: string;
@@ -323,7 +326,10 @@ function MapCanvas({
                   <>
                     <span className="text-muted-foreground">Arrive</span>
                     <span className="font-mono font-semibold tabular-nums text-primary">
-                      {formatClock(selected.arriveMins, timeFormat)}
+                      {formatClockWithDayOffset(
+                        selected.arriveMins,
+                        timeFormat,
+                      )}
                     </span>
                   </>
                 ) : null}
@@ -332,7 +338,10 @@ function MapCanvas({
                   <>
                     <span className="text-muted-foreground">Depart</span>
                     <span className="font-mono font-semibold tabular-nums">
-                      {formatClock(selected.departMins, timeFormat)}
+                      {formatClockWithDayOffset(
+                        selected.departMins,
+                        timeFormat,
+                      )}
                     </span>
                   </>
                 ) : null}

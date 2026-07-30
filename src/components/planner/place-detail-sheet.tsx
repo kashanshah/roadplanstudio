@@ -26,7 +26,9 @@ import {
 } from "@/components/planner/planner-types";
 import {
   buildStopTimePatch,
+  dayOffsetFromMins,
   minsToTimeInput,
+  resolveDepartAfterArrive,
   timeInputToMins,
 } from "@/lib/trips/stop-time";
 import { cn } from "@/lib/utils/cn";
@@ -186,12 +188,22 @@ export function PlaceDetailSheet({
     : null;
 
   const isHotel = item?.type === "hotel";
-  const draftArriveMins = timeInputToMins(arriveDraft);
-  const draftDepartMins = timeInputToMins(departDraft);
-  const draftStayMins =
-    draftArriveMins != null && draftDepartMins != null
-      ? Math.max(0, draftDepartMins - draftArriveMins)
+  const draftDepartWall = timeInputToMins(departDraft);
+  const draftArriveContinuous = isFirstStop
+    ? draftDepartWall
+    : (arriveMins ?? timeInputToMins(arriveDraft));
+  const draftDepartContinuous =
+    draftArriveContinuous != null && draftDepartWall != null
+      ? isFirstStop
+        ? draftDepartWall
+        : resolveDepartAfterArrive(draftArriveContinuous, draftDepartWall)
       : null;
+  const draftStayMins =
+    draftArriveContinuous != null && draftDepartContinuous != null
+      ? Math.max(0, draftDepartContinuous - draftArriveContinuous)
+      : null;
+  const arriveDayOffset =
+    arriveMins != null ? dayOffsetFromMins(arriveMins) : 0;
 
   async function saveMeta() {
     if (!item || !isEditor) return;
@@ -212,22 +224,25 @@ export function PlaceDetailSheet({
       > = {};
 
       if (!isHotel || isFirstStop) {
-        const depart = timeInputToMins(departDraft);
-        const arrive = isFirstStop
-          ? depart
-          : (arriveMins ?? timeInputToMins(arriveDraft));
-        if (arrive == null || depart == null) {
+        const departWall = timeInputToMins(departDraft);
+        if (departWall == null) {
           setTimeError(
             isFirstStop
               ? "Enter a valid depart time."
-              : "Enter a valid arrive and depart time.",
+              : "Enter a valid depart time.",
           );
           return;
         }
-        if (depart < arrive) {
-          setTimeError("Depart must be at or after arrive.");
+        const arrive = isFirstStop
+          ? departWall
+          : (arriveMins ?? timeInputToMins(arriveDraft));
+        if (arrive == null) {
+          setTimeError("Enter a valid arrive and depart time.");
           return;
         }
+        const depart = isFirstStop
+          ? departWall
+          : resolveDepartAfterArrive(arrive, departWall);
         timePatch = buildStopTimePatch({
           arriveMins: arrive,
           departMins: depart,
@@ -478,7 +493,11 @@ export function PlaceDetailSheet({
                     <label className="block">
                       <span className="mb-1 block text-xs text-muted-foreground">
                         Arrive
-                        <span> · from previous stop</span>
+                        <span>
+                          {" "}
+                          · from previous stop
+                          {arriveDayOffset > 0 ? " · next day" : ""}
+                        </span>
                       </span>
                       <input
                         type="time"
@@ -491,6 +510,10 @@ export function PlaceDetailSheet({
                   <label className="block">
                     <span className="mb-1 block text-xs text-muted-foreground">
                       Depart
+                      {draftDepartContinuous != null &&
+                      dayOffsetFromMins(draftDepartContinuous) > 0 ? (
+                        <span> · next day</span>
+                      ) : null}
                     </span>
                     <input
                       type="time"
@@ -510,6 +533,9 @@ export function PlaceDetailSheet({
                         : "—"}
                     </span>{" "}
                     (auto)
+                    {arriveDayOffset > 0
+                      ? " · overnight arrival kept on next day"
+                      : ""}
                   </p>
                 ) : null}
                 {timeError ? (

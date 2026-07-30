@@ -38,6 +38,13 @@ import { SITE_URL } from "@/lib/constants";
 import { createDefaultPackingItems } from "@/lib/packing/defaults";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 import type { GuestItemType, GuestStopStatus } from "@/lib/trips/guest-trip";
+import {
+  findOvernightHotel,
+  MORNING_BASE_NOTE,
+  syncNextDayMorningBase,
+  toOvernightPlaceFields,
+  type OvernightPlaceFields,
+} from "@/lib/trips/morning-base";
 import { demoteOtherOvernightHotels } from "@/lib/trips/overnight-hotel";
 import {
   isTripStartItem,
@@ -45,6 +52,56 @@ import {
   TRIP_START_NOTE,
 } from "@/lib/trips/trip-start";
 import { cn } from "@/lib/utils/cn";
+
+function applyMorningBaseSync<
+  TDay extends {
+    id: string;
+    dayIndex: number;
+    items: Array<{
+      id: string;
+      type: string;
+      name: string;
+      address?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+      googlePlaceId?: string | null;
+      googleMapsUri?: string | null;
+      notes?: string | null;
+      sortOrder?: number;
+      durationMins?: number | null;
+      status?: string;
+      timingMode?: "arrive_by" | "depart_at" | null;
+      timingMins?: number | null;
+      customTravelDurationMins?: number | null;
+      customTravelDistanceKm?: number | null;
+      travelMode?: "driving" | "walking" | "bicycling" | "transit";
+    }>;
+  },
+>(days: TDay[], changedDayId: string, previousOvernight: OvernightPlaceFields | null): TDay[] {
+  return syncNextDayMorningBase(days, changedDayId, {
+    previousOvernight,
+    createMorningBase: (place) =>
+      ({
+        id: crypto.randomUUID(),
+        sortOrder: 0,
+        type: "hotel",
+        name: place.name,
+        address: place.address ?? null,
+        latitude: place.latitude ?? null,
+        longitude: place.longitude ?? null,
+        googlePlaceId: place.googlePlaceId ?? null,
+        googleMapsUri: place.googleMapsUri ?? null,
+        durationMins: 0,
+        timingMode: null,
+        timingMins: null,
+        customTravelDurationMins: null,
+        customTravelDistanceKm: null,
+        travelMode: "driving",
+        status: "to_visit",
+        notes: MORNING_BASE_NOTE,
+      }) as TDay["items"][number],
+  });
+}
 
 const TripMapPanel = dynamic(
   () => import("@/components/planner/planner-maps").then((m) => m.PlannerMaps),
@@ -310,6 +367,13 @@ export function PlannerShell({ tripId }: Props) {
     }
   }
 
+  async function refreshCloudTrip() {
+    const refresh = await fetch(`/api/trips/${tripId}`);
+    if (!refresh.ok) return;
+    const data = (await refresh.json()) as CloudTripPayload;
+    setCloud(data);
+  }
+
   function requireVerified(intent: "share" | "invite") {
     if (!isLoggedIn) {
       requireAuth(intent);
@@ -373,10 +437,20 @@ export function PlannerShell({ tripId }: Props) {
   ) {
     if (!isEditor) return;
 
+    const hostDay = days.find((day) =>
+      day.items.some((item) => item.id === itemId),
+    );
+    const previousOvernight =
+      patch.type != null && hostDay
+        ? (() => {
+            const overnight = findOvernightHotel(hostDay.items);
+            return overnight ? toOvernightPlaceFields(overnight) : null;
+          })()
+        : null;
+
     if (isDraftRoute) {
-      updateDraft((current) => ({
-        ...current,
-        days: current.days.map((day) => ({
+      updateDraft((current) => {
+        const nextDays = current.days.map((day) => ({
           ...day,
           items: day.items.map((item) =>
             item.id === itemId
@@ -388,21 +462,32 @@ export function PlannerShell({ tripId }: Props) {
                 }
               : item,
           ),
-        })),
-      }));
+        }));
+        return {
+          ...current,
+          days:
+            patch.type != null && hostDay
+              ? applyMorningBaseSync(nextDays, hostDay.id, previousOvernight)
+              : nextDays,
+        };
+      });
       return;
     }
 
     setCloud((prev) => {
       if (!prev) return prev;
+      const nextDays = prev.days.map((day) => ({
+        ...day,
+        items: day.items.map((item) =>
+          item.id === itemId ? { ...item, ...patch } : item,
+        ),
+      }));
       return {
         ...prev,
-        days: prev.days.map((day) => ({
-          ...day,
-          items: day.items.map((item) =>
-            item.id === itemId ? { ...item, ...patch } : item,
-          ),
-        })),
+        days:
+          patch.type != null && hostDay
+            ? applyMorningBaseSync(nextDays, hostDay.id, previousOvernight)
+            : nextDays,
       };
     });
 
@@ -414,6 +499,10 @@ export function PlannerShell({ tripId }: Props) {
     if (!res.ok) {
       // Soft fail — UI already optimistic; refetch would be ideal later.
       console.error("Failed to update item");
+      return;
+    }
+    if (patch.type != null) {
+      await refreshCloudTrip();
     }
   }
 
@@ -422,29 +511,47 @@ export function PlannerShell({ tripId }: Props) {
 
     setFocusStopId((prev) => (prev === itemId ? null : prev));
 
+    const hostDay = days.find((day) =>
+      day.items.some((item) => item.id === itemId),
+    );
+    const previousOvernight = hostDay
+      ? (() => {
+          const overnight = findOvernightHotel(hostDay.items);
+          return overnight ? toOvernightPlaceFields(overnight) : null;
+        })()
+      : null;
+
     if (isDraftRoute) {
-      updateDraft((current) => ({
-        ...current,
-        days: current.days.map((day) => ({
+      updateDraft((current) => {
+        const nextDays = current.days.map((day) => ({
           ...day,
           items: day.items
             .filter((item) => item.id !== itemId)
             .map((item, index) => ({ ...item, sortOrder: index })),
-        })),
-      }));
+        }));
+        return {
+          ...current,
+          days: hostDay
+            ? applyMorningBaseSync(nextDays, hostDay.id, previousOvernight)
+            : nextDays,
+        };
+      });
       return;
     }
 
     setCloud((prev) => {
       if (!prev) return prev;
+      const nextDays = prev.days.map((day) => ({
+        ...day,
+        items: day.items
+          .filter((item) => item.id !== itemId)
+          .map((item, index) => ({ ...item, sortOrder: index })),
+      }));
       return {
         ...prev,
-        days: prev.days.map((day) => ({
-          ...day,
-          items: day.items
-            .filter((item) => item.id !== itemId)
-            .map((item, index) => ({ ...item, sortOrder: index })),
-        })),
+        days: hostDay
+          ? applyMorningBaseSync(nextDays, hostDay.id, previousOvernight)
+          : nextDays,
       };
     });
 
@@ -453,6 +560,10 @@ export function PlannerShell({ tripId }: Props) {
     });
     if (!res.ok) {
       console.error("Failed to delete item");
+      return;
+    }
+    if (previousOvernight) {
+      await refreshCloudTrip();
     }
   }
 
@@ -496,10 +607,19 @@ export function PlannerShell({ tripId }: Props) {
       type: next.type,
     };
 
+    const hostDay = days.find((day) =>
+      day.items.some((item) => item.id === itemId),
+    );
+    const previousOvernight = hostDay
+      ? (() => {
+          const overnight = findOvernightHotel(hostDay.items);
+          return overnight ? toOvernightPlaceFields(overnight) : null;
+        })()
+      : null;
+
     if (isDraftRoute) {
-      updateDraft((current) => ({
-        ...current,
-        days: current.days.map((day) => {
+      updateDraft((current) => {
+        const nextDays = current.days.map((day) => {
           if (!day.items.some((item) => item.id === itemId)) return day;
           const nextItems = day.items.map((item) =>
             item.id === itemId ? { ...item, ...patch } : item,
@@ -511,28 +631,37 @@ export function PlannerShell({ tripId }: Props) {
                 ? demoteOtherOvernightHotels(nextItems, itemId)
                 : nextItems,
           };
-        }),
-      }));
+        });
+        return {
+          ...current,
+          days: hostDay
+            ? applyMorningBaseSync(nextDays, hostDay.id, previousOvernight)
+            : nextDays,
+        };
+      });
       return;
     }
 
     setCloud((prev) => {
       if (!prev) return prev;
+      const nextDays = prev.days.map((day) => {
+        if (!day.items.some((item) => item.id === itemId)) return day;
+        const nextItems = day.items.map((item) =>
+          item.id === itemId ? { ...item, ...patch } : item,
+        );
+        return {
+          ...day,
+          items:
+            next.type === "hotel"
+              ? demoteOtherOvernightHotels(nextItems, itemId)
+              : nextItems,
+        };
+      });
       return {
         ...prev,
-        days: prev.days.map((day) => {
-          if (!day.items.some((item) => item.id === itemId)) return day;
-          const nextItems = day.items.map((item) =>
-            item.id === itemId ? { ...item, ...patch } : item,
-          );
-          return {
-            ...day,
-            items:
-              next.type === "hotel"
-                ? demoteOtherOvernightHotels(nextItems, itemId)
-                : nextItems,
-          };
-        }),
+        days: hostDay
+          ? applyMorningBaseSync(nextDays, hostDay.id, previousOvernight)
+          : nextDays,
       };
     });
 
@@ -543,6 +672,10 @@ export function PlannerShell({ tripId }: Props) {
     });
     if (!res.ok) {
       console.error("Failed to replace place");
+      return;
+    }
+    if (next.type === "hotel" || existing.type === "hotel") {
+      await refreshCloudTrip();
     }
   }
 
@@ -638,10 +771,16 @@ export function PlannerShell({ tripId }: Props) {
       return;
     }
 
+    const previousOvernight = targetDay
+      ? (() => {
+          const overnight = findOvernightHotel(targetDay.items);
+          return overnight ? toOvernightPlaceFields(overnight) : null;
+        })()
+      : null;
+
     if (isDraftRoute) {
-      updateDraft((current) => ({
-        ...current,
-        days: current.days.map((day) => {
+      updateDraft((current) => {
+        const nextDays = current.days.map((day) => {
           if (day.id !== dayId) return day;
           const sortOrder = day.items.length;
           const newId = crypto.randomUUID();
@@ -674,8 +813,15 @@ export function PlannerShell({ tripId }: Props) {
                 ? demoteOtherOvernightHotels(nextItems, newId)
                 : nextItems,
           };
-        }),
-      }));
+        });
+        return {
+          ...current,
+          days:
+            type === "hotel"
+              ? applyMorningBaseSync(nextDays, dayId, previousOvernight)
+              : nextDays,
+        };
+      });
       return;
     }
 
@@ -700,42 +846,54 @@ export function PlannerShell({ tripId }: Props) {
     const data = (await res.json()) as { item: PlannerItem };
     setCloud((prev) => {
       if (!prev) return prev;
+      const nextDays = prev.days.map((day) => {
+        if (day.id !== dayId) return day;
+        const nextItems = [
+          ...day.items,
+          {
+            ...data.item,
+            status: normalizeStatus(data.item.status),
+            customTravelDurationMins:
+              data.item.customTravelDurationMins ?? null,
+            customTravelDistanceKm: data.item.customTravelDistanceKm ?? null,
+            travelMode: data.item.travelMode ?? "driving",
+          },
+        ];
+        return {
+          ...day,
+          items:
+            type === "hotel"
+              ? demoteOtherOvernightHotels(nextItems, data.item.id)
+              : nextItems,
+        };
+      });
       return {
         ...prev,
-        days: prev.days.map((day) => {
-          if (day.id !== dayId) return day;
-          const nextItems = [
-            ...day.items,
-            {
-              ...data.item,
-              status: normalizeStatus(data.item.status),
-              customTravelDurationMins:
-                data.item.customTravelDurationMins ?? null,
-              customTravelDistanceKm:
-                data.item.customTravelDistanceKm ?? null,
-              travelMode: data.item.travelMode ?? "driving",
-            },
-          ];
-          return {
-            ...day,
-            items:
-              type === "hotel"
-                ? demoteOtherOvernightHotels(nextItems, data.item.id)
-                : nextItems,
-          };
-        }),
+        days:
+          type === "hotel"
+            ? applyMorningBaseSync(nextDays, dayId, previousOvernight)
+            : nextDays,
       };
     });
+    if (type === "hotel") {
+      await refreshCloudTrip();
+    }
   }
 
   async function addCustomPlace(dayId: string, input: CustomStopInput) {
     if (!isEditor) return;
     const type: GuestItemType = input.asHotel ? "hotel" : "custom";
+    const targetDay = days.find((day) => day.id === dayId);
+    const previousOvernight = targetDay
+      ? (() => {
+          const overnight = findOvernightHotel(targetDay.items);
+          return overnight ? toOvernightPlaceFields(overnight) : null;
+        })()
+      : null;
 
     if (isDraftRoute) {
-      updateDraft((current) => ({
-        ...current,
-        days: current.days.map((day) => {
+      updateDraft((current) => {
+        const nextDays = current.days.map((day) => {
           if (day.id !== dayId) return day;
           const sortOrder = day.items.length;
           const newId = crypto.randomUUID();
@@ -767,8 +925,15 @@ export function PlannerShell({ tripId }: Props) {
                 ? demoteOtherOvernightHotels(nextItems, newId)
                 : nextItems,
           };
-        }),
-      }));
+        });
+        return {
+          ...current,
+          days:
+            type === "hotel"
+              ? applyMorningBaseSync(nextDays, dayId, previousOvernight)
+              : nextDays,
+        };
+      });
       return;
     }
 
@@ -795,32 +960,38 @@ export function PlannerShell({ tripId }: Props) {
     const data = (await res.json()) as { item: PlannerItem };
     setCloud((prev) => {
       if (!prev) return prev;
+      const nextDays = prev.days.map((day) => {
+        if (day.id !== dayId) return day;
+        const nextItems = [
+          ...day.items,
+          {
+            ...data.item,
+            status: normalizeStatus(data.item.status),
+            customTravelDurationMins:
+              data.item.customTravelDurationMins ?? null,
+            customTravelDistanceKm: data.item.customTravelDistanceKm ?? null,
+            travelMode: data.item.travelMode ?? "driving",
+          },
+        ];
+        return {
+          ...day,
+          items:
+            type === "hotel"
+              ? demoteOtherOvernightHotels(nextItems, data.item.id)
+              : nextItems,
+        };
+      });
       return {
         ...prev,
-        days: prev.days.map((day) => {
-          if (day.id !== dayId) return day;
-          const nextItems = [
-            ...day.items,
-            {
-              ...data.item,
-              status: normalizeStatus(data.item.status),
-              customTravelDurationMins:
-                data.item.customTravelDurationMins ?? null,
-              customTravelDistanceKm:
-                data.item.customTravelDistanceKm ?? null,
-              travelMode: data.item.travelMode ?? "driving",
-            },
-          ];
-          return {
-            ...day,
-            items:
-              type === "hotel"
-                ? demoteOtherOvernightHotels(nextItems, data.item.id)
-                : nextItems,
-          };
-        }),
+        days:
+          type === "hotel"
+            ? applyMorningBaseSync(nextDays, dayId, previousOvernight)
+            : nextDays,
       };
     });
+    if (type === "hotel") {
+      await refreshCloudTrip();
+    }
   }
 
   async function addDay(opts?: { isRestDay?: boolean }) {

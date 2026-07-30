@@ -60,12 +60,14 @@ import {
   travelModeTitle,
 } from "@/lib/maps/travel-mode";
 import {
-  formatClock,
+  formatClockWithDayOffset,
   useDisplayPrefs,
 } from "@/lib/prefs/display-prefs";
 import {
   buildStopTimePatch,
+  dayOffsetFromMins,
   minsToTimeInput,
+  resolveDepartAfterArrive,
   timeInputToMins,
 } from "@/lib/trips/stop-time";
 import {
@@ -141,6 +143,7 @@ function TravelConnector({
   leg,
   loading,
   isEditor,
+  overnightDrive,
   onTravelModeChange,
   onCustomTravelChange,
 }: {
@@ -148,6 +151,8 @@ function TravelConnector({
   leg: TravelLeg | null;
   loading: boolean;
   isEditor: boolean;
+  /** Depart today, arrive after midnight. */
+  overnightDrive?: boolean;
   onTravelModeChange?: (itemId: string, mode: TravelMode) => void;
   onCustomTravelChange?: (
     itemId: string,
@@ -232,6 +237,12 @@ function TravelConnector({
                   ? `${Math.round(leg.distanceKm)} km`
                   : `${leg.distanceKm} km`}
               </span>
+              {overnightDrive ? (
+                <>
+                  <span aria-hidden>·</span>
+                  <span className="font-medium text-primary">overnight</span>
+                </>
+              ) : null}
               {!hasCustom && leg.estimated ? (
                 <span className="text-xs">(est.)</span>
               ) : null}
@@ -400,7 +411,9 @@ function SortableStopRow({
   const checked = item.status === "visited";
   const isHotel = item.type === "hotel";
   const isCustom = item.type === "custom";
-  const overnight = row.arriveMins >= 24 * 60;
+  const arriveDayOffset = dayOffsetFromMins(row.arriveMins);
+  const departDayOffset = dayOffsetFromMins(row.departMins);
+  const overnight = arriveDayOffset > 0 || departDayOffset > 0;
   const visitedCheckboxId = useId();
 
   const [editing, setEditing] = useState(false);
@@ -418,11 +431,19 @@ function SortableStopRow({
     setTimeError(null);
   }, [editing, row.arriveMins, row.departMins]);
 
-  const draftArriveMins = timeInputToMins(arriveDraft);
-  const draftDepartMins = timeInputToMins(departDraft);
+  const draftDepartWall = timeInputToMins(departDraft);
+  const draftArriveContinuous = isFirstStop
+    ? draftDepartWall
+    : row.arriveMins;
+  const draftDepartContinuous =
+    draftArriveContinuous != null && draftDepartWall != null
+      ? isFirstStop
+        ? draftDepartWall
+        : resolveDepartAfterArrive(draftArriveContinuous, draftDepartWall)
+      : null;
   const draftStayMins =
-    draftArriveMins != null && draftDepartMins != null
-      ? Math.max(0, draftDepartMins - draftArriveMins)
+    draftArriveContinuous != null && draftDepartContinuous != null
+      ? Math.max(0, draftDepartContinuous - draftArriveContinuous)
       : null;
 
   const canEditTimes = Boolean(onUpdateItem) && (!isHotel || isFirstStop);
@@ -431,19 +452,19 @@ function SortableStopRow({
 
   async function saveTimes() {
     if (!canEditTimes || !onUpdateItem) return;
-    const departMins = timeInputToMins(departDraft);
-    // Day-opening stops: schedule anchors at depart (no separate arrive).
-    const arriveMins = isFirstStop
-      ? departMins
-      : timeInputToMins(arriveDraft) ?? row.arriveMins;
-    if (arriveMins == null || departMins == null) {
+    const departWall = timeInputToMins(departDraft);
+    if (departWall == null) {
       setTimeError("Enter a valid time.");
       return;
     }
-    if (departMins < arriveMins) {
-      setTimeError("Depart must be at or after arrive.");
-      return;
-    }
+
+    // Keep timeline day-offset for arrive (disabled field); resolve depart
+    // so "arrive 2:00 AM +1 → depart 10:00 AM" stays on the next morning.
+    const arriveMins = isFirstStop ? departWall : row.arriveMins;
+    const departMins = isFirstStop
+      ? departWall
+      : resolveDepartAfterArrive(arriveMins, departWall);
+
     setSavingTimes(true);
     setTimeError(null);
     try {
@@ -513,7 +534,7 @@ function SortableStopRow({
                           Arrive
                         </p>
                         <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-primary">
-                          {formatClock(row.arriveMins, timeFormat)}
+                          {formatClockWithDayOffset(row.arriveMins, timeFormat)}
                         </p>
                       </div>
                       <div className="mb-0.5 flex flex-col items-center px-0.5">
@@ -534,14 +555,14 @@ function SortableStopRow({
                       Depart
                     </p>
                     <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-foreground">
-                      {formatClock(row.departMins, timeFormat)}
+                      {formatClockWithDayOffset(row.departMins, timeFormat)}
                     </p>
                   </div>
                 </>
               )}
               {overnight ? (
-                <span className="mb-0.5 text-[10px] uppercase tracking-wide text-destructive">
-                  +day
+                <span className="mb-0.5 text-[10px] font-medium tracking-wide text-primary uppercase">
+                  Next day
                 </span>
               ) : null}
             </div>
@@ -560,7 +581,7 @@ function SortableStopRow({
                         Arrive
                       </p>
                       <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-primary">
-                        {formatClock(row.arriveMins, timeFormat)}
+                        {formatClockWithDayOffset(row.arriveMins, timeFormat)}
                       </p>
                       <div
                         aria-hidden
@@ -581,13 +602,13 @@ function SortableStopRow({
                     Depart
                   </p>
                   <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-foreground">
-                    {formatClock(row.departMins, timeFormat)}
+                    {formatClockWithDayOffset(row.departMins, timeFormat)}
                   </p>
                 </>
               )}
               {overnight ? (
-                <span className="mt-1 text-[10px] uppercase tracking-wide text-destructive">
-                  +day
+                <span className="mt-1 text-[10px] font-medium tracking-wide text-primary uppercase">
+                  Next day
                 </span>
               ) : null}
               {/* Decorative timeline marker — hollow so it isn’t mistaken for a control */}
@@ -888,6 +909,7 @@ function SortableStopRow({
                         <span className="font-normal">
                           {" "}
                           · from previous stop
+                          {arriveDayOffset > 0 ? " · next day" : ""}
                         </span>
                       </span>
                       <input
@@ -901,6 +923,11 @@ function SortableStopRow({
                   <label className="block">
                     <span className="mb-1 block text-xs font-medium text-muted-foreground">
                       Depart
+                      {departDayOffset > 0 ||
+                      (draftDepartContinuous != null &&
+                        dayOffsetFromMins(draftDepartContinuous) > 0) ? (
+                        <span className="font-normal"> · next day</span>
+                      ) : null}
                     </span>
                     <input
                       type="time"
@@ -919,6 +946,12 @@ function SortableStopRow({
                         : "—"}
                     </span>{" "}
                     (auto)
+                    {arriveDayOffset > 0 ? (
+                      <span>
+                        . Overnight arrivals keep the next-day offset when you
+                        save depart.
+                      </span>
+                    ) : null}
                   </p>
                 ) : null}
                 {timeError ? (
@@ -986,6 +1019,7 @@ export function SortableDayStops({
     travelMins,
     totalMins,
     overDay,
+    crossesMidnight,
     startClock,
     endClock,
     daySpanHours,
@@ -1065,6 +1099,9 @@ export function SortableDayStops({
           <span className="text-muted-foreground">
             · {formatDurationLabel(visitMins)} on site
           </span>
+          {crossesMidnight && !overDay ? (
+            <span className="text-primary">· overnight drive OK</span>
+          ) : null}
           {loading ? (
             <span className="text-muted-foreground">· updating routes…</span>
           ) : null}
@@ -1076,9 +1113,10 @@ export function SortableDayStops({
           >
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
             <span>
-              This day runs about {daySpanHours} hours — more than a full day.
-              It isn&apos;t realistic as scheduled. Shorten stops, skip optional
-              places, or split the route across another day.
+              This day&apos;s schedule spans about {daySpanHours} hours from
+              first arrive to last depart — longer than 24 hours awake/on the
+              road. Overnight arrivals are fine; trim stops or split the route
+              if the window itself is unrealistic.
             </span>
           </p>
         ) : null}
@@ -1128,6 +1166,16 @@ export function SortableDayStops({
                         leg={row.legAfter}
                         loading={loading}
                         isEditor={isEditor}
+                        overnightDrive={(() => {
+                          const nextRow = rowById.get(
+                            localItems[index + 1]!.id,
+                          );
+                          if (!nextRow) return false;
+                          return (
+                            dayOffsetFromMins(nextRow.arriveMins) >
+                            dayOffsetFromMins(row.departMins)
+                          );
+                        })()}
                         onTravelModeChange={onTravelModeChange}
                         onCustomTravelChange={onCustomTravelChange}
                       />

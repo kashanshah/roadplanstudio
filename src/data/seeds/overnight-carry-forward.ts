@@ -1,7 +1,7 @@
+import { MORNING_BASE_NOTE } from "@/lib/trips/morning-base";
 import { TRIP_START_NOTE } from "@/lib/trips/trip-start";
 
-export { TRIP_START_NOTE };
-export const MORNING_BASE_NOTE = "Morning base · depart for the day";
+export { TRIP_START_NOTE, MORNING_BASE_NOTE };
 
 /**
  * Day openings:

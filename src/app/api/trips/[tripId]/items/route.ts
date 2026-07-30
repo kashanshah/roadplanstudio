@@ -6,7 +6,12 @@ import { db } from "@/lib/db";
 import { accommodations, itineraryItems, tripDays } from "@/lib/db/schema";
 import { assertCanEdit, getTripAccess } from "@/lib/trips/permissions";
 import { getPlaceDetails } from "@/lib/maps/places";
+import {
+  findOvernightHotel,
+  toOvernightPlaceFields,
+} from "@/lib/trips/morning-base";
 import { demoteOtherOvernightHotels } from "@/lib/trips/overnight-hotel";
+import { syncNextDayMorningBaseInDb } from "@/lib/trips/sync-morning-base-db";
 
 type Ctx = { params: Promise<{ tripId: string }> };
 
@@ -138,6 +143,27 @@ export async function POST(request: Request, ctx: Ctx) {
       );
   }
 
+  const dayItemsBefore = await db
+    .select({
+      id: itineraryItems.id,
+      type: itineraryItems.type,
+      sortOrder: itineraryItems.sortOrder,
+      name: itineraryItems.name,
+      address: itineraryItems.address,
+      latitude: itineraryItems.latitude,
+      longitude: itineraryItems.longitude,
+      googlePlaceId: itineraryItems.googlePlaceId,
+      googleMapsUri: itineraryItems.googleMapsUri,
+    })
+    .from(itineraryItems)
+    .where(eq(itineraryItems.dayId, day.id))
+    .orderBy(asc(itineraryItems.sortOrder));
+
+  const previousOvernightItem = findOvernightHotel(dayItemsBefore);
+  const previousOvernight = previousOvernightItem
+    ? toOvernightPlaceFields(previousOvernightItem)
+    : null;
+
   const [item] = await db
     .insert(itineraryItems)
     .values({
@@ -189,6 +215,12 @@ export async function POST(request: Request, ctx: Ctx) {
         isConfirmed: "false",
       });
     }
+
+    await syncNextDayMorningBaseInDb({
+      tripId,
+      dayId: day.id,
+      previousOvernight,
+    });
   }
 
   return NextResponse.json({ item }, { status: 201 });

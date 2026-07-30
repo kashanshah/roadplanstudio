@@ -117,3 +117,16 @@ export function formatClock(
   const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
   return `${h12}:${mm} ${period}`;
 }
+
+/**
+ * Clock label that keeps overnight arrivals readable, e.g. "2:00 AM · +1".
+ */
+export function formatClockWithDayOffset(
+  totalMins: number,
+  timeFormat: TimeFormat = "h12",
+): string {
+  const clock = formatClock(totalMins, timeFormat);
+  const dayOffset = Math.max(0, Math.floor(totalMins / (24 * 60)));
+  if (dayOffset <= 0) return clock;
+  return `${clock} · +${dayOffset}`;
+}

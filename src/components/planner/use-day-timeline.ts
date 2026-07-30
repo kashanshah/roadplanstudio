@@ -7,7 +7,8 @@ import {
   type TravelMode,
 } from "@/lib/maps/travel-mode";
 import type { TimeFormat } from "@/lib/prefs/display-prefs";
-import { formatClock } from "@/lib/prefs/display-prefs";
+import { formatClockWithDayOffset } from "@/lib/prefs/display-prefs";
+import { MINUTES_PER_DAY } from "@/lib/trips/stop-time";
 
 export type TravelLeg = {
   durationMins: number;
@@ -18,7 +19,8 @@ export type TravelLeg = {
 };
 
 const DAY_START_MINS = 8 * 60; // 08:00
-export const MAX_REALISTIC_DAY_MINS = 24 * 60;
+/** Active schedule longer than this (start→end) is flagged — overnight arrivals alone are fine. */
+export const MAX_REALISTIC_DAY_SPAN_MINS = MINUTES_PER_DAY;
 
 function defaultStayMins(item: PlannerItem): number {
   if (item.type === "hotel") return 0;
@@ -142,7 +144,14 @@ export function useDayTimeline(
     const totalMins = visitMins + travelMins;
 
     const startMins = rows[0]?.arriveMins ?? DAY_START_MINS;
-    const endMins = rows[rows.length - 1]?.departMins ?? DAY_START_MINS;
+    const endMins =
+      rows[rows.length - 1]?.departMins ??
+      rows[rows.length - 1]?.arriveMins ??
+      DAY_START_MINS;
+    const scheduleSpanMins = Math.max(0, endMins - startMins);
+    // Overnight drives that land after midnight are expected; only flag when
+    // the awake/travel window itself stretches beyond 24 hours.
+    const overDay = scheduleSpanMins > MAX_REALISTIC_DAY_SPAN_MINS;
 
     return {
       rows,
@@ -151,10 +160,12 @@ export function useDayTimeline(
       driveMins: travelMins,
       travelMins,
       totalMins,
-      overDay: totalMins > MAX_REALISTIC_DAY_MINS,
-      endClock: formatClock(endMins, timeFormat),
-      startClock: formatClock(startMins, timeFormat),
-      daySpanHours: Math.round((totalMins / 60) * 10) / 10,
+      scheduleSpanMins,
+      overDay,
+      crossesMidnight: endMins >= MINUTES_PER_DAY && startMins < MINUTES_PER_DAY,
+      endClock: formatClockWithDayOffset(endMins, timeFormat),
+      startClock: formatClockWithDayOffset(startMins, timeFormat),
+      daySpanHours: Math.round((scheduleSpanMins / 60) * 10) / 10,
     };
   }, [items, legs, timeFormat]);
 

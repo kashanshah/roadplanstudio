@@ -5,7 +5,12 @@ import { getSession } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 import { accommodations, itineraryItems, tripDays } from "@/lib/db/schema";
 import { assertCanEdit, getTripAccess } from "@/lib/trips/permissions";
+import {
+  findOvernightHotel,
+  toOvernightPlaceFields,
+} from "@/lib/trips/morning-base";
 import { demoteOtherOvernightHotels } from "@/lib/trips/overnight-hotel";
+import { syncNextDayMorningBaseInDb } from "@/lib/trips/sync-morning-base-db";
 
 type Ctx = { params: Promise<{ tripId: string; itemId: string }> };
 
@@ -80,6 +85,27 @@ export async function PATCH(request: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const dayItemsBefore = await db
+    .select({
+      id: itineraryItems.id,
+      type: itineraryItems.type,
+      sortOrder: itineraryItems.sortOrder,
+      name: itineraryItems.name,
+      address: itineraryItems.address,
+      latitude: itineraryItems.latitude,
+      longitude: itineraryItems.longitude,
+      googlePlaceId: itineraryItems.googlePlaceId,
+      googleMapsUri: itineraryItems.googleMapsUri,
+    })
+    .from(itineraryItems)
+    .where(eq(itineraryItems.dayId, item.dayId))
+    .orderBy(asc(itineraryItems.sortOrder));
+
+  const previousOvernightItem = findOvernightHotel(dayItemsBefore);
+  const previousOvernight = previousOvernightItem
+    ? toOvernightPlaceFields(previousOvernightItem)
+    : null;
+
   const [updated] = await db
     .update(itineraryItems)
     .set(parsed.data)
@@ -148,6 +174,23 @@ export async function PATCH(request: Request, ctx: Ctx) {
     }
   }
 
+  const placeOrTypeChanged =
+    parsed.data.type != null ||
+    parsed.data.name != null ||
+    parsed.data.address !== undefined ||
+    parsed.data.latitude !== undefined ||
+    parsed.data.longitude !== undefined ||
+    parsed.data.googlePlaceId !== undefined ||
+    parsed.data.googleMapsUri !== undefined;
+
+  if (placeOrTypeChanged || item.type === "hotel" || nextType === "hotel") {
+    await syncNextDayMorningBaseInDb({
+      tripId,
+      dayId: item.dayId,
+      previousOvernight,
+    });
+  }
+
   return NextResponse.json({ item: updated });
 }
 
@@ -171,6 +214,12 @@ export async function DELETE(_request: Request, ctx: Ctx) {
       dayId: itineraryItems.dayId,
       type: itineraryItems.type,
       sortOrder: itineraryItems.sortOrder,
+      name: itineraryItems.name,
+      address: itineraryItems.address,
+      latitude: itineraryItems.latitude,
+      longitude: itineraryItems.longitude,
+      googlePlaceId: itineraryItems.googlePlaceId,
+      googleMapsUri: itineraryItems.googleMapsUri,
     })
     .from(itineraryItems)
     .innerJoin(tripDays, eq(tripDays.id, itineraryItems.dayId))
@@ -181,10 +230,39 @@ export async function DELETE(_request: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const dayItemsBefore = await db
+    .select({
+      id: itineraryItems.id,
+      type: itineraryItems.type,
+      sortOrder: itineraryItems.sortOrder,
+      name: itineraryItems.name,
+      address: itineraryItems.address,
+      latitude: itineraryItems.latitude,
+      longitude: itineraryItems.longitude,
+      googlePlaceId: itineraryItems.googlePlaceId,
+      googleMapsUri: itineraryItems.googleMapsUri,
+    })
+    .from(itineraryItems)
+    .where(eq(itineraryItems.dayId, item.dayId))
+    .orderBy(asc(itineraryItems.sortOrder));
+
+  const previousOvernightItem = findOvernightHotel(dayItemsBefore);
+  const previousOvernight = previousOvernightItem
+    ? toOvernightPlaceFields(previousOvernightItem)
+    : null;
+
   await db.delete(itineraryItems).where(eq(itineraryItems.id, itemId));
 
   if (item.type === "hotel" && item.sortOrder > 0) {
     await db.delete(accommodations).where(eq(accommodations.dayId, item.dayId));
+  }
+
+  if (item.type === "hotel" || previousOvernight) {
+    await syncNextDayMorningBaseInDb({
+      tripId,
+      dayId: item.dayId,
+      previousOvernight,
+    });
   }
 
   return NextResponse.json({ ok: true });
