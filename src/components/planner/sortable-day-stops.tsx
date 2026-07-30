@@ -35,7 +35,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   formatDurationLabel,
   useDayTimeline,
-  type TimelineRow,
   type TravelLeg,
 } from "@/components/planner/use-day-timeline";
 import {

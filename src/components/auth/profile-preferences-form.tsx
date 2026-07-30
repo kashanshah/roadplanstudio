@@ -3,6 +3,10 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+  useDisplayPrefs,
+  type TimeFormat,
+} from "@/lib/prefs/display-prefs";
 
 type ProfileData = {
   fullName: string | null;
@@ -25,6 +29,7 @@ type Props = {
 
 export function ProfilePreferencesForm({ email, initial }: Props) {
   const router = useRouter();
+  const { setTimeFormat } = useDisplayPrefs();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +40,9 @@ export function ProfilePreferencesForm({ email, initial }: Props) {
     setError(null);
     setMessage(null);
     const form = new FormData(e.currentTarget);
+    const timeFormat = (String(form.get("timeFormat") || "h12") === "h24"
+      ? "h24"
+      : "h12") as TimeFormat;
     const res = await fetch("/api/account/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -44,7 +52,7 @@ export function ProfilePreferencesForm({ email, initial }: Props) {
         language: String(form.get("language") || "en"),
         distanceUnit: String(form.get("distanceUnit") || "km"),
         temperatureUnit: String(form.get("temperatureUnit") || "c"),
-        timeFormat: String(form.get("timeFormat") || "h12"),
+        timeFormat,
         notificationPrefs: {
           emailMarketing: form.get("emailMarketing") === "on",
           tripUpdates: form.get("tripUpdates") === "on",
@@ -57,6 +65,7 @@ export function ProfilePreferencesForm({ email, initial }: Props) {
       setError("Could not save profile");
       return;
     }
+    setTimeFormat(timeFormat);
     setMessage("Profile saved");
     router.refresh();
   }
