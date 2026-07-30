@@ -232,6 +232,7 @@ export function SiteFooter() {
       links: [
         { href: localizedPath(locale, "/privacy"), label: dict.footer.privacy },
         { href: localizedPath(locale, "/terms"), label: dict.footer.terms },
+        { href: "/sitemap.xml", label: "Sitemap" },
       ],
     },
   ];
