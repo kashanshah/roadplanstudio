@@ -18,22 +18,32 @@ export function TemplatePickerModal({ open, onClose }: Props) {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [open, onClose]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       <button
         type="button"
         aria-label="Close template picker"
         className="absolute inset-0 bg-black/45"
         onClick={onClose}
       />
-      <div className="relative z-10 max-h-[90vh] w-full overflow-hidden rounded-t-3xl border border-border bg-background shadow-elevated sm:max-w-3xl sm:rounded-3xl">
-        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Choose a template"
+        className="relative z-10 flex max-h-[min(90dvh,720px)] w-full flex-col overflow-hidden rounded-t-3xl border border-border bg-background shadow-elevated sm:max-w-3xl sm:rounded-3xl"
+      >
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
           <div>
             <p className="text-sm font-medium uppercase tracking-[0.14em] text-primary">
               Start from a base trip
@@ -53,7 +63,7 @@ export function TemplatePickerModal({ open, onClose }: Props) {
           </button>
         </div>
 
-        <div className="space-y-3 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5">
           {tripTemplates.map((trip) => (
             <article
               key={trip.slug}
@@ -78,7 +88,7 @@ export function TemplatePickerModal({ open, onClose }: Props) {
           ))}
         </div>
 
-        <div className="flex items-center gap-2 border-t border-border px-5 py-3 text-sm text-muted-foreground sm:px-6">
+        <div className="flex shrink-0 items-center gap-2 border-t border-border px-5 py-3 text-sm text-muted-foreground sm:px-6">
           <Compass className="size-4 text-primary" />
           <Link
             href="/discover"
