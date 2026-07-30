@@ -9,6 +9,7 @@ import { RemixTripButton } from "@/components/trips/remix-trip-button";
 import { getTripTemplate, tripTemplates } from "@/data/trips/templates";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import { tripShareMetadata } from "@/lib/i18n/seo";
+import { formatDayHeading } from "@/lib/trips/format-day-label";
 import { getPublicTripBySlug } from "@/lib/trips/public";
 
 type Props = {
@@ -223,7 +224,7 @@ export default async function PublicTripPage({ params }: Props) {
           {days.map((day) => (
             <article key={day.id} className="border-t border-border pt-8">
               <p className="break-words text-sm tracking-widest text-muted-foreground uppercase">
-                {day.date}
+                {formatDayHeading(day.dayIndex, day.date)}
                 {day.routeSummary ? ` · ${day.routeSummary}` : ""}
               </p>
               <h3 className="mt-2 break-words font-display text-2xl font-semibold sm:text-3xl">

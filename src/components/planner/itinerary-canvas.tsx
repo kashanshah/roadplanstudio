@@ -27,6 +27,7 @@ import {
   type PlannerDay,
   type PlannerItem,
 } from "@/components/planner/planner-types";
+import { formatDayHeading } from "@/lib/trips/format-day-label";
 import { cn } from "@/lib/utils/cn";
 
 type DayPatch = Partial<
@@ -410,8 +411,7 @@ export function ItineraryCanvas({
                   <div className="min-w-0">
                     <p className="flex flex-wrap items-center gap-2 text-sm font-medium uppercase tracking-[0.12em] text-primary">
                       <span>
-                        Day {day.dayIndex}
-                        {day.date ? ` · ${day.date}` : ""}
+                        {formatDayHeading(day.dayIndex, day.date)}
                       </span>
                       {isRest ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-sandstone/35 px-2 py-0.5 text-[11px] font-semibold normal-case tracking-normal text-ink">
