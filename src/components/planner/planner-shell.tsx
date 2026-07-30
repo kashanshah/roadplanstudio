@@ -28,6 +28,7 @@ import type {
 import { Button } from "@/components/ui/button";
 import { ShareSheet } from "@/components/trips/share-sheet";
 import { TripmatesPanel } from "@/components/trips/tripmates-panel";
+import { TripNotesPanel } from "@/components/planner/trip-notes-panel";
 import { useSession } from "@/lib/auth-client";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 import type { GuestStopStatus } from "@/lib/trips/guest-trip";
@@ -583,6 +584,40 @@ export function PlannerShell({ tripId }: Props) {
     setActiveDayId(data.day.id);
   }
 
+  async function updateTripNotes(notes: string | null) {
+    if (!isEditor) return;
+
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        description: notes ?? "",
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        trip: { ...prev.trip, description: notes },
+      };
+    });
+
+    const res = await fetch(`/api/trips/${tripId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: notes }),
+    });
+    if (!res.ok) {
+      // reload to recover
+      const refresh = await fetch(`/api/trips/${tripId}`);
+      if (refresh.ok) {
+        const data = (await refresh.json()) as CloudTripPayload;
+        setCloud(data);
+      }
+    }
+  }
+
   async function updateDay(
     dayId: string,
     patch: Partial<
@@ -845,15 +880,26 @@ export function PlannerShell({ tripId }: Props) {
                   />
                 </div>
               ) : null}
-              {cloud?.trip.description ||
-              (isDraftRoute &&
-                (draft?.startLocation || draft?.endLocation)) ? (
+              {isDraftRoute &&
+              (draft?.startLocation || draft?.endLocation) ? (
                 <p className="mb-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-                  {isDraftRoute &&
-                  (draft?.startLocation || draft?.endLocation)
-                    ? `Route sketch: ${[draft?.startLocation, draft?.endLocation].filter(Boolean).join(" → ")}.`
-                    : cloud?.trip.description}
+                  Route sketch:{" "}
+                  {[draft?.startLocation, draft?.endLocation]
+                    .filter(Boolean)
+                    .join(" → ")}
+                  .
                 </p>
+              ) : null}
+              {!loadingCloud && (isDraftRoute ? hydrated : !!cloud) ? (
+                <TripNotesPanel
+                  notes={
+                    isDraftRoute
+                      ? draft?.description ?? null
+                      : cloud?.trip.description
+                  }
+                  isEditor={isEditor}
+                  onSave={updateTripNotes}
+                />
               ) : null}
               {!isDraftRoute && cloud && !isEditor ? (
                 <p className="mb-4 rounded-2xl bg-secondary px-4 py-3 text-base text-muted-foreground">

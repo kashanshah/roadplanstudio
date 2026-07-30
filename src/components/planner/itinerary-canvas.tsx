@@ -338,7 +338,7 @@ export function ItineraryCanvas({
       {showTemplates ? <TemplateStrip compact /> : null}
 
       {progress.total > 0 ? (
-        <div className="flex items-center justify-between gap-3 rounded-2xl bg-secondary/70 px-4 py-3">
+        <div className="rounded-2xl bg-secondary/70 px-4 py-3">
           <p className="text-base text-foreground">
             <span className="font-semibold">{progress.visited}</span>
             <span className="text-muted-foreground">
@@ -346,7 +346,7 @@ export function ItineraryCanvas({
               of {progress.total} stops checked
             </span>
           </p>
-          <div className="h-2 w-28 overflow-hidden rounded-full bg-background">
+          <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-background">
             <div
               className="h-full rounded-full bg-primary transition-all duration-500"
               style={{
