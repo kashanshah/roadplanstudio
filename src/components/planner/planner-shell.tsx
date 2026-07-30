@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { ShareSheet } from "@/components/trips/share-sheet";
 import { TripmatesPanel } from "@/components/trips/tripmates-panel";
 import { TripNotesPanel } from "@/components/planner/trip-notes-panel";
+import { TripStartPlacePanel } from "@/components/planner/trip-start-place-panel";
 import { useSession } from "@/lib/auth-client";
 import { SITE_URL } from "@/lib/constants";
 import { createDefaultPackingItems } from "@/lib/packing/defaults";
@@ -63,6 +64,11 @@ type CloudTripPayload = {
     totalDistanceKm?: number | null;
     difficulty?: string | null;
     slug?: string | null;
+    startPlaceId: string | null;
+    startPlaceName: string | null;
+    startAddress: string | null;
+    startLatitude: number | null;
+    startLongitude: number | null;
   };
   access: {
     isOwner: boolean;
@@ -558,6 +564,90 @@ export function PlannerShell({ tripId }: Props) {
     });
   }
 
+  async function addCustomPlace(
+    dayId: string,
+    input: {
+      name: string;
+      address?: string | null;
+      notes?: string | null;
+      asHotel?: boolean;
+    },
+  ) {
+    if (!isEditor) return;
+    const type = input.asHotel ? "hotel" : "custom";
+
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        days: current.days.map((day) => {
+          if (day.id !== dayId) return day;
+          const sortOrder = day.items.length;
+          return {
+            ...day,
+            items: [
+              ...day.items,
+              {
+                id: crypto.randomUUID(),
+                sortOrder,
+                type,
+                name: input.name,
+                address: input.address ?? null,
+                latitude: null,
+                longitude: null,
+                googlePlaceId: null,
+                durationMins: null,
+                travelMode: "driving" as const,
+                status: "to_visit" as const,
+                notes: input.notes ?? null,
+              },
+            ],
+          };
+        }),
+      }));
+      return;
+    }
+
+    if (!isLoggedIn) {
+      requireAuth("save");
+      return;
+    }
+
+    const res = await fetch(`/api/trips/${tripId}/items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dayId,
+        name: input.name,
+        address: input.address ?? null,
+        notes: input.notes ?? null,
+        type,
+      }),
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as { item: PlannerItem };
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        days: prev.days.map((day) =>
+          day.id === dayId
+            ? {
+                ...day,
+                items: [
+                  ...day.items,
+                  {
+                    ...data.item,
+                    status: normalizeStatus(data.item.status),
+                    travelMode: data.item.travelMode ?? "driving",
+                  },
+                ],
+              }
+            : day,
+        ),
+      };
+    });
+  }
+
   async function addDay(opts?: { isRestDay?: boolean }) {
     if (!isEditor) return;
     const isRestDay = opts?.isRestDay === true;
@@ -610,6 +700,64 @@ export function PlannerShell({ tripId }: Props) {
       };
     });
     setActiveDayId(data.day.id);
+  }
+
+  async function updateTripStart(
+    place: {
+      placeId: string | null;
+      name: string | null;
+      address: string | null;
+      latitude: number | null;
+      longitude: number | null;
+    } | null,
+  ) {
+    if (!isEditor) return;
+
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        startLocation: place?.name || undefined,
+        startPlaceId: place?.placeId ?? null,
+        startAddress: place?.address ?? null,
+        startLatitude: place?.latitude ?? null,
+        startLongitude: place?.longitude ?? null,
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        trip: {
+          ...prev.trip,
+          startPlaceId: place?.placeId ?? null,
+          startPlaceName: place?.name ?? null,
+          startAddress: place?.address ?? null,
+          startLatitude: place?.latitude ?? null,
+          startLongitude: place?.longitude ?? null,
+        },
+      };
+    });
+
+    const res = await fetch(`/api/trips/${tripId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        startPlaceId: place?.placeId ?? null,
+        startPlaceName: place?.name ?? null,
+        startAddress: place?.address ?? null,
+        startLatitude: place?.latitude ?? null,
+        startLongitude: place?.longitude ?? null,
+      }),
+    });
+    if (!res.ok) {
+      const refresh = await fetch(`/api/trips/${tripId}`);
+      if (refresh.ok) {
+        const data = (await refresh.json()) as CloudTripPayload;
+        setCloud(data);
+      }
+    }
   }
 
   async function updateTripNotes(notes: string | null) {
@@ -1060,26 +1208,45 @@ export function PlannerShell({ tripId }: Props) {
                   />
                 </div>
               ) : null}
-              {isDraftRoute &&
-              (draft?.startLocation || draft?.endLocation) ? (
+              {isDraftRoute && draft?.endLocation ? (
                 <p className="mb-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-                  Route sketch:{" "}
-                  {[draft?.startLocation, draft?.endLocation]
-                    .filter(Boolean)
-                    .join(" → ")}
-                  .
+                  Heading toward {draft.endLocation}
+                  {draft.startLocation ? ` from ${draft.startLocation}` : ""}.
                 </p>
               ) : null}
               {!loadingCloud && (isDraftRoute ? hydrated : !!cloud) ? (
-                <TripNotesPanel
-                  notes={
-                    isDraftRoute
-                      ? draft?.description ?? null
-                      : cloud?.trip.description
-                  }
-                  isEditor={isEditor}
-                  onSave={updateTripNotes}
-                />
+                <>
+                  <TripStartPlacePanel
+                    value={
+                      isDraftRoute
+                        ? {
+                            placeId: draft?.startPlaceId ?? null,
+                            name: draft?.startLocation ?? null,
+                            address: draft?.startAddress ?? null,
+                            latitude: draft?.startLatitude ?? null,
+                            longitude: draft?.startLongitude ?? null,
+                          }
+                        : {
+                            placeId: cloud?.trip.startPlaceId ?? null,
+                            name: cloud?.trip.startPlaceName ?? null,
+                            address: cloud?.trip.startAddress ?? null,
+                            latitude: cloud?.trip.startLatitude ?? null,
+                            longitude: cloud?.trip.startLongitude ?? null,
+                          }
+                    }
+                    isEditor={isEditor}
+                    onSave={updateTripStart}
+                  />
+                  <TripNotesPanel
+                    notes={
+                      isDraftRoute
+                        ? draft?.description ?? null
+                        : cloud?.trip.description
+                    }
+                    isEditor={isEditor}
+                    onSave={updateTripNotes}
+                  />
+                </>
               ) : null}
               {!loadingCloud && (isDraftRoute ? hydrated : !!cloud) ? (
                 <PackingListPanel
@@ -1110,6 +1277,7 @@ export function PlannerShell({ tripId }: Props) {
                   onDeleteDay={deleteDay}
                   onReorderDay={reorderDay}
                   onAddPlace={addPlace}
+                  onAddCustomPlace={addCustomPlace}
                   onAddDay={addDay}
                   onFocusStop={(item) => {
                     setFocusStopId(item.id);

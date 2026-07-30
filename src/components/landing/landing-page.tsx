@@ -8,6 +8,10 @@ import { motion } from "framer-motion";
 import { ArrowRight, Compass, Map, Route as RouteIcon, Share2 } from "lucide-react";
 import { GuestBanner } from "@/components/layout/guest-banner";
 import { SiteFooter, SiteNav } from "@/components/layout/site-nav";
+import {
+  PlaceAutocomplete,
+  type PlaceSelection,
+} from "@/components/places/place-autocomplete";
 import { Button } from "@/components/ui/button";
 import { tripTemplates } from "@/data/trips/templates";
 import type { Locale } from "@/lib/i18n/config";
@@ -24,6 +28,7 @@ export function LandingPage({ locale = "en" }: { locale?: Locale }) {
   const router = useRouter();
   const { startPlanning } = useGuestTrip();
   const [pending, setPending] = useState(false);
+  const [startPlace, setStartPlace] = useState<PlaceSelection | null>(null);
   const dict = getDictionary(locale);
   const featured = tripTemplates.slice(0, 6);
 
@@ -66,7 +71,11 @@ export function LandingPage({ locale = "en" }: { locale?: Locale }) {
     const form = new FormData(e.currentTarget);
     startPlanning({
       title: String(form.get("title") || "").trim() || undefined,
-      startLocation: String(form.get("start") || "").trim() || undefined,
+      startLocation: startPlace?.name,
+      startPlaceId: startPlace?.placeId ?? null,
+      startAddress: startPlace?.formattedAddress ?? null,
+      startLatitude: startPlace?.latitude ?? null,
+      startLongitude: startPlace?.longitude ?? null,
       endLocation: String(form.get("end") || "").trim() || undefined,
     });
     router.push("/planner/new");
@@ -131,11 +140,11 @@ export function LandingPage({ locale = "en" }: { locale?: Locale }) {
               className="h-12 w-full rounded-full border border-snow/20 bg-snow/10 px-5 text-base text-snow placeholder:text-snow/45 outline-none backdrop-blur-sm focus-visible:ring-2 focus-visible:ring-accent sm:text-lg"
             />
             <div className="grid gap-3 sm:grid-cols-2">
-              <input
-                name="start"
-                type="text"
-                placeholder="From — e.g. Saskatoon"
-                className="h-12 w-full rounded-full border border-snow/20 bg-snow/10 px-5 text-base text-snow placeholder:text-snow/45 outline-none backdrop-blur-sm focus-visible:ring-2 focus-visible:ring-accent sm:text-lg"
+              <PlaceAutocomplete
+                value={startPlace}
+                onChange={setStartPlace}
+                tone="onDark"
+                placeholder="Start from — search a place"
               />
               <input
                 name="end"

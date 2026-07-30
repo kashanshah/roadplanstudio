@@ -22,6 +22,10 @@ type GuestTripContextValue = {
   startPlanning: (input?: {
     title?: string;
     startLocation?: string;
+    startPlaceId?: string | null;
+    startAddress?: string | null;
+    startLatitude?: number | null;
+    startLongitude?: number | null;
     endLocation?: string;
   }) => GuestTripDraft;
   loadDraft: (draft: GuestTripDraft) => void;
@@ -44,6 +48,10 @@ export function GuestTripProvider({ children }: { children: ReactNode }) {
     (input?: {
       title?: string;
       startLocation?: string;
+      startPlaceId?: string | null;
+      startAddress?: string | null;
+      startLatitude?: number | null;
+      startLongitude?: number | null;
       endLocation?: string;
     }) => {
       const next = createEmptyGuestTrip(input);

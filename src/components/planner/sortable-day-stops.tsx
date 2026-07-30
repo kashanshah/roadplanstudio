@@ -194,6 +194,7 @@ function SortableStopRow({
 
   const checked = item.status === "visited";
   const isHotel = item.type === "hotel";
+  const isCustom = item.type === "custom";
   const overnight = row.arriveMins >= 24 * 60;
 
   return (
@@ -235,118 +236,127 @@ function SortableStopRow({
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 items-start gap-2">
-            {isEditor ? (
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start sm:gap-2">
+            <div className="flex min-w-0 flex-1 items-start gap-2">
+              <div className="mt-1 hidden sm:block">
+                <Checkbox
+                  checked={checked}
+                  disabled={!isEditor}
+                  onCheckedChange={() => onToggleVisited(item)}
+                  aria-label={`Mark ${item.name} visited`}
+                />
+              </div>
+
               <button
                 type="button"
-                className={cn(
-                  "mt-1 hidden touch-none rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground sm:block",
-                  "cursor-grab active:cursor-grabbing",
-                  isDragging && "cursor-grabbing",
-                )}
-                aria-label={`Drag to reorder ${item.name}`}
-                {...attributes}
-                {...listeners}
+                className="group/place min-w-0 flex-1 cursor-pointer rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => onOpenItem(item)}
               >
-                <GripVertical className="size-4" />
-              </button>
-            ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {index + 1}.
+                  </span>
+                  <span
+                    className={cn(
+                      "break-words text-base font-semibold underline-offset-4 transition-colors group-hover/place:text-primary group-hover/place:underline sm:text-lg",
+                      checked && "line-through",
+                    )}
+                  >
+                    {item.name}
+                  </span>
+                  {isHotel ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-sandstone/25 px-2 py-0.5 text-xs font-medium text-ink">
+                      <BedDouble className="size-3" />
+                      Hotel
+                    </span>
+                  ) : null}
+                  {isCustom ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                      <MapPin className="size-3" />
+                      Custom
+                    </span>
+                  ) : null}
+                  {item.status === "favorite" ? (
+                    <Heart className="size-3.5 fill-destructive text-destructive" />
+                  ) : null}
+                  {item.status !== "to_visit" && item.status !== "visited" ? (
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
+                      {statusLabel(item.status as StopStatus)}
+                    </span>
+                  ) : null}
+                </div>
 
-            <div className="mt-1 hidden sm:block">
-              <Checkbox
-                checked={checked}
-                disabled={!isEditor}
-                onCheckedChange={() => onToggleVisited(item)}
-                aria-label={`Mark ${item.name} visited`}
-              />
+                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                  {isHotel ? (
+                    <span className="inline-flex items-center gap-1 text-foreground/80">
+                      <BedDouble className="size-3.5" />
+                      Overnight stay
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-foreground/80">
+                      <Clock className="size-3.5 text-primary" />
+                      {row.stayMins > 0
+                        ? `${formatDurationLabel(row.stayMins)} at location`
+                        : "No time at location"}
+                    </span>
+                  )}
+                  {item.address ? (
+                    <span className="inline-flex min-w-0 max-w-full items-center gap-1">
+                      <MapPin className="size-3.5 shrink-0" />
+                      <span className="min-w-0 line-clamp-2 break-words sm:line-clamp-1">
+                        {item.address}
+                      </span>
+                    </span>
+                  ) : null}
+                  {item.googlePlaceId ? (
+                    <span className="inline-flex items-center gap-1 text-primary">
+                      <Star className="size-3.5" />
+                      Places
+                    </span>
+                  ) : null}
+                </div>
+                {item.notes ? (
+                  <p className="mt-1 line-clamp-2 text-sm text-foreground/75">
+                    {item.notes}
+                  </p>
+                ) : null}
+              </button>
             </div>
 
-            <button
-              type="button"
-              className="group/place min-w-0 flex-1 cursor-pointer rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              onClick={() => onOpenItem(item)}
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground">
-                  {index + 1}.
-                </span>
-                <span
-                  className={cn(
-                    "break-words text-base font-semibold underline-offset-4 transition-colors group-hover/place:text-primary group-hover/place:underline sm:text-lg",
-                    checked && "line-through",
-                  )}
-                >
-                  {item.name}
-                </span>
-                {isHotel ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-sandstone/25 px-2 py-0.5 text-xs font-medium text-ink">
-                    <BedDouble className="size-3" />
-                    Hotel
-                  </span>
-                ) : null}
-                {item.status === "favorite" ? (
-                  <Heart className="size-3.5 fill-destructive text-destructive" />
-                ) : null}
-                {item.status !== "to_visit" && item.status !== "visited" ? (
-                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
-                    {statusLabel(item.status as StopStatus)}
-                  </span>
-                ) : null}
-              </div>
-
-              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                {isHotel ? (
-                  <span className="inline-flex items-center gap-1 text-foreground/80">
-                    <BedDouble className="size-3.5" />
-                    Overnight stay
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-foreground/80">
-                    <Clock className="size-3.5 text-primary" />
-                    {row.stayMins > 0
-                      ? `${formatDurationLabel(row.stayMins)} at location`
-                      : "No time at location"}
-                  </span>
-                )}
-                {item.address ? (
-                  <span className="inline-flex min-w-0 max-w-full items-center gap-1">
-                    <MapPin className="size-3.5 shrink-0" />
-                    <span className="min-w-0 line-clamp-2 break-words sm:line-clamp-1">
-                      {item.address}
-                    </span>
-                  </span>
-                ) : null}
-                {item.googlePlaceId ? (
-                  <span className="inline-flex items-center gap-1 text-primary">
-                    <Star className="size-3.5" />
-                    Places
-                  </span>
-                ) : null}
-              </div>
-              {item.notes ? (
-                <p className="mt-1 line-clamp-2 text-sm text-foreground/75">
-                  {item.notes}
-                </p>
-              ) : null}
-            </button>
-
             {isEditor && total > 1 ? (
-              <div className="mt-0.5 hidden shrink-0 flex-col gap-0.5 sm:flex">
+              <div
+                className="flex w-full shrink-0 overflow-hidden rounded-lg border border-border sm:mt-0.5 sm:w-auto sm:flex-col"
+                role="group"
+                aria-label={`Reorder ${item.name}`}
+              >
                 <button
                   type="button"
                   disabled={index === 0}
                   onClick={() => onMove(item.id, -1)}
                   aria-label={`Move ${item.name} up`}
-                  className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+                  className="grid h-9 flex-1 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30 sm:size-8 sm:flex-none"
                 >
                   <ChevronUp className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "grid h-9 flex-1 touch-none place-items-center border-x border-border text-muted-foreground hover:bg-secondary hover:text-foreground sm:size-8 sm:flex-none sm:border-x-0 sm:border-y",
+                    "cursor-grab active:cursor-grabbing",
+                    isDragging && "cursor-grabbing bg-secondary",
+                  )}
+                  aria-label={`Drag to reorder ${item.name}`}
+                  {...attributes}
+                  {...listeners}
+                >
+                  <GripVertical className="size-4" />
                 </button>
                 <button
                   type="button"
                   disabled={index === total - 1}
                   onClick={() => onMove(item.id, 1)}
                   aria-label={`Move ${item.name} down`}
-                  className="grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+                  className="grid h-9 flex-1 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30 sm:size-8 sm:flex-none"
                 >
                   <ChevronDown className="size-4" />
                 </button>
@@ -354,29 +364,6 @@ function SortableStopRow({
             ) : null}
           </div>
         </div>
-
-        {isEditor && total > 1 ? (
-          <div className="mt-2 flex gap-1 sm:hidden">
-            <button
-              type="button"
-              disabled={index === 0}
-              onClick={() => onMove(item.id, -1)}
-              aria-label={`Move ${item.name} up`}
-              className="grid size-9 flex-1 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
-            >
-              <ChevronUp className="size-4" />
-            </button>
-            <button
-              type="button"
-              disabled={index === total - 1}
-              onClick={() => onMove(item.id, 1)}
-              aria-label={`Move ${item.name} down`}
-              className="grid size-9 flex-1 place-items-center rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
-            >
-              <ChevronDown className="size-4" />
-            </button>
-          </div>
-        ) : null}
       </div>
     </li>
   );

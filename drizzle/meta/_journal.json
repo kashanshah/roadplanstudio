@@ -8,6 +8,20 @@
       "when": 1785396039088,
       "tag": "0000_init_app_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785396100000,
+      "tag": "0001_time_format",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785396200000,
+      "tag": "0002_trip_start_place",
+      "breakpoints": true
     }
   ]
 }
