@@ -70,7 +70,7 @@ export function AccountMenu({ tone = "default", className }: Props) {
           className,
         )}
       >
-        <Link href={`/auth/login?next=${encodeURIComponent(pathname || "/")}`}>
+        <Link href={`/auth/login?next=${encodeURIComponent(pathname || "/")}`} className="sm:inline-flex">
           Sign in
         </Link>
       </Button>
