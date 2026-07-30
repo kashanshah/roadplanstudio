@@ -361,6 +361,8 @@ export function PlannerShell({ tripId }: Props) {
         | "durationMins"
         | "notes"
         | "travelMode"
+        | "timingMode"
+        | "timingMins"
         | "customTravelDurationMins"
         | "customTravelDistanceKm"
       >

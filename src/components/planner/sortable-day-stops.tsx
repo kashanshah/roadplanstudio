@@ -155,15 +155,6 @@ function TravelConnector({
     setEditingCustom(false);
   }
 
-  if (!leg && !loading) {
-    return (
-      <div className="relative ml-[2.85rem] flex items-center gap-2 py-1.5 sm:ml-[3.35rem]">
-        <span className="absolute -left-[1.15rem] top-0 bottom-0 w-px bg-border sm:-left-[1.35rem]" />
-        <span className="text-xs text-muted-foreground">No route data</span>
-      </div>
-    );
-  }
-
   return (
     <div className="relative ml-[2.85rem] py-2 sm:ml-[3.35rem]">
       <span className="absolute -left-[1.15rem] top-0 bottom-0 w-px bg-map-route/50 sm:-left-[1.35rem]" />
@@ -188,7 +179,9 @@ function TravelConnector({
               ) : null}
               {hasCustom ? <span className="text-xs">(custom)</span> : null}
             </>
-          ) : null}
+          ) : (
+            <span>No route data</span>
+          )}
         </div>
 
         {isEditor && onTravelModeChange ? (

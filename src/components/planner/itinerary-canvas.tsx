@@ -41,7 +41,17 @@ type Props = {
   onUpdateItem: (
     itemId: string,
     patch: Partial<
-      Pick<PlannerItem, "status" | "durationMins" | "notes" | "travelMode">
+      Pick<
+        PlannerItem,
+        | "status"
+        | "durationMins"
+        | "notes"
+        | "travelMode"
+        | "timingMode"
+        | "timingMins"
+        | "customTravelDurationMins"
+        | "customTravelDistanceKm"
+      >
     >,
   ) => Promise<void> | void;
   onDeleteItem?: (itemId: string) => Promise<void> | void;

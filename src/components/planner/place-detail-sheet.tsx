@@ -29,7 +29,17 @@ type Props = {
   onUpdate: (
     itemId: string,
     patch: Partial<
-      Pick<PlannerItem, "status" | "durationMins" | "notes" | "travelMode">
+      Pick<
+        PlannerItem,
+        | "status"
+        | "durationMins"
+        | "notes"
+        | "travelMode"
+        | "timingMode"
+        | "timingMins"
+        | "customTravelDurationMins"
+        | "customTravelDistanceKm"
+      >
     >,
   ) => Promise<void> | void;
   onDelete?: (itemId: string) => Promise<void> | void;
@@ -54,6 +64,10 @@ export function PlaceDetailSheet({
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [duration, setDuration] = useState("");
+  const [timingMode, setTimingMode] = useState<"" | "arrive_by" | "depart_at">("");
+  const [timingTime, setTimingTime] = useState("");
+  const [customTravelDuration, setCustomTravelDuration] = useState("");
+  const [customTravelDistance, setCustomTravelDistance] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -67,6 +81,22 @@ export function PlaceDetailSheet({
     setNotes(item.notes ?? "");
     setDuration(
       item.durationMins != null ? String(item.durationMins) : "",
+    );
+    setTimingMode(item.timingMode ?? "");
+    if (item.timingMins != null) {
+      const hh = String(Math.floor(item.timingMins / 60)).padStart(2, "0");
+      const mm = String(item.timingMins % 60).padStart(2, "0");
+      setTimingTime(`${hh}:${mm}`);
+    } else {
+      setTimingTime("");
+    }
+    setCustomTravelDuration(
+      item.customTravelDurationMins != null
+        ? String(item.customTravelDurationMins)
+        : "",
+    );
+    setCustomTravelDistance(
+      item.customTravelDistanceKm != null ? String(item.customTravelDistanceKm) : "",
     );
     setConfirmDelete(false);
 
@@ -128,11 +158,45 @@ export function PlaceDetailSheet({
     try {
       const durationMins =
         duration.trim() === "" ? null : Number.parseInt(duration, 10);
+      const [hh = "", mm = ""] = timingTime.split(":");
+      const h = Number.parseInt(hh, 10);
+      const m = Number.parseInt(mm, 10);
+      const parsedTimingMins =
+        timingMode &&
+        Number.isFinite(h) &&
+        Number.isFinite(m) &&
+        h >= 0 &&
+        h <= 23 &&
+        m >= 0 &&
+        m <= 59
+          ? h * 60 + m
+          : null;
+      const customDuration =
+        customTravelDuration.trim() === ""
+          ? null
+          : Number.parseInt(customTravelDuration, 10);
+      const customDistance =
+        customTravelDistance.trim() === ""
+          ? null
+          : Number.parseFloat(customTravelDistance);
       await onUpdate(item.id, {
         notes: notes.trim() || null,
         durationMins:
           durationMins != null && Number.isFinite(durationMins)
             ? durationMins
+            : null,
+        timingMode:
+          parsedTimingMins != null && timingMode
+            ? timingMode
+            : null,
+        timingMins: parsedTimingMins,
+        customTravelDurationMins:
+          customDuration != null && Number.isFinite(customDuration)
+            ? customDuration
+            : null,
+        customTravelDistanceKm:
+          customDistance != null && Number.isFinite(customDistance)
+            ? customDistance
             : null,
       });
     } finally {
@@ -310,6 +374,78 @@ export function PlaceDetailSheet({
                 placeholder="Tickets, parking, meeting spots…"
               />
             </label>
+
+            <div className="rounded-xl border border-border bg-background/80 p-3">
+              <p className="text-sm font-medium text-foreground">Time anchor</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1 block text-xs text-muted-foreground">
+                    Anchor
+                  </span>
+                  <select
+                    value={timingMode}
+                    disabled={!isEditor}
+                    onChange={(e) =>
+                      setTimingMode(
+                        e.target.value as "" | "arrive_by" | "depart_at",
+                      )
+                    }
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                  >
+                    <option value="">No anchor</option>
+                    <option value="arrive_by">Arrive by</option>
+                    <option value="depart_at">Depart at</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs text-muted-foreground">
+                    Time
+                  </span>
+                  <input
+                    type="time"
+                    value={timingTime}
+                    disabled={!isEditor || !timingMode}
+                    onChange={(e) => setTimingTime(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-border bg-background/80 p-3">
+              <p className="text-sm font-medium text-foreground">
+                Custom travel to next stop
+              </p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1 block text-xs text-muted-foreground">
+                    Duration (mins)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={customTravelDuration}
+                    disabled={!isEditor}
+                    onChange={(e) => setCustomTravelDuration(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-xs text-muted-foreground">
+                    Distance (km)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={customTravelDistance}
+                    disabled={!isEditor}
+                    onChange={(e) => setCustomTravelDistance(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                  />
+                </label>
+              </div>
+            </div>
           </div>
 
           {details?.regularOpeningHours?.length ? (
