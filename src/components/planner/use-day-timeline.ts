@@ -80,12 +80,20 @@ export function useDayTimeline(
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Depend only on fingerprint (stable string). Avoid setLegs([]) every
+    // render — a fresh [] always fails Object.is and loops when parents pass
+    // a new items[] reference each render.
     if (routedStops.length < 2) {
-      setLegs([]);
-      setLoading(false);
+      setLegs((prev) => (prev.length === 0 ? prev : []));
+      setLoading((prev) => (prev ? false : prev));
       return;
     }
 
+    const points = routedStops.map((i) => ({
+      latitude: i.latitude,
+      longitude: i.longitude,
+    }));
+    const requestModes = modes;
     const controller = new AbortController();
     setLoading(true);
 
@@ -94,11 +102,8 @@ export function useDayTimeline(
       headers: { "Content-Type": "application/json" },
       signal: controller.signal,
       body: JSON.stringify({
-        points: routedStops.map((i) => ({
-          latitude: i.latitude,
-          longitude: i.longitude,
-        })),
-        modes,
+        points,
+        modes: requestModes,
       }),
     })
       .then(async (res) => {
@@ -110,13 +115,13 @@ export function useDayTimeline(
         setLegs(
           (data.legs ?? []).map((leg, i) => ({
             ...leg,
-            travelMode: normalizeTravelMode(leg.travelMode ?? modes[i]),
+            travelMode: normalizeTravelMode(leg.travelMode ?? requestModes[i]),
           })),
         );
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return;
-        setLegs([]);
+        setLegs((prev) => (prev.length === 0 ? prev : []));
         console.error(err);
       })
       .finally(() => {
@@ -124,7 +129,8 @@ export function useDayTimeline(
       });
 
     return () => controller.abort();
-  }, [fingerprint, routedStops, modes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fingerprint encodes stops + modes
+  }, [fingerprint]);
 
   const timeline = useMemo(() => {
     const rows = buildTimelineRows(items, legs);
