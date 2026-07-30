@@ -54,10 +54,67 @@ type TemplateSource = {
   }>;
 };
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string) {
+  return UUID_RE.test(value);
+}
+
 function loadStaticTemplateTrip(slug: string): TemplateSource | null {
   const template = getTripTemplate(slug);
   if (!template) {
     return null;
+  }
+
+  const days: TemplateSource["days"] = template.days.map((day, dayIndex) => {
+    const dayId = `template:${template.slug}:day:${dayIndex + 1}`;
+    return {
+      id: dayId,
+      dayIndex: dayIndex + 1,
+      date: null,
+      title: day.title,
+      notes: day.summary,
+      routeSummary: day.summary,
+      isRestDay: "false",
+      items: day.stops.map((stop, stopIndex) => ({
+        id: `${dayId}:item:${stopIndex + 1}`,
+        dayId,
+        sortOrder: stopIndex,
+        type: stop.type === "lodging" ? "hotel" : "attraction",
+        googlePlaceId: null,
+        name: stop.name,
+        address: null,
+        latitude: stop.lat,
+        longitude: stop.lng,
+        durationMins: null,
+        timingMode: null,
+        timingMins: null,
+        customTravelDurationMins: null,
+        customTravelDistanceKm: null,
+        travelMode: "driving",
+        status: "to_visit",
+        notes: stop.note ?? null,
+        googleMapsUri: null,
+      })),
+    };
+  });
+
+  // Static marketing templates often include only a sample day spine.
+  // Expand to the advertised duration so remixing opens a full itinerary.
+  while (days.length < template.durationDays) {
+    const dayIndex = days.length + 1;
+    const dayId = `template:${template.slug}:day:${dayIndex}`;
+    days.push({
+      id: dayId,
+      dayIndex,
+      date: null,
+      title: `Day ${dayIndex}`,
+      notes: null,
+      routeSummary: null,
+      isRestDay: "false",
+      items: [],
+    });
   }
 
   return {
@@ -72,42 +129,13 @@ function loadStaticTemplateTrip(slug: string): TemplateSource | null {
       difficulty: template.difficulty,
       visibility: "public",
     },
-    days: template.days.map((day, dayIndex) => {
-      const dayId = `template:${template.slug}:day:${dayIndex + 1}`;
-      return {
-        id: dayId,
-        dayIndex: dayIndex + 1,
-        date: null,
-        title: day.title,
-        notes: day.summary,
-        routeSummary: day.summary,
-        isRestDay: "false",
-        items: day.stops.map((stop, stopIndex) => ({
-          id: `${dayId}:item:${stopIndex + 1}`,
-          dayId,
-          sortOrder: stopIndex,
-          type: stop.type === "lodging" ? "hotel" : "attraction",
-          googlePlaceId: null,
-          name: stop.name,
-          address: null,
-          latitude: stop.lat,
-          longitude: stop.lng,
-          durationMins: null,
-          timingMode: null,
-          timingMins: null,
-          customTravelDurationMins: null,
-          customTravelDistanceKm: null,
-          travelMode: "driving",
-          status: "to_visit",
-          notes: stop.note ?? null,
-          googleMapsUri: null,
-        })),
-      };
-    }),
+    days,
   };
 }
 
-export async function loadTemplateTrip(slug: string): Promise<TemplateSource | null> {
+export async function loadTemplateTrip(
+  slug: string,
+): Promise<TemplateSource | null> {
   const [trip] = await db
     .select()
     .from(trips)
@@ -145,17 +173,46 @@ export async function loadTemplateTrip(slug: string): Promise<TemplateSource | n
 export async function loadTemplateTripWithFallback(
   slug: string,
 ): Promise<TemplateSource | null> {
-  const dbTemplate = await loadTemplateTrip(slug);
-  if (dbTemplate) {
-    return dbTemplate;
+  try {
+    const dbTemplate = await loadTemplateTrip(slug);
+    if (dbTemplate) {
+      return dbTemplate;
+    }
+  } catch (err) {
+    // Production may have schema/data drift; public pages already catch this.
+    // Remix must still succeed from static templates.
+    console.error("loadTemplateTrip failed; falling back to static", {
+      slug,
+      err,
+    });
   }
+
   return loadStaticTemplateTrip(slug);
 }
 
+/**
+ * Guest draft resolver: prefer static marketing templates so Start Trip from
+ * Discover never depends on DB health. Fall back to public DB trips for
+ * user-shared itineraries that aren't in the static catalog.
+ */
+export async function loadTemplateForGuestDraft(
+  slug: string,
+): Promise<TemplateSource | null> {
+  const staticTemplate = loadStaticTemplateTrip(slug);
+  if (staticTemplate) {
+    return staticTemplate;
+  }
+
+  try {
+    return await loadTemplateTrip(slug);
+  } catch (err) {
+    console.error("loadTemplateTrip failed for guest draft", { slug, err });
+    return null;
+  }
+}
+
 /** Public/guest-safe draft shape for remixing a template locally. */
-export function templateToGuestDraft(
-  data: TemplateSource,
-): GuestTripDraft {
+export function templateToGuestDraft(data: TemplateSource): GuestTripDraft {
   const days: GuestDay[] = data.days.map((day) => ({
     id: crypto.randomUUID(),
     dayIndex: day.dayIndex,
@@ -260,26 +317,29 @@ export async function duplicateTemplateForUser(opts: {
       );
     }
 
-    const lodging = await db
-      .select()
-      .from(accommodations)
-      .where(eq(accommodations.dayId, day.id));
+    // Static template day ids are not UUIDs — skip lodging lookup for those.
+    if (isUuid(day.id)) {
+      const lodging = await db
+        .select()
+        .from(accommodations)
+        .where(eq(accommodations.dayId, day.id));
 
-    for (const stay of lodging) {
-      await db.insert(accommodations).values({
-        tripId: created.id,
-        dayId: createdDay.id,
-        googlePlaceId: stay.googlePlaceId,
-        name: stay.name,
-        address: stay.address,
-        latitude: stay.latitude,
-        longitude: stay.longitude,
-        checkInDate: stay.checkInDate,
-        checkOutDate: stay.checkOutDate,
-        bookingDetails: stay.bookingDetails,
-        googleMapsUri: stay.googleMapsUri,
-        isConfirmed: stay.isConfirmed,
-      });
+      for (const stay of lodging) {
+        await db.insert(accommodations).values({
+          tripId: created.id,
+          dayId: createdDay.id,
+          googlePlaceId: stay.googlePlaceId,
+          name: stay.name,
+          address: stay.address,
+          latitude: stay.latitude,
+          longitude: stay.longitude,
+          checkInDate: stay.checkInDate,
+          checkOutDate: stay.checkOutDate,
+          bookingDetails: stay.bookingDetails,
+          googleMapsUri: stay.googleMapsUri,
+          isConfirmed: stay.isConfirmed,
+        });
+      }
     }
   }
 
