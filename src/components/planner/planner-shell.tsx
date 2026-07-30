@@ -131,6 +131,9 @@ export function PlannerShell({ tripId }: Props) {
           ...data,
           days: (data.days ?? []).map((d) => ({
             ...d,
+            isRestDay:
+              d.isRestDay === true ||
+              (d as { isRestDay?: unknown }).isRestDay === "true",
             items: (d.items ?? []).map((i) => ({
               ...i,
               status: normalizeStatus(i.status),
@@ -193,6 +196,7 @@ export function PlannerShell({ tripId }: Props) {
         date: d.date ?? null,
         routeSummary: d.routeSummary ?? null,
         notes: d.notes ?? null,
+        isRestDay: !!d.isRestDay,
         items: d.items
           .slice()
           .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -521,8 +525,9 @@ export function PlannerShell({ tripId }: Props) {
     });
   }
 
-  async function addDay() {
+  async function addDay(opts?: { isRestDay?: boolean }) {
     if (!isEditor) return;
+    const isRestDay = opts?.isRestDay === true;
 
     if (isDraftRoute) {
       updateDraft((current) => {
@@ -530,7 +535,8 @@ export function PlannerShell({ tripId }: Props) {
         const day = {
           id: crypto.randomUUID(),
           dayIndex,
-          title: `Day ${dayIndex}`,
+          title: isRestDay ? "Rest day" : `Day ${dayIndex}`,
+          isRestDay,
           items: [],
         };
         return {
@@ -550,7 +556,7 @@ export function PlannerShell({ tripId }: Props) {
     const res = await fetch(`/api/trips/${tripId}/days`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ isRestDay }),
     });
     if (!res.ok) return;
     const data = (await res.json()) as {
@@ -564,12 +570,95 @@ export function PlannerShell({ tripId }: Props) {
           ...prev.days,
           {
             ...data.day,
+            isRestDay: !!data.day.isRestDay,
             items: data.day.items ?? [],
           },
         ],
       };
     });
     setActiveDayId(data.day.id);
+  }
+
+  async function updateDay(
+    dayId: string,
+    patch: Partial<
+      Pick<PlannerDay, "title" | "notes" | "date" | "routeSummary" | "isRestDay">
+    >,
+  ) {
+    if (!isEditor) return;
+
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        days: current.days.map((day) =>
+          day.id === dayId ? { ...day, ...patch } : day,
+        ),
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        days: prev.days.map((day) =>
+          day.id === dayId ? { ...day, ...patch } : day,
+        ),
+      };
+    });
+
+    const res = await fetch(`/api/trips/${tripId}/days/${dayId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      console.error("Failed to update day");
+    }
+  }
+
+  async function deleteDay(dayId: string) {
+    if (!isEditor) return;
+    if (days.length <= 1) return;
+
+    if (isDraftRoute) {
+      updateDraft((current) => {
+        const nextDays = current.days
+          .filter((day) => day.id !== dayId)
+          .map((day, index) => ({
+            ...day,
+            dayIndex: index + 1,
+          }));
+        return {
+          ...current,
+          durationDays: Math.max(1, nextDays.length),
+          days: nextDays,
+        };
+      });
+      setActiveDayId((prev) => (prev === dayId ? null : prev));
+      return;
+    }
+
+    const previous = cloud;
+    setCloud((prev) => {
+      if (!prev) return prev;
+      const nextDays = prev.days
+        .filter((day) => day.id !== dayId)
+        .map((day, index) => ({
+          ...day,
+          dayIndex: index + 1,
+        }));
+      return { ...prev, days: nextDays };
+    });
+    setActiveDayId((prev) => (prev === dayId ? null : prev));
+
+    const res = await fetch(`/api/trips/${tripId}/days/${dayId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      console.error("Failed to delete day");
+      if (previous) setCloud(previous);
+    }
   }
 
   return (
@@ -718,6 +807,8 @@ export function PlannerShell({ tripId }: Props) {
                   }
                   onUpdateItem={updateItem}
                   onDeleteItem={deleteItem}
+                  onUpdateDay={updateDay}
+                  onDeleteDay={deleteDay}
                   onReorderDay={reorderDay}
                   onAddPlace={addPlace}
                   onAddDay={addDay}

@@ -30,6 +30,7 @@ export type GuestDay = {
   title: string;
   notes?: string | null;
   routeSummary?: string | null;
+  isRestDay?: boolean;
   items: GuestItineraryItem[];
 };
 

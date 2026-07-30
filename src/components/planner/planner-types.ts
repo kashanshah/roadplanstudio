@@ -33,6 +33,7 @@ export type PlannerDay = {
   date: string | null;
   routeSummary: string | null;
   notes: string | null;
+  isRestDay: boolean;
   items: PlannerItem[];
 };
 

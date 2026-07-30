@@ -12,6 +12,7 @@ const createSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   date: z.string().nullable().optional(),
   notes: z.string().max(4000).nullable().optional(),
+  isRestDay: z.boolean().optional(),
 });
 
 export async function POST(request: Request, ctx: Ctx) {
@@ -40,7 +41,10 @@ export async function POST(request: Request, ctx: Ctx) {
     .where(eq(tripDays.tripId, tripId));
 
   const dayIndex = (agg?.maxIndex ?? 0) + 1;
-  const title = parsed.data.title?.trim() || `Day ${dayIndex}`;
+  const isRest = parsed.data.isRestDay === true;
+  const title =
+    parsed.data.title?.trim() ||
+    (isRest ? `Rest day` : `Day ${dayIndex}`);
 
   const [day] = await db
     .insert(tripDays)
@@ -50,6 +54,7 @@ export async function POST(request: Request, ctx: Ctx) {
       title,
       date: parsed.data.date ?? null,
       notes: parsed.data.notes ?? null,
+      isRestDay: isRest ? "true" : "false",
     })
     .returning();
 
@@ -62,5 +67,11 @@ export async function POST(request: Request, ctx: Ctx) {
     })
     .where(and(eq(trips.id, tripId)));
 
-  return NextResponse.json({ day: { ...day, items: [] } }, { status: 201 });
+  return NextResponse.json({
+    day: {
+      ...day,
+      isRestDay: day.isRestDay === "true",
+      items: [],
+    },
+  }, { status: 201 });
 }

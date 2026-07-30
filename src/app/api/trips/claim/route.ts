@@ -37,6 +37,7 @@ const guestDaySchema = z.object({
   title: z.string().min(1),
   notes: z.string().nullable().optional(),
   routeSummary: z.string().nullable().optional(),
+  isRestDay: z.boolean().optional().default(false),
   items: z.array(guestItemSchema).default([]),
 });
 
@@ -95,6 +96,7 @@ export async function POST(request: Request) {
           title: day.title,
           notes: day.notes || null,
           routeSummary: day.routeSummary || null,
+          isRestDay: day.isRestDay ? "true" : "false",
         })
         .returning();
 

@@ -124,6 +124,8 @@ export const tripDays = pgTable("trip_days", {
   title: text("title").notNull(),
   notes: text("notes"),
   routeSummary: text("route_summary"),
+  /** Recovery / zero-travel day (still countable in the itinerary). */
+  isRestDay: text("is_rest_day").notNull().default("false"),
 });
 
 export const itineraryItems = pgTable("itinerary_items", {
