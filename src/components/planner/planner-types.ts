@@ -51,6 +51,14 @@ export type PlannerAccommodation = {
   googleMapsUri: string | null;
 };
 
+export type PlannerPackingItem = {
+  id: string;
+  label: string;
+  packed: boolean;
+  sortOrder: number;
+  category?: string | null;
+};
+
 export type PlaceDetailsPayload = {
   placeId: string;
   name: string;

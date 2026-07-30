@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Map, Route as RouteIcon, Share2, Globe2, Layers3, MoonStar } from "lucide-react";
+import { Map, Route as RouteIcon, Share2, Globe2, Layers3, MoonStar, FileDown, Luggage } from "lucide-react";
 import { SiteFooter, SiteNav } from "@/components/layout/site-nav";
 import { Button } from "@/components/ui/button";
 import { localeMetadataBase } from "@/lib/i18n/seo";
@@ -41,12 +41,22 @@ const features = [
     title: "Guest → cloud",
     body: "Plan anonymously, then claim the trip into a Better Auth account when you are ready.",
   },
-  {
-    icon: MoonStar,
-    title: "Stop status sync",
-    body: "Mark stops visited, skipped or favorite — the map stays aligned while you travel.",
-  },
-];
+    {
+      icon: MoonStar,
+      title: "Stop status sync",
+      body: "Mark stops visited, skipped or favorite — the map stays aligned while you travel.",
+    },
+    {
+      icon: Luggage,
+      title: "Packing checklist",
+      body: "Build a trip packing list in the planner, tick items as you go, and carry them into the PDF export.",
+    },
+    {
+      icon: FileDown,
+      title: "Interactive PDF export",
+      body: "Download a detailed trip dossier with day bookmarks, Maps links, lodging index and packing checklist.",
+    },
+  ];
 
 export default function FeaturesPage() {
   const dict = getDictionary("en");
