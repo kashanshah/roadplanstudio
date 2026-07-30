@@ -14,17 +14,30 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  formatDuration,
+  formatDurationLabel,
+} from "@/components/planner/use-day-timeline";
+import {
   statusLabel,
   type PlaceDetailsPayload,
   type PlannerItem,
   type StopStatus,
 } from "@/components/planner/planner-types";
+import {
+  buildStopTimePatch,
+  minsToTimeInput,
+  timeInputToMins,
+} from "@/lib/trips/stop-time";
 import { cn } from "@/lib/utils/cn";
 
 type Props = {
   item: PlannerItem | null;
   isEditor: boolean;
+  /** Computed timeline arrive (minutes from midnight). */
+  arriveMins?: number | null;
+  /** Computed timeline depart (minutes from midnight). */
+  departMins?: number | null;
+  /** First stop in the day — arrive edits set the day start. */
+  isFirstStop?: boolean;
   onClose: () => void;
   onUpdate: (
     itemId: string,
@@ -55,6 +68,9 @@ const STATUSES: StopStatus[] = [
 export function PlaceDetailSheet({
   item,
   isEditor,
+  arriveMins = null,
+  departMins = null,
+  isFirstStop = false,
   onClose,
   onUpdate,
   onDelete,
@@ -63,9 +79,9 @@ export function PlaceDetailSheet({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
-  const [duration, setDuration] = useState("");
-  const [timingMode, setTimingMode] = useState<"" | "arrive_by" | "depart_at">("");
-  const [timingTime, setTimingTime] = useState("");
+  const [arriveDraft, setArriveDraft] = useState("");
+  const [departDraft, setDepartDraft] = useState("");
+  const [timeError, setTimeError] = useState<string | null>(null);
   const [customTravelDuration, setCustomTravelDuration] = useState("");
   const [customTravelDistance, setCustomTravelDistance] = useState("");
   const [saving, setSaving] = useState(false);
@@ -79,17 +95,16 @@ export function PlaceDetailSheet({
       return;
     }
     setNotes(item.notes ?? "");
-    setDuration(
-      item.durationMins != null ? String(item.durationMins) : "",
-    );
-    setTimingMode(item.timingMode ?? "");
-    if (item.timingMins != null) {
-      const hh = String(Math.floor(item.timingMins / 60)).padStart(2, "0");
-      const mm = String(item.timingMins % 60).padStart(2, "0");
-      setTimingTime(`${hh}:${mm}`);
-    } else {
-      setTimingTime("");
-    }
+    const arrive =
+      arriveMins ??
+      item.timingMins ??
+      8 * 60;
+    const depart =
+      departMins ??
+      arrive + (item.durationMins ?? 60);
+    setArriveDraft(minsToTimeInput(arrive));
+    setDepartDraft(minsToTimeInput(depart));
+    setTimeError(null);
     setCustomTravelDuration(
       item.customTravelDurationMins != null
         ? String(item.customTravelDurationMins)
@@ -122,12 +137,7 @@ export function PlaceDetailSheet({
         return data.place ?? null;
       })
       .then((place) => {
-        if (!cancelled) {
-          setDetails(place);
-          if (place && !item.durationMins && place.estimatedDurationMins) {
-            setDuration(String(place.estimatedDurationMins));
-          }
-        }
+        if (!cancelled) setDetails(place);
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -143,7 +153,7 @@ export function PlaceDetailSheet({
     return () => {
       cancelled = true;
     };
-  }, [item]);
+  }, [item, arriveMins, departMins]);
 
   if (!item) return null;
 
@@ -152,25 +162,19 @@ export function PlaceDetailSheet({
     ? `/api/places/photo?name=${encodeURIComponent(photoName)}&maxWidthPx=900`
     : null;
 
+  const isHotel = item?.type === "hotel";
+  const draftArriveMins = timeInputToMins(arriveDraft);
+  const draftDepartMins = timeInputToMins(departDraft);
+  const draftStayMins =
+    draftArriveMins != null && draftDepartMins != null
+      ? Math.max(0, draftDepartMins - draftArriveMins)
+      : null;
+
   async function saveMeta() {
     if (!item || !isEditor) return;
     setSaving(true);
+    setTimeError(null);
     try {
-      const durationMins =
-        duration.trim() === "" ? null : Number.parseInt(duration, 10);
-      const [hh = "", mm = ""] = timingTime.split(":");
-      const h = Number.parseInt(hh, 10);
-      const m = Number.parseInt(mm, 10);
-      const parsedTimingMins =
-        timingMode &&
-        Number.isFinite(h) &&
-        Number.isFinite(m) &&
-        h >= 0 &&
-        h <= 23 &&
-        m >= 0 &&
-        m <= 59
-          ? h * 60 + m
-          : null;
       const customDuration =
         customTravelDuration.trim() === ""
           ? null
@@ -179,17 +183,35 @@ export function PlaceDetailSheet({
         customTravelDistance.trim() === ""
           ? null
           : Number.parseFloat(customTravelDistance);
+
+      let timePatch: Partial<
+        Pick<PlannerItem, "durationMins" | "timingMode" | "timingMins">
+      > = {};
+
+      if (!isHotel) {
+        const arrive =
+          isFirstStop
+            ? timeInputToMins(arriveDraft)
+            : (arriveMins ?? timeInputToMins(arriveDraft));
+        const depart = timeInputToMins(departDraft);
+        if (arrive == null || depart == null) {
+          setTimeError("Enter a valid arrive and depart time.");
+          return;
+        }
+        if (depart < arrive) {
+          setTimeError("Depart must be at or after arrive.");
+          return;
+        }
+        timePatch = buildStopTimePatch({
+          arriveMins: arrive,
+          departMins: depart,
+          isFirstStop,
+        });
+      }
+
       await onUpdate(item.id, {
         notes: notes.trim() || null,
-        durationMins:
-          durationMins != null && Number.isFinite(durationMins)
-            ? durationMins
-            : null,
-        timingMode:
-          parsedTimingMins != null && timingMode
-            ? timingMode
-            : null,
-        timingMins: parsedTimingMins,
+        ...timePatch,
         customTravelDurationMins:
           customDuration != null && Number.isFinite(customDuration)
             ? customDuration
@@ -335,33 +357,6 @@ export function PlaceDetailSheet({
 
           <div className="mt-6 grid gap-4">
             <label className="block">
-              <span className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-                <Clock className="size-3.5" />
-                Planned duration (minutes)
-              </span>
-              <input
-                type="number"
-                min={0}
-                max={1440}
-                value={duration}
-                disabled={!isEditor}
-                onChange={(e) => setDuration(e.target.value)}
-                placeholder={
-                  details?.estimatedDurationMins
-                    ? `Suggested ${details.estimatedDurationMins}`
-                    : "e.g. 90"
-                }
-                className="h-11 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
-              />
-              {details?.estimatedDurationMins ? (
-                <span className="mt-1 block text-sm text-muted-foreground">
-                  Places type suggests ~
-                  {formatDuration(details.estimatedDurationMins)}
-                </span>
-              ) : null}
-            </label>
-
-            <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-muted-foreground">
                 Notes
               </span>
@@ -375,42 +370,63 @@ export function PlaceDetailSheet({
               />
             </label>
 
-            <div className="rounded-xl border border-border bg-background/80 p-3">
-              <p className="text-sm font-medium text-foreground">Time anchor</p>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1 block text-xs text-muted-foreground">
-                    Anchor
-                  </span>
-                  <select
-                    value={timingMode}
-                    disabled={!isEditor}
-                    onChange={(e) =>
-                      setTimingMode(
-                        e.target.value as "" | "arrive_by" | "depart_at",
-                      )
-                    }
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
-                  >
-                    <option value="">No anchor</option>
-                    <option value="arrive_by">Arrive by</option>
-                    <option value="depart_at">Depart at</option>
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-xs text-muted-foreground">
-                    Time
-                  </span>
-                  <input
-                    type="time"
-                    value={timingTime}
-                    disabled={!isEditor || !timingMode}
-                    onChange={(e) => setTimingTime(e.target.value)}
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
-                  />
-                </label>
+            {!isHotel ? (
+              <div className="rounded-xl border border-border bg-background/80 p-3">
+                <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                  <Clock className="size-3.5 text-primary" />
+                  Schedule
+                </p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-muted-foreground">
+                      Arrive
+                      {!isFirstStop ? (
+                        <span> · from previous stop</span>
+                      ) : (
+                        <span> · day start</span>
+                      )}
+                    </span>
+                    <input
+                      type="time"
+                      value={arriveDraft}
+                      disabled={!isEditor || !isFirstStop}
+                      onChange={(e) => setArriveDraft(e.target.value)}
+                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs text-muted-foreground">
+                      Depart
+                    </span>
+                    <input
+                      type="time"
+                      value={departDraft}
+                      disabled={!isEditor}
+                      onChange={(e) => setDepartDraft(e.target.value)}
+                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                    />
+                  </label>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Stay{" "}
+                  <span className="font-medium text-foreground">
+                    {draftStayMins != null
+                      ? formatDurationLabel(draftStayMins)
+                      : "—"}
+                  </span>{" "}
+                  (auto)
+                </p>
+                {timeError ? (
+                  <p className="mt-1 text-sm text-destructive" role="alert">
+                    {timeError}
+                  </p>
+                ) : null}
               </div>
-            </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-sandstone/15 p-3 text-sm text-foreground/85">
+                Overnight stay — no depart time on this stop.
+              </div>
+            )}
 
             <div className="rounded-xl border border-border bg-background/80 p-3">
               <p className="text-sm font-medium text-foreground">

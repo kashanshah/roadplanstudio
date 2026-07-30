@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils/cn";
 export type StopTimingInput = {
   timingMode: "arrive_by" | "depart_at" | null;
   timingMins: number | null;
+  /** Stay length derived from arrive → depart when both are set. */
+  durationMins?: number | null;
 };
 
 export type CustomStopInput = {
@@ -54,8 +56,8 @@ export function AddStopSearch({
   const [customNotes, setCustomNotes] = useState("");
   const [customAsHotel, setCustomAsHotel] = useState(false);
   const [savingCustom, setSavingCustom] = useState(false);
-  const [timingMode, setTimingMode] = useState<"" | "arrive_by" | "depart_at">("");
-  const [timingTime, setTimingTime] = useState("");
+  const [arriveTime, setArriveTime] = useState("");
+  const [departTime, setDepartTime] = useState("");
 
   function parseTimeToMins(value: string): number | null {
     if (!value) return null;
@@ -67,11 +69,37 @@ export function AddStopSearch({
     return hour * 60 + minute;
   }
 
-  const parsedTimingMins = timingMode ? parseTimeToMins(timingTime) : null;
-  const timingInput: StopTimingInput = {
-    timingMode: timingMode && parsedTimingMins != null ? timingMode : null,
-    timingMins: parsedTimingMins,
-  };
+  const arriveMins = parseTimeToMins(arriveTime);
+  const departMins = parseTimeToMins(departTime);
+  const derivedStay =
+    arriveMins != null && departMins != null
+      ? Math.max(0, departMins - arriveMins)
+      : null;
+
+  const timingInput: StopTimingInput = (() => {
+    if (arriveMins != null && departMins != null) {
+      return {
+        timingMode: "arrive_by",
+        timingMins: arriveMins,
+        durationMins: derivedStay,
+      };
+    }
+    if (arriveMins != null) {
+      return {
+        timingMode: "arrive_by",
+        timingMins: arriveMins,
+        durationMins: null,
+      };
+    }
+    if (departMins != null) {
+      return {
+        timingMode: "depart_at",
+        timingMins: departMins,
+        durationMins: null,
+      };
+    }
+    return { timingMode: null, timingMins: null, durationMins: null };
+  })();
 
   function resetAndClose() {
     setOpen(false);
@@ -83,8 +111,8 @@ export function AddStopSearch({
     setCustomAddress("");
     setCustomNotes("");
     setCustomAsHotel(false);
-    setTimingMode("");
-    setTimingTime("");
+    setArriveTime("");
+    setDepartTime("");
   }
 
   useEffect(() => {
@@ -332,40 +360,48 @@ export function AddStopSearch({
       )}
 
       <div className="mt-3 rounded-xl border border-border bg-card/70 p-3">
-        <p className="text-sm font-medium text-foreground">Time anchor (optional)</p>
+        <p className="text-sm font-medium text-foreground">Times (optional)</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Set an arrive/depart target and the day schedule shifts around it.
+          Arrive sets the day start when this is the first stop. Stay is
+          calculated from arrive → depart.
         </p>
         <div className="mt-2 grid gap-2 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-muted-foreground">
-              Anchor type
-            </span>
-            <select
-              value={timingMode}
-              onChange={(e) =>
-                setTimingMode(e.target.value as "" | "arrive_by" | "depart_at")
-              }
-              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">No time anchor</option>
-              <option value="arrive_by">Arrive by</option>
-              <option value="depart_at">Depart at</option>
-            </select>
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-muted-foreground">
-              Time
+              Arrive
             </span>
             <input
               type="time"
-              value={timingTime}
-              disabled={!timingMode}
-              onChange={(e) => setTimingTime(e.target.value)}
-              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+              value={arriveTime}
+              onChange={(e) => setArriveTime(e.target.value)}
+              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              Depart
+            </span>
+            <input
+              type="time"
+              value={departTime}
+              onChange={(e) => setDepartTime(e.target.value)}
+              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
           </label>
         </div>
+        {derivedStay != null ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Stay{" "}
+            <span className="font-medium text-foreground">
+              {derivedStay < 60
+                ? `${derivedStay} min`
+                : `${Math.floor(derivedStay / 60)}h${
+                    derivedStay % 60 ? ` ${derivedStay % 60}m` : ""
+                  }`}
+            </span>{" "}
+            (auto)
+          </p>
+        ) : null}
       </div>
 
       <button
