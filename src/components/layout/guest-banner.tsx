@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useAuthGate } from "@/components/auth/auth-gate-provider";
+import { tip } from "@/components/ui/app-tooltip";
 import { useSession } from "@/lib/auth-client";
 
 export function GuestBanner() {
@@ -49,7 +50,8 @@ export function GuestBanner() {
             type="button"
             onClick={() => setDismissed(true)}
             className="grid size-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-background/60 hover:text-foreground"
-            aria-label="Dismiss guest banner"
+            aria-label="Dismiss"
+            {...tip("Dismiss")}
           >
             <X className="h-4 w-4" />
           </button>

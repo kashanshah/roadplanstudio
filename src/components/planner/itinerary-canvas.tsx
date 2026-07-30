@@ -19,6 +19,7 @@ import type {
 import { PlaceDetailSheet } from "@/components/planner/place-detail-sheet";
 import { SortableDayStops } from "@/components/planner/sortable-day-stops";
 import { TemplateStrip } from "@/components/planner/template-strip";
+import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
 import {
   nextCheckboxStatus,
@@ -162,6 +163,7 @@ function DayMenu({
         type="button"
         aria-label={`Day ${day.dayIndex} options`}
         aria-expanded={open}
+        {...tip("Day options")}
         onClick={(e) => {
           e.stopPropagation();
           setOpen((v) => !v);

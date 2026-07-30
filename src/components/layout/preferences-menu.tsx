@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Clock, Moon, Settings2, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { tip } from "@/components/ui/app-tooltip";
 import { useDisplayPrefs } from "@/lib/prefs/display-prefs";
 import { cn } from "@/lib/utils/cn";
 
@@ -43,9 +44,10 @@ export function PreferencesMenu({ tone = "default", className }: Props) {
     <div ref={rootRef} className={cn("relative", className)}>
       <button
         type="button"
-        aria-label="Open preferences"
+        aria-label="Preferences"
         aria-expanded={open}
         aria-haspopup="menu"
+        {...tip("Preferences")}
         onClick={() => setOpen((v) => !v)}
         className={cn(
           "relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border backdrop-blur transition-colors",

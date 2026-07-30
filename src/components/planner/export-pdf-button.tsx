@@ -8,6 +8,7 @@ import type {
   PlannerPackingItem,
 } from "@/components/planner/planner-types";
 import { Button } from "@/components/ui/button";
+import { tip } from "@/components/ui/app-tooltip";
 import { buildTripPdfModel } from "@/lib/pdf/build-trip-pdf-model";
 import { SITE_URL } from "@/lib/constants";
 import { cn } from "@/lib/utils/cn";
@@ -113,11 +114,12 @@ export function ExportPdfButton({
         className="text-base"
         onClick={() => void onExport()}
         disabled={pending || !canExport}
-        title={
-          canExport
-            ? "Download an interactive PDF itinerary"
-            : "Add days before exporting"
+        aria-label={
+          canExport ? "Export PDF itinerary" : "Add days before exporting"
         }
+        {...tip(
+          canExport ? "Export PDF itinerary" : "Add days before exporting",
+        )}
       >
         <FileDown className="h-4 w-4" />
         <span className="hidden sm:inline">

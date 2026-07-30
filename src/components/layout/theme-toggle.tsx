@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { tip } from "@/components/ui/app-tooltip";
 import { cn } from "@/lib/utils/cn";
 
 export function ThemeToggle({ className }: { className?: string }) {
@@ -17,6 +18,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       <button
         type="button"
         aria-label="Toggle theme"
+        {...tip("Theme")}
         className={cn(
           "relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-background/60",
           className,
@@ -26,12 +28,14 @@ export function ThemeToggle({ className }: { className?: string }) {
   }
 
   const isDark = resolvedTheme === "dark";
+  const themeLabel = isDark ? "Switch to light" : "Switch to dark";
 
   return (
     <button
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label={themeLabel}
+      {...tip(themeLabel)}
       className={cn(
         "relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border border-border bg-background/60 text-foreground backdrop-blur transition-colors hover:bg-secondary",
         className,

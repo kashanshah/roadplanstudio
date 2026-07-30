@@ -36,6 +36,7 @@ import {
   SlidersHorizontal,
   Star,
 } from "lucide-react";
+import { tip } from "@/components/ui/app-tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   formatDurationLabel,
@@ -201,9 +202,9 @@ function TravelConnector({
                 <button
                   key={m}
                   type="button"
-                  title={travelModeTitle(m)}
                   aria-label={travelModeTitle(m)}
                   aria-pressed={active}
+                  {...tip(travelModeTitle(m))}
                   onClick={() => {
                     if (m !== mode) onTravelModeChange(fromItem.id, m);
                   }}
@@ -452,6 +453,7 @@ function SortableStopRow({
                   disabled={index === 0}
                   onClick={() => onMove(item.id, -1)}
                   aria-label={`Move ${item.name} up`}
+                  {...tip("Move up")}
                   className="grid h-9 flex-1 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30 sm:size-8 sm:flex-none"
                 >
                   <ChevronUp className="size-4" />
@@ -464,6 +466,7 @@ function SortableStopRow({
                     isDragging && "cursor-grabbing bg-secondary",
                   )}
                   aria-label={`Drag to reorder ${item.name}`}
+                  {...tip("Drag to reorder")}
                   {...attributes}
                   {...listeners}
                 >
@@ -474,6 +477,7 @@ function SortableStopRow({
                   disabled={index === total - 1}
                   onClick={() => onMove(item.id, 1)}
                   aria-label={`Move ${item.name} down`}
+                  {...tip("Move down")}
                   className="grid h-9 flex-1 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30 sm:size-8 sm:flex-none"
                 >
                   <ChevronDown className="size-4" />

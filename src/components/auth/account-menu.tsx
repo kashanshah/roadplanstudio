@@ -12,6 +12,7 @@ import {
   Settings,
   UserRound,
 } from "lucide-react";
+import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
 import { signOut, useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils/cn";
@@ -77,7 +78,10 @@ export function AccountMenu({
           className,
         )}
       >
-        <Link href={`/auth/login?next=${encodeURIComponent(pathname || "/")}`}>
+        <Link
+          href={`/auth/login?next=${encodeURIComponent(pathname || "/")}`}
+          {...(compact ? tip("Sign in") : {})}
+        >
           {compact ? (
             <>
               <UserRound className="size-4 sm:hidden" aria-hidden />
@@ -113,6 +117,8 @@ export function AccountMenu({
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label="Account menu"
+        {...tip("Account")}
         className={cn(
           "inline-flex h-10 items-center gap-1.5 rounded-full text-sm font-medium transition-colors",
           compact ? "max-w-none px-2.5 sm:max-w-[10rem] sm:px-3" : "max-w-[10rem] px-3",
