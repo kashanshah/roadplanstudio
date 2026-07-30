@@ -32,6 +32,8 @@ import {
   GripVertical,
   Heart,
   MapPin,
+  RotateCcw,
+  SlidersHorizontal,
   Star,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -66,6 +68,13 @@ type Props = {
   onOpenItem: (item: PlannerItem) => void;
   onReorder: (dayId: string, orderedIds: string[]) => void;
   onTravelModeChange?: (itemId: string, mode: TravelMode) => void;
+  onCustomTravelChange?: (
+    itemId: string,
+    patch: Pick<
+      PlannerItem,
+      "customTravelDurationMins" | "customTravelDistanceKm"
+    >,
+  ) => void;
 };
 
 const MODE_ICON = {
@@ -81,23 +90,69 @@ function TravelConnector({
   loading,
   isEditor,
   onTravelModeChange,
+  onCustomTravelChange,
 }: {
   fromItem: PlannerItem;
   leg: TravelLeg | null;
   loading: boolean;
   isEditor: boolean;
   onTravelModeChange?: (itemId: string, mode: TravelMode) => void;
+  onCustomTravelChange?: (
+    itemId: string,
+    patch: Pick<
+      PlannerItem,
+      "customTravelDurationMins" | "customTravelDistanceKm"
+    >,
+  ) => void;
 }) {
   const mode = (leg?.travelMode ?? fromItem.travelMode ?? "driving") as TravelMode;
   const Icon = MODE_ICON[mode];
+  const hasCustom =
+    fromItem.customTravelDurationMins != null ||
+    fromItem.customTravelDistanceKm != null;
+  const [editingCustom, setEditingCustom] = useState(false);
+  const [customDurationDraft, setCustomDurationDraft] = useState(
+    fromItem.customTravelDurationMins != null
+      ? String(fromItem.customTravelDurationMins)
+      : "",
+  );
+  const [customDistanceDraft, setCustomDistanceDraft] = useState(
+    fromItem.customTravelDistanceKm != null
+      ? String(fromItem.customTravelDistanceKm)
+      : "",
+  );
 
-  if (!leg && !loading) {
-    return (
-      <div className="relative ml-[2.85rem] flex items-center gap-2 py-1.5 sm:ml-[3.35rem]">
-        <span className="absolute -left-[1.15rem] top-0 bottom-0 w-px bg-border sm:-left-[1.35rem]" />
-        <span className="text-xs text-muted-foreground">No route data</span>
-      </div>
+  useEffect(() => {
+    setCustomDurationDraft(
+      fromItem.customTravelDurationMins != null
+        ? String(fromItem.customTravelDurationMins)
+        : "",
     );
+    setCustomDistanceDraft(
+      fromItem.customTravelDistanceKm != null
+        ? String(fromItem.customTravelDistanceKm)
+        : "",
+    );
+    setEditingCustom(false);
+  }, [fromItem.id, fromItem.customTravelDurationMins, fromItem.customTravelDistanceKm]);
+
+  function parseOptionalNumber(value: string): number | null {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const n = Number(trimmed);
+    if (!Number.isFinite(n) || n < 0) return null;
+    return n;
+  }
+
+  function saveCustomLeg() {
+    if (!onCustomTravelChange) return;
+    const duration = parseOptionalNumber(customDurationDraft);
+    const distance = parseOptionalNumber(customDistanceDraft);
+    onCustomTravelChange(fromItem.id, {
+      customTravelDurationMins: duration,
+      customTravelDistanceKm: distance,
+    });
+    setEditingCustom(false);
   }
 
   return (
@@ -122,8 +177,11 @@ function TravelConnector({
               {leg.estimated ? (
                 <span className="text-xs">(est.)</span>
               ) : null}
+              {hasCustom ? <span className="text-xs">(custom)</span> : null}
             </>
-          ) : null}
+          ) : (
+            <span>No route data</span>
+          )}
         </div>
 
         {isEditor && onTravelModeChange ? (
@@ -158,7 +216,70 @@ function TravelConnector({
             })}
           </div>
         ) : null}
+
+        {isEditor && onCustomTravelChange ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setEditingCustom((prev) => !prev)}
+              className={cn(
+                "inline-flex h-10 items-center gap-1 rounded-full border px-3 text-sm",
+                editingCustom || hasCustom
+                  ? "border-primary text-primary"
+                  : "border-border text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <SlidersHorizontal className="size-3.5" />
+              Custom
+            </button>
+            {hasCustom ? (
+              <button
+                type="button"
+                onClick={() =>
+                  onCustomTravelChange(fromItem.id, {
+                    customTravelDurationMins: null,
+                    customTravelDistanceKm: null,
+                  })
+                }
+                className="inline-flex h-10 items-center gap-1 rounded-full border border-border px-3 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <RotateCcw className="size-3.5" />
+                Reset
+              </button>
+            ) : null}
+          </>
+        ) : null}
       </div>
+
+      {editingCustom && isEditor && onCustomTravelChange ? (
+        <div className="mt-2 grid gap-2 rounded-xl border border-border bg-background p-2 sm:grid-cols-[1fr_1fr_auto]">
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={customDurationDraft}
+            onChange={(e) => setCustomDurationDraft(e.target.value)}
+            placeholder="Travel mins"
+            className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+          <input
+            type="number"
+            min={0}
+            step={0.1}
+            value={customDistanceDraft}
+            onChange={(e) => setCustomDistanceDraft(e.target.value)}
+            placeholder="Distance km"
+            className="h-10 rounded-lg border border-input bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+          <button
+            type="button"
+            onClick={saveCustomLeg}
+            className="h-10 rounded-lg bg-primary px-3 text-sm text-primary-foreground"
+          >
+            Save
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -377,6 +498,7 @@ export function SortableDayStops({
   onOpenItem,
   onReorder,
   onTravelModeChange,
+  onCustomTravelChange,
 }: Props) {
   const [localItems, setLocalItems] = useState(items);
 
@@ -525,6 +647,7 @@ export function SortableDayStops({
                         loading={loading}
                         isEditor={isEditor}
                         onTravelModeChange={onTravelModeChange}
+                        onCustomTravelChange={onCustomTravelChange}
                       />
                     </li>
                   ) : null}

@@ -146,13 +146,30 @@ export function useDayTimeline(
       const departMins = arriveMins + stayMins;
 
       let legAfter: TravelLeg | null = null;
-      if (isActiveStop(item) && hasCoords(item)) {
+      if (isActiveStop(item)) {
         for (let j = i + 1; j < items.length; j++) {
           const next = items[j];
-          if (isActiveStop(next) && hasCoords(next)) {
-            legAfter = legByPair.get(`${item.id}->${next.id}`) ?? null;
-            break;
+          if (!isActiveStop(next)) continue;
+          const routeLeg =
+            hasCoords(item) && hasCoords(next)
+              ? legByPair.get(`${item.id}->${next.id}`) ?? null
+              : null;
+          const customDuration = item.customTravelDurationMins;
+          const customDistanceKm = item.customTravelDistanceKm;
+          if (customDuration != null || customDistanceKm != null) {
+            legAfter = {
+              durationMins: customDuration ?? routeLeg?.durationMins ?? 0,
+              distanceKm: customDistanceKm ?? routeLeg?.distanceKm ?? 0,
+              distanceMeters: Math.round(
+                (customDistanceKm ?? routeLeg?.distanceKm ?? 0) * 1000,
+              ),
+              estimated: true,
+              travelMode: normalizeTravelMode(item.travelMode),
+            };
+          } else {
+            legAfter = routeLeg;
           }
+          break;
         }
       }
 
@@ -167,12 +184,40 @@ export function useDayTimeline(
       cursor = departMins + (legAfter?.durationMins ?? 0);
     }
 
+    const firstAnchored = rows.find(
+      (row) =>
+        row.item.timingMode &&
+        row.item.timingMins != null &&
+        row.item.timingMins >= 0 &&
+        row.item.timingMins < 24 * 60,
+    );
+    if (firstAnchored) {
+      const anchorCurrent =
+        firstAnchored.item.timingMode === "depart_at"
+          ? firstAnchored.departMins
+          : firstAnchored.arriveMins;
+      const delta = firstAnchored.item.timingMins! - anchorCurrent;
+      if (delta !== 0) {
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i]!;
+          rows[i] = {
+            ...row,
+            arriveMins: row.arriveMins + delta,
+            departMins: row.departMins + delta,
+          };
+        }
+      }
+    }
+
     const visitMins = rows.reduce((sum, r) => sum + r.stayMins, 0);
     const travelMins = rows.reduce(
       (sum, r) => sum + (r.legAfter?.durationMins ?? 0),
       0,
     );
     const totalMins = visitMins + travelMins;
+
+    const startMins = rows[0]?.arriveMins ?? DAY_START_MINS;
+    const endMins = rows[rows.length - 1]?.departMins ?? DAY_START_MINS;
 
     return {
       rows,
@@ -182,8 +227,8 @@ export function useDayTimeline(
       travelMins,
       totalMins,
       overDay: totalMins > MAX_REALISTIC_DAY_MINS,
-      endClock: formatClock(DAY_START_MINS + totalMins, timeFormat),
-      startClock: formatClock(DAY_START_MINS, timeFormat),
+      endClock: formatClock(endMins, timeFormat),
+      startClock: formatClock(startMins, timeFormat),
       daySpanHours: Math.round((totalMins / 60) * 10) / 10,
     };
   }, [items, legs, routedStops, timeFormat]);

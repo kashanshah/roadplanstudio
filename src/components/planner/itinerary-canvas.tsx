@@ -12,7 +12,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { AddStopSearch } from "@/components/planner/add-stop-search";
-import type { CustomStopInput } from "@/components/planner/add-stop-search";
+import type {
+  CustomStopInput,
+  StopTimingInput,
+} from "@/components/planner/add-stop-search";
 import { PlaceDetailSheet } from "@/components/planner/place-detail-sheet";
 import { SortableDayStops } from "@/components/planner/sortable-day-stops";
 import { TemplateStrip } from "@/components/planner/template-strip";
@@ -38,17 +41,35 @@ type Props = {
   onUpdateItem: (
     itemId: string,
     patch: Partial<
-      Pick<PlannerItem, "status" | "durationMins" | "notes" | "travelMode">
+      Pick<
+        PlannerItem,
+        | "status"
+        | "durationMins"
+        | "notes"
+        | "travelMode"
+        | "timingMode"
+        | "timingMins"
+        | "customTravelDurationMins"
+        | "customTravelDistanceKm"
+      >
     >,
   ) => Promise<void> | void;
   onDeleteItem?: (itemId: string) => Promise<void> | void;
   onUpdateDay?: (dayId: string, patch: DayPatch) => Promise<void> | void;
   onDeleteDay?: (dayId: string) => Promise<void> | void;
   onReorderDay: (dayId: string, orderedItemIds: string[]) => Promise<void> | void;
+  onCustomTravelChange?: (
+    itemId: string,
+    patch: Pick<
+      PlannerItem,
+      "customTravelDurationMins" | "customTravelDistanceKm"
+    >,
+  ) => Promise<void> | void;
   onAddPlace?: (
     dayId: string,
     place: PlaceDetailsPayload,
     asHotel: boolean,
+    timing: StopTimingInput,
   ) => Promise<void> | void;
   onAddCustomPlace?: (
     dayId: string,
@@ -291,6 +312,7 @@ export function ItineraryCanvas({
   onUpdateDay,
   onDeleteDay,
   onReorderDay,
+  onCustomTravelChange,
   onAddPlace,
   onAddCustomPlace,
   onAddDay,
@@ -470,6 +492,9 @@ export function ItineraryCanvas({
                           onTravelModeChange={(itemId, mode) => {
                             void onUpdateItem(itemId, { travelMode: mode });
                           }}
+                          onCustomTravelChange={(itemId, patch) => {
+                            void onCustomTravelChange?.(itemId, patch);
+                          }}
                         />
                       )}
 
@@ -515,8 +540,8 @@ export function ItineraryCanvas({
                         <AddStopSearch
                           dayId={day.id}
                           bias={biasForDay(day)}
-                          onAdd={(place, asHotel) =>
-                            onAddPlace(day.id, place, asHotel)
+                          onAdd={(place, asHotel, timing) =>
+                            onAddPlace(day.id, place, asHotel, timing)
                           }
                           onAddCustom={(input) =>
                             onAddCustomPlace(day.id, input)

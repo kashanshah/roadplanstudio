@@ -45,6 +45,10 @@ export const travelModeEnum = pgEnum("travel_mode", [
   "bicycling",
   "transit",
 ]);
+export const stopTimeAnchorTypeEnum = pgEnum("stop_time_anchor_type", [
+  "arrive_by",
+  "depart_at",
+]);
 
 export const trips = pgTable(
   "trips",
@@ -146,6 +150,10 @@ export const itineraryItems = pgTable("itinerary_items", {
   latitude: doublePrecision("latitude"),
   longitude: doublePrecision("longitude"),
   durationMins: integer("duration_mins"),
+  timingMode: stopTimeAnchorTypeEnum("timing_mode"),
+  timingMins: integer("timing_mins"),
+  customTravelDurationMins: integer("custom_travel_duration_mins"),
+  customTravelDistanceKm: doublePrecision("custom_travel_distance_km"),
   /** How you travel from this stop to the next one on the same day. */
   travelMode: travelModeEnum("travel_mode").notNull().default("driving"),
   status: stopStatusEnum("status").notNull().default("to_visit"),

@@ -317,6 +317,13 @@ function formatDuration(mins: number) {
   return m ? `${h}h ${m}m` : `${h}h`;
 }
 
+function formatClockFromMins(totalMins: number) {
+  const mins = ((totalMins % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 function statusStyle(status: string) {
   switch (status) {
     case "visited":
@@ -504,6 +511,23 @@ function OverviewPage({ model }: { model: TripPdfModel }) {
 
 function StopCard({ stop }: { stop: TripPdfStop }) {
   const badge = statusStyle(stop.status);
+  const timingLabel =
+    stop.timingMode && stop.timingMins != null
+      ? `${stop.timingMode === "arrive_by" ? "arrive by" : "depart at"} ${formatClockFromMins(stop.timingMins)}`
+      : null;
+  const customLegLabel =
+    stop.customTravelDurationMins != null || stop.customTravelDistanceKm != null
+      ? [
+          stop.customTravelDurationMins != null
+            ? `${formatDuration(stop.customTravelDurationMins)}`
+            : null,
+          stop.customTravelDistanceKm != null
+            ? `${stop.customTravelDistanceKm} km`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : null;
   return (
     <View style={styles.stopCard} wrap={false}>
       <View style={styles.stopTop}>
@@ -518,6 +542,10 @@ function StopCard({ stop }: { stop: TripPdfStop }) {
         {stop.durationMins ? ` · stay ${formatDuration(stop.durationMins)}` : ""}
         {` · travel next: ${stop.travelMode}`}
       </Text>
+      {timingLabel ? <Text style={styles.stopMeta}>{timingLabel}</Text> : null}
+      {customLegLabel ? (
+        <Text style={styles.stopMeta}>custom next leg: {customLegLabel}</Text>
+      ) : null}
       {stop.address ? <Text style={styles.stopMeta}>{stop.address}</Text> : null}
       {stop.latitude != null && stop.longitude != null ? (
         <Text style={styles.stopMeta}>

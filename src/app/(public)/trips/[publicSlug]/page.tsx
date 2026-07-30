@@ -208,7 +208,9 @@ export default async function PublicTripPage({ params }: Props) {
         </dl>
 
         <div className="mt-8 flex flex-wrap items-start gap-3">
-          {trip.slug ? <RemixTripButton slug={trip.slug} /> : null}
+          {trip.slug ? (
+            <RemixTripButton slug={trip.slug} fullWidthOnMobile />
+          ) : null}
           <Button asChild size="lg" variant="secondary" className="text-base">
             <Link href="/discover">More trips</Link>
           </Button>
