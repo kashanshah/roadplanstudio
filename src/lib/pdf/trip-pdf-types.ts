@@ -64,7 +64,11 @@ export type TripPdfModel = {
     dayTitle: string | null;
     mapsUrl: string | null;
   }>;
-  packingChecklist: string[];
+  packingChecklist: Array<{
+    label: string;
+    packed: boolean;
+    category?: string | null;
+  }>;
   tips: string[];
 };
 
@@ -73,6 +77,12 @@ export type BuildTripPdfInput = {
   description?: string | null;
   days: PlannerDay[];
   accommodations?: PlannerAccommodation[];
+  packingItems?: Array<{
+    label: string;
+    packed: boolean;
+    sortOrder?: number;
+    category?: string | null;
+  }>;
   durationDays?: number;
   totalDistanceKm?: number | null;
   difficulty?: string | null;

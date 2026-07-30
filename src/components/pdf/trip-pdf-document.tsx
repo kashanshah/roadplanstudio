@@ -276,6 +276,20 @@ const styles = StyleSheet.create({
     borderColor: colors.glacier,
     borderRadius: 2,
     marginTop: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: colors.glacier,
+  },
+  checkMark: {
+    color: colors.snow,
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+  },
+  packedLabel: {
+    color: colors.muted,
+    textDecoration: "line-through",
   },
   tipRow: {
     flexDirection: "row",
@@ -643,17 +657,32 @@ function ReferencePages({ model }: { model: TripPdfModel }) {
         Packing checklist
       </Text>
       <Text style={styles.lead}>
-        Print this page and tick boxes as you pack. Customize in RoadPlan before
-        your next export.
+        From your RoadPlan packing list. Checked items were marked packed in the
+        planner.
       </Text>
       <View style={styles.twoCol}>
         <View style={styles.col}>
           {model.packingChecklist
             .slice(0, Math.ceil(model.packingChecklist.length / 2))
             .map((item) => (
-              <View key={item} style={styles.checkRow} wrap={false}>
-                <View style={styles.checkbox} />
-                <Text style={{ flex: 1 }}>{item}</Text>
+              <View key={item.label} style={styles.checkRow} wrap={false}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    item.packed ? styles.checkboxChecked : {},
+                  ]}
+                >
+                  {item.packed ? <Text style={styles.checkMark}>✓</Text> : null}
+                </View>
+                <Text
+                  style={[
+                    { flex: 1 },
+                    item.packed ? styles.packedLabel : {},
+                  ]}
+                >
+                  {item.category ? `${item.category}: ` : ""}
+                  {item.label}
+                </Text>
               </View>
             ))}
         </View>
@@ -661,9 +690,24 @@ function ReferencePages({ model }: { model: TripPdfModel }) {
           {model.packingChecklist
             .slice(Math.ceil(model.packingChecklist.length / 2))
             .map((item) => (
-              <View key={item} style={styles.checkRow} wrap={false}>
-                <View style={styles.checkbox} />
-                <Text style={{ flex: 1 }}>{item}</Text>
+              <View key={item.label} style={styles.checkRow} wrap={false}>
+                <View
+                  style={[
+                    styles.checkbox,
+                    item.packed ? styles.checkboxChecked : {},
+                  ]}
+                >
+                  {item.packed ? <Text style={styles.checkMark}>✓</Text> : null}
+                </View>
+                <Text
+                  style={[
+                    { flex: 1 },
+                    item.packed ? styles.packedLabel : {},
+                  ]}
+                >
+                  {item.category ? `${item.category}: ` : ""}
+                  {item.label}
+                </Text>
               </View>
             ))}
         </View>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Map, Route as RouteIcon, Share2, Globe2, Layers3, MoonStar, FileDown } from "lucide-react";
+import { Map, Route as RouteIcon, Share2, Globe2, Layers3, MoonStar, FileDown, Luggage } from "lucide-react";
 import { SiteFooter, SiteNav } from "@/components/layout/site-nav";
 import { Button } from "@/components/ui/button";
 import { localeMetadataBase } from "@/lib/i18n/seo";
@@ -45,6 +45,11 @@ const features = [
       icon: MoonStar,
       title: "Stop status sync",
       body: "Mark stops visited, skipped or favorite — the map stays aligned while you travel.",
+    },
+    {
+      icon: Luggage,
+      title: "Packing checklist",
+      body: "Build a trip packing list in the planner, tick items as you go, and carry them into the PDF export.",
     },
     {
       icon: FileDown,

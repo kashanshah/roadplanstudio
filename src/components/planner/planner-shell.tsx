@@ -18,12 +18,14 @@ import { useAuthGate } from "@/components/auth/auth-gate-provider";
 import { GuestBanner } from "@/components/layout/guest-banner";
 import { ExportPdfButton } from "@/components/planner/export-pdf-button";
 import { ItineraryCanvas } from "@/components/planner/itinerary-canvas";
+import { PackingListPanel } from "@/components/planner/packing-list-panel";
 import { PlannerEmptyState } from "@/components/planner/planner-empty-state";
 import type {
   PlaceDetailsPayload,
   PlannerAccommodation,
   PlannerDay,
   PlannerItem,
+  PlannerPackingItem,
   StopStatus,
 } from "@/components/planner/planner-types";
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,7 @@ import { TripmatesPanel } from "@/components/trips/tripmates-panel";
 import { TripNotesPanel } from "@/components/planner/trip-notes-panel";
 import { useSession } from "@/lib/auth-client";
 import { SITE_URL } from "@/lib/constants";
+import { createDefaultPackingItems } from "@/lib/packing/defaults";
 import { useGuestTrip } from "@/lib/trips/guest-trip-provider";
 import type { GuestStopStatus } from "@/lib/trips/guest-trip";
 import { cn } from "@/lib/utils/cn";
@@ -68,6 +71,7 @@ type CloudTripPayload = {
   };
   days: PlannerDay[];
   accommodations: PlannerAccommodation[];
+  packingItems?: PlannerPackingItem[];
 };
 
 type Props = {
@@ -156,6 +160,13 @@ export function PlannerShell({ tripId }: Props) {
             })),
           })),
           accommodations: data.accommodations ?? [],
+          packingItems: (data.packingItems ?? []).map((p) => ({
+            id: p.id,
+            label: p.label,
+            packed: !!p.packed,
+            sortOrder: p.sortOrder ?? 0,
+            category: p.category ?? null,
+          })),
         });
       })
       .catch((err: unknown) => {
@@ -231,6 +242,18 @@ export function PlannerShell({ tripId }: Props) {
   }, [isDraftRoute, draft, cloud]);
 
   const accommodations = cloud?.accommodations ?? [];
+  const packingList: PlannerPackingItem[] = useMemo(() => {
+    if (isDraftRoute) {
+      return (draft?.packingItems ?? []).map((p) => ({
+        id: p.id,
+        label: p.label,
+        packed: !!p.packed,
+        sortOrder: p.sortOrder,
+        category: p.category ?? null,
+      }));
+    }
+    return cloud?.packingItems ?? [];
+  }, [isDraftRoute, draft?.packingItems, cloud?.packingItems]);
   const hasTimelineContent = days.some((d) => d.items.length > 0);
   const showStarter =
     isDraftRoute && !hasTimelineContent && !dismissedStarter && !!draft;
@@ -623,6 +646,134 @@ export function PlannerShell({ tripId }: Props) {
     }
   }
 
+  async function addPackingItem(label: string) {
+    if (!isEditor) return;
+    if (isDraftRoute) {
+      updateDraft((current) => {
+        const existing = current.packingItems ?? [];
+        const sortOrder = existing.length
+          ? Math.max(...existing.map((i) => i.sortOrder)) + 1
+          : 0;
+        return {
+          ...current,
+          packingItems: [
+            ...existing,
+            {
+              id: crypto.randomUUID(),
+              label,
+              packed: false,
+              sortOrder,
+            },
+          ],
+        };
+      });
+      return;
+    }
+
+    const res = await fetch(`/api/trips/${tripId}/packing`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label }),
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as { item: PlannerPackingItem };
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        packingItems: [...(prev.packingItems ?? []), data.item],
+      };
+    });
+  }
+
+  async function togglePackingItem(id: string, packed: boolean) {
+    if (!isEditor) return;
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        packingItems: (current.packingItems ?? []).map((item) =>
+          item.id === id ? { ...item, packed } : item,
+        ),
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        packingItems: (prev.packingItems ?? []).map((item) =>
+          item.id === id ? { ...item, packed } : item,
+        ),
+      };
+    });
+
+    const res = await fetch(`/api/trips/${tripId}/packing/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ packed }),
+    });
+    if (!res.ok) {
+      const refresh = await fetch(`/api/trips/${tripId}`);
+      if (refresh.ok) {
+        const data = (await refresh.json()) as CloudTripPayload;
+        setCloud({
+          ...data,
+          packingItems: data.packingItems ?? [],
+        });
+      }
+    }
+  }
+
+  async function deletePackingItem(id: string) {
+    if (!isEditor) return;
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        packingItems: (current.packingItems ?? []).filter(
+          (item) => item.id !== id,
+        ),
+      }));
+      return;
+    }
+
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        packingItems: (prev.packingItems ?? []).filter((item) => item.id !== id),
+      };
+    });
+
+    await fetch(`/api/trips/${tripId}/packing/${id}`, { method: "DELETE" });
+  }
+
+  async function seedPackingDefaults() {
+    if (!isEditor) return;
+    if (isDraftRoute) {
+      updateDraft((current) => ({
+        ...current,
+        packingItems: createDefaultPackingItems((item) => ({
+          id: crypto.randomUUID(),
+          ...item,
+        })),
+      }));
+      return;
+    }
+
+    const res = await fetch(`/api/trips/${tripId}/packing`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seedDefaults: true }),
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as { items: PlannerPackingItem[] };
+    setCloud((prev) => {
+      if (!prev) return prev;
+      return { ...prev, packingItems: data.items };
+    });
+  }
+
   async function updateDay(
     dayId: string,
     patch: Partial<
@@ -778,6 +929,7 @@ export function PlannerShell({ tripId }: Props) {
               }
               startLocation={draft?.startLocation ?? null}
               endLocation={draft?.endLocation ?? null}
+              packingItems={packingList}
             />
             <Button
               type="button"
@@ -927,6 +1079,16 @@ export function PlannerShell({ tripId }: Props) {
                   }
                   isEditor={isEditor}
                   onSave={updateTripNotes}
+                />
+              ) : null}
+              {!loadingCloud && (isDraftRoute ? hydrated : !!cloud) ? (
+                <PackingListPanel
+                  items={packingList}
+                  isEditor={isEditor}
+                  onAdd={addPackingItem}
+                  onToggle={togglePackingItem}
+                  onDelete={deletePackingItem}
+                  onSeedDefaults={seedPackingDefaults}
                 />
               ) : null}
               {!isDraftRoute && cloud && !isEditor ? (

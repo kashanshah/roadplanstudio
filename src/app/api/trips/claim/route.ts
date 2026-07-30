@@ -5,10 +5,12 @@ import { db } from "@/lib/db";
 import {
   accommodations,
   itineraryItems,
+  packingItems,
   tripDays,
   trips,
 } from "@/lib/db/schema";
 import { ensureProfile } from "@/lib/trips/ensure-profile";
+import { createDefaultPackingItems } from "@/lib/packing/defaults";
 
 const guestItemSchema = z.object({
   id: z.string().optional(),
@@ -49,6 +51,17 @@ const claimSchema = z.object({
   endLocation: z.string().optional(),
   durationDays: z.number().int().positive().default(1),
   days: z.array(guestDaySchema).default([]),
+  packingItems: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        label: z.string().min(1).max(200),
+        packed: z.boolean().optional().default(false),
+        sortOrder: z.number().int().nonnegative().optional(),
+        category: z.string().nullable().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export async function POST(request: Request) {
@@ -132,6 +145,25 @@ export async function POST(request: Request) {
           checkInDate: day.date || null,
         });
       }
+    }
+
+    const packing =
+      draft.packingItems && draft.packingItems.length
+        ? draft.packingItems.map((item, index) => ({
+            tripId: trip.id,
+            label: item.label,
+            packed: item.packed ? "true" : "false",
+            sortOrder: item.sortOrder ?? index,
+          }))
+        : createDefaultPackingItems((item) => ({
+            tripId: trip.id,
+            label: item.label,
+            packed: "false",
+            sortOrder: item.sortOrder,
+          }));
+
+    if (packing.length) {
+      await db.insert(packingItems).values(packing);
     }
 
     return NextResponse.json({ tripId: trip.id });

@@ -5,6 +5,7 @@ import { FileDown } from "lucide-react";
 import type {
   PlannerAccommodation,
   PlannerDay,
+  PlannerPackingItem,
 } from "@/components/planner/planner-types";
 import { Button } from "@/components/ui/button";
 import { buildTripPdfModel } from "@/lib/pdf/build-trip-pdf-model";
@@ -16,6 +17,7 @@ type Props = {
   description?: string | null;
   days: PlannerDay[];
   accommodations?: PlannerAccommodation[];
+  packingItems?: PlannerPackingItem[];
   durationDays?: number;
   totalDistanceKm?: number | null;
   difficulty?: string | null;
@@ -43,6 +45,7 @@ export function ExportPdfButton({
   description,
   days,
   accommodations = [],
+  packingItems = [],
   durationDays,
   totalDistanceKm,
   difficulty,
@@ -73,6 +76,7 @@ export function ExportPdfButton({
         description,
         days,
         accommodations,
+        packingItems,
         durationDays,
         totalDistanceKm,
         difficulty,

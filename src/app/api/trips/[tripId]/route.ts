@@ -7,6 +7,7 @@ import {
   accommodations,
   activityLogs,
   itineraryItems,
+  packingItems,
   tripCollaborators,
   tripDays,
   trips,
@@ -52,6 +53,12 @@ export async function GET(_request: Request, ctx: Ctx) {
     .from(accommodations)
     .where(eq(accommodations.tripId, tripId));
 
+  const packing = await db
+    .select()
+    .from(packingItems)
+    .where(eq(packingItems.tripId, tripId))
+    .orderBy(asc(packingItems.sortOrder));
+
   const collaborators = await db
     .select()
     .from(tripCollaborators)
@@ -70,6 +77,13 @@ export async function GET(_request: Request, ctx: Ctx) {
       items: items.filter((i) => i.dayId === d.id),
     })),
     accommodations: lodging,
+    packingItems: packing.map((p) => ({
+      id: p.id,
+      label: p.label,
+      packed: p.packed === "true",
+      sortOrder: p.sortOrder,
+      category: null,
+    })),
     collaborators,
   });
 }

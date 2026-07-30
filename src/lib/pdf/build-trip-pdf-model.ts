@@ -1,4 +1,5 @@
 import { SITE_URL } from "@/lib/constants";
+import { DEFAULT_PACKING_TEMPLATE } from "@/lib/packing/defaults";
 import type {
   BuildTripPdfInput,
   TripPdfDay,
@@ -42,19 +43,6 @@ function lodgingForDay(
     dayTitle,
   };
 }
-
-const DEFAULT_PACKING = [
-  "Driver’s license + International Driving Permit (if required)",
-  "Passport / ID copies (offline)",
-  "Vehicle rental confirmation + insurance docs",
-  "Phone mount + multi-port charger + country adapters",
-  "Soft duffels (easier than hard cases in hatchbacks)",
-  "Reusable water bottles + snacks for long segments",
-  "Printed Day 1–2 outline for low-signal valleys",
-  "First-aid kit + microfiber cloths",
-  "Weather layers for mountain / coastal swings",
-  "Hotel and ferry booking references",
-];
 
 const DEFAULT_TIPS = [
   "Keep overnight towns fixed; remix attractions inside each day.",
@@ -149,6 +137,21 @@ export function buildTripPdfModel(input: BuildTripPdfInput): TripPdfModel {
   const totalStops = days.reduce((n, d) => n + d.stopCount, 0);
   const totalPlannedMins = days.reduce((n, d) => n + d.plannedMins, 0);
 
+  const packingChecklist =
+    input.packingItems && input.packingItems.length
+      ? [...input.packingItems]
+          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+          .map((item) => ({
+            label: item.label,
+            packed: !!item.packed,
+            category: item.category ?? null,
+          }))
+      : DEFAULT_PACKING_TEMPLATE.map((item) => ({
+          label: item.label,
+          packed: false,
+          category: item.category,
+        }));
+
   return {
     title: input.title.trim() || "Untitled road trip",
     description: input.description ?? null,
@@ -169,7 +172,7 @@ export function buildTripPdfModel(input: BuildTripPdfInput): TripPdfModel {
       null,
     days,
     accommodations: lodgingIndex,
-    packingChecklist: DEFAULT_PACKING,
+    packingChecklist,
     tips: DEFAULT_TIPS,
   };
 }
