@@ -7,10 +7,107 @@ import {
   tripDays,
   trips,
 } from "@/lib/db/schema";
+import { getTripTemplate } from "@/data/trips/templates";
 import { ensureProfile } from "@/lib/trips/ensure-profile";
 import type { GuestDay, GuestTripDraft } from "@/lib/trips/guest-trip";
 
-export async function loadTemplateTrip(slug: string) {
+type TemplateSource = {
+  trip: {
+    id: string;
+    slug: string | null;
+    title: string;
+    description: string | null;
+    coverPhotoUrl: string | null;
+    durationDays: number;
+    totalDistanceKm: number | null;
+    difficulty: "easy" | "moderate" | "hard";
+    visibility: "private" | "unlisted" | "public";
+  };
+  days: Array<{
+    id: string;
+    dayIndex: number;
+    date: string | null;
+    title: string;
+    notes: string | null;
+    routeSummary: string | null;
+    isRestDay: string | null;
+    items: Array<{
+      id: string;
+      dayId: string;
+      sortOrder: number | null;
+      type: "attraction" | "hotel" | "custom";
+      googlePlaceId: string | null;
+      name: string;
+      address: string | null;
+      latitude: number | null;
+      longitude: number | null;
+      durationMins: number | null;
+      timingMode: "arrive_by" | "depart_at" | null;
+      timingMins: number | null;
+      customTravelDurationMins: number | null;
+      customTravelDistanceKm: number | null;
+      travelMode: "driving" | "walking" | "bicycling" | "transit" | null;
+      status: "to_visit" | "visited" | "skipped" | "cancelled" | "favorite";
+      notes: string | null;
+      googleMapsUri: string | null;
+    }>;
+  }>;
+};
+
+function loadStaticTemplateTrip(slug: string): TemplateSource | null {
+  const template = getTripTemplate(slug);
+  if (!template) {
+    return null;
+  }
+
+  return {
+    trip: {
+      id: `template:${template.slug}`,
+      slug: template.slug,
+      title: template.title,
+      description: template.description,
+      coverPhotoUrl: template.coverImage,
+      durationDays: template.durationDays,
+      totalDistanceKm: template.totalDistanceKm,
+      difficulty: template.difficulty,
+      visibility: "public",
+    },
+    days: template.days.map((day, dayIndex) => {
+      const dayId = `template:${template.slug}:day:${dayIndex + 1}`;
+      return {
+        id: dayId,
+        dayIndex: dayIndex + 1,
+        date: null,
+        title: day.title,
+        notes: day.summary,
+        routeSummary: day.summary,
+        isRestDay: "false",
+        items: day.stops.map((stop, stopIndex) => ({
+          id: `${dayId}:item:${stopIndex + 1}`,
+          dayId,
+          sortOrder: stopIndex,
+          type: stop.type === "lodging" ? "hotel" : "attraction",
+          googlePlaceId: null,
+          name: stop.name,
+          address: null,
+          latitude: stop.lat,
+          longitude: stop.lng,
+          durationMins: null,
+          timingMode: null,
+          timingMins: null,
+          customTravelDurationMins: null,
+          customTravelDistanceKm: null,
+          travelMode: "driving",
+          status: "to_visit",
+          notes: stop.note ?? null,
+          googleMapsUri: null,
+        })),
+      };
+    }),
+  };
+}
+
+export async function loadTemplateTrip(slug: string): Promise<TemplateSource | null> {
   const [trip] = await db
     .select()
     .from(trips)
@@ -42,12 +139,22 @@ export async function loadTemplateTrip(slug: string) {
       ...d,
       items: items.filter((i) => i.dayId === d.id),
     })),
-  };
+  } satisfies TemplateSource;
+}
+
+export async function loadTemplateTripWithFallback(
+  slug: string,
+): Promise<TemplateSource | null> {
+  const dbTemplate = await loadTemplateTrip(slug);
+  if (dbTemplate) {
+    return dbTemplate;
+  }
+  return loadStaticTemplateTrip(slug);
 }
 
 /** Public/guest-safe draft shape for remixing a template locally. */
 export function templateToGuestDraft(
-  data: NonNullable<Awaited<ReturnType<typeof loadTemplateTrip>>>,
+  data: TemplateSource,
 ): GuestTripDraft {
   const days: GuestDay[] = data.days.map((day) => ({
     id: crypto.randomUUID(),
@@ -93,7 +200,7 @@ export async function duplicateTemplateForUser(opts: {
   userId: string;
   userName?: string | null;
 }) {
-  const source = await loadTemplateTrip(opts.slug);
+  const source = await loadTemplateTripWithFallback(opts.slug);
   if (!source) {
     throw new Error("TEMPLATE_NOT_FOUND");
   }
