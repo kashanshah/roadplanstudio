@@ -28,7 +28,7 @@ export function AuthShell({
   wide?: boolean;
 }) {
   return (
-    <div className="min-h-svh bg-background lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
+    <div className="min-h-svh bg-background lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-start">
       <div className="flex min-h-svh flex-col px-5 py-6 sm:px-8 lg:px-14">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <Link href="/" className="min-w-0">
@@ -78,7 +78,8 @@ export function AuthShell({
         </div>
       </div>
 
-      <aside className="relative hidden overflow-hidden lg:block">
+      {/* Viewport-tall sticky panel — do not stretch with tall left content */}
+      <aside className="relative hidden h-svh overflow-hidden lg:sticky lg:top-0 lg:block">
         <Image
           src="/images/hero-road.jpg"
           alt="Mountain highway winding through spruce forest"
