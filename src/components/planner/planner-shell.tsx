@@ -3,7 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Luggage, Share2, Users, Save, Lock } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo";
 import { AccountMenu } from "@/components/auth/account-menu";
@@ -269,6 +269,8 @@ export function PlannerShell({ tripId }: Props) {
   const [saving, setSaving] = useState(false);
   const [focusStopId, setFocusStopId] = useState<string | null>(null);
   const [activeDayId, setActiveDayId] = useState<string | null>(null);
+  /** Avoid re-opening Day 1 after the user collapses every accordion. */
+  const daySelectionSeededRef = useRef(false);
   const [dismissedStarter, setDismissedStarter] = useState(false);
   const [mobilePane, setMobilePane] = useState<"itinerary" | "map">(
     "itinerary",
@@ -430,11 +432,20 @@ export function PlannerShell({ tripId }: Props) {
   useEffect(() => {
     if (!days.length) {
       setActiveDayId(null);
+      daySelectionSeededRef.current = false;
       return;
     }
-    // Keep selection if still valid; otherwise fall back to the first day.
     if (activeDayId && days.some((d) => d.id === activeDayId)) return;
-    setActiveDayId(days[0]!.id);
+    // Selected day was removed — pick another.
+    if (activeDayId && !days.some((d) => d.id === activeDayId)) {
+      setActiveDayId(days[0]!.id);
+      return;
+    }
+    // Initial open only. null after that means the user collapsed all days.
+    if (!daySelectionSeededRef.current) {
+      daySelectionSeededRef.current = true;
+      setActiveDayId(days[0]!.id);
+    }
   }, [days, activeDayId]);
 
   async function claimDraft() {
@@ -1668,7 +1679,10 @@ export function PlannerShell({ tripId }: Props) {
     <div className="flex min-h-full flex-col bg-background text-[17px]">
       {isAnonymous ? <GuestBanner /> : null}
       {!isAnonymous ? <VerifyEmailBanner /> : null}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md">
+      <header
+        data-planner-sticky-header
+        className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur-md"
+      >
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:h-20 sm:gap-3 sm:px-6">
           <div className="grid gap-0">
             <Link
@@ -1794,7 +1808,10 @@ export function PlannerShell({ tripId }: Props) {
         </div>
       </header>
 
-      <div className="sticky top-14 z-30 border-b border-border bg-background/95 px-3 py-2 backdrop-blur-md sm:top-16 lg:hidden">
+      <div
+        data-planner-mobile-tabs
+        className="sticky top-14 z-30 border-b border-border bg-background/95 px-3 py-2 backdrop-blur-md sm:top-20 lg:hidden"
+      >
         <div
           role="tablist"
           aria-label="Planner view"

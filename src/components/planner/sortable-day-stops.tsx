@@ -745,127 +745,134 @@ function SortableStopRow({
               </button>
             </div>
 
-            <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:items-end">
-              {isEditor && canEdit ? (
-                <button
-                  type="button"
-                  onClick={() => setEditing((prev) => !prev)}
-                  className={cn(
-                    "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-3 text-sm transition-colors",
-                    editing
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                  )}
-                >
-                  <Pencil className="size-3.5" />
-                  Edit
-                </button>
-              ) : null}
+            <div
+              className={cn(
+                "flex w-full shrink-0 flex-wrap items-center gap-1.5 sm:w-auto sm:justify-end",
+                confirmDelete && "flex-col items-stretch sm:items-end",
+              )}
+            >
+              {!confirmDelete ? (
+                <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:justify-end">
+                  {isEditor && canEdit ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditing((prev) => !prev)}
+                      className={cn(
+                        "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-3 text-sm transition-colors",
+                        editing
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                      )}
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit
+                    </button>
+                  ) : null}
 
-              {isEditor && total > 1 && !isTripStart ? (
-                <div
-                  className="flex w-full overflow-hidden rounded-lg border border-border sm:w-auto sm:flex-col"
-                  role="group"
-                  aria-label={`Reorder ${item.name}`}
-                >
-                  <button
-                    type="button"
-                    disabled={index === 0 || (pinTripStart && index === 1)}
-                    onClick={() => onMove(item.id, -1)}
-                    aria-label={`Move ${item.name} up`}
-                    {...tip(
-                      pinTripStart && index === 1
-                        ? "Trip start stays first"
-                        : "Move up",
-                    )}
-                    className="grid h-9 flex-1 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30 sm:size-8 sm:flex-none"
-                  >
-                    <ChevronUp className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      "grid h-9 flex-1 touch-none place-items-center border-x border-border text-muted-foreground hover:bg-secondary hover:text-foreground sm:size-8 sm:flex-none sm:border-x-0 sm:border-y",
-                      "cursor-grab active:cursor-grabbing",
-                      isDragging && "cursor-grabbing bg-secondary",
-                    )}
-                    aria-label={`Drag to reorder ${item.name}`}
-                    {...tip("Drag to reorder")}
-                    {...attributes}
-                    {...listeners}
-                  >
-                    <GripVertical className="size-4" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={index === total - 1}
-                    onClick={() => onMove(item.id, 1)}
-                    aria-label={`Move ${item.name} down`}
-                    {...tip("Move down")}
-                    className="grid h-9 flex-1 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30 sm:size-8 sm:flex-none"
-                  >
-                    <ChevronDown className="size-4" />
-                  </button>
-                </div>
-              ) : isTripStart ? (
-                <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase sm:text-right">
-                  Fixed · Day 1 start
-                </p>
-              ) : null}
-
-              {isEditor && onDeleteItem ? (
-                confirmDelete ? (
-                  <div className="flex w-full flex-col gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 p-2 sm:w-44">
-                    <p className="text-xs text-foreground">
-                      {isTripStart
-                        ? "Clear trip start and remove Day 1 stop 1?"
-                        : "Remove this stop?"}
-                    </p>
-                    <div className="flex gap-1.5">
+                  {isEditor && total > 1 && !isTripStart ? (
+                    <div
+                      className="inline-flex h-9 overflow-hidden rounded-lg border border-border"
+                      role="group"
+                      aria-label={`Reorder ${item.name}`}
+                    >
                       <button
                         type="button"
-                        disabled={deleting}
-                        onClick={() => {
-                          setDeleting(true);
-                          void Promise.resolve(onDeleteItem(item.id)).finally(
-                            () => setDeleting(false),
-                          );
-                        }}
-                        className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-md bg-destructive px-2 text-xs font-medium text-destructive-foreground hover:opacity-90 disabled:opacity-60"
+                        disabled={index === 0 || (pinTripStart && index === 1)}
+                        onClick={() => onMove(item.id, -1)}
+                        aria-label={`Move ${item.name} up`}
+                        {...tip(
+                          pinTripStart && index === 1
+                            ? "Trip start stays first"
+                            : "Move up",
+                        )}
+                        className="grid h-9 w-9 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
                       >
-                        <Trash2 className="size-3.5" />
-                        {deleting ? "…" : isTripStart ? "Clear" : "Delete"}
+                        <ChevronUp className="size-4" />
                       </button>
                       <button
                         type="button"
-                        disabled={deleting}
-                        onClick={() => setConfirmDelete(false)}
-                        className="inline-flex h-8 flex-1 items-center justify-center rounded-md border border-border bg-background px-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-60"
+                        className={cn(
+                          "grid h-9 w-9 touch-none place-items-center border-x border-border text-muted-foreground hover:bg-secondary hover:text-foreground",
+                          "cursor-grab active:cursor-grabbing",
+                          isDragging && "cursor-grabbing bg-secondary",
+                        )}
+                        aria-label={`Drag to reorder ${item.name}`}
+                        {...tip("Drag to reorder")}
+                        {...attributes}
+                        {...listeners}
                       >
-                        Cancel
+                        <GripVertical className="size-4" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={index === total - 1}
+                        onClick={() => onMove(item.id, 1)}
+                        aria-label={`Move ${item.name} down`}
+                        {...tip("Move down")}
+                        className="grid h-9 w-9 place-items-center text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-30"
+                      >
+                        <ChevronDown className="size-4" />
                       </button>
                     </div>
+                  ) : isTripStart ? (
+                    <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                      Fixed · Day 1 start
+                    </p>
+                  ) : null}
+
+                  {isEditor && onDeleteItem ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(true)}
+                      aria-label={
+                        isTripStart
+                          ? `Clear trip start ${item.name}`
+                          : `Delete ${item.name}`
+                      }
+                      {...tip(
+                        isTripStart
+                          ? "Clear trip start (Day 1 stop 1)"
+                          : "Delete stop",
+                      )}
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-sm text-muted-foreground transition-colors hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="size-3.5" />
+                      {isTripStart ? "Clear" : "Delete"}
+                    </button>
+                  ) : null}
+                </div>
+              ) : isEditor && onDeleteItem ? (
+                <div className="flex w-full flex-col gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 p-2 sm:w-52">
+                  <p className="text-xs text-foreground">
+                    {isTripStart
+                      ? "Clear trip start and remove Day 1 stop 1?"
+                      : "Remove this stop?"}
+                  </p>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      disabled={deleting}
+                      onClick={() => {
+                        setDeleting(true);
+                        void Promise.resolve(onDeleteItem(item.id)).finally(
+                          () => setDeleting(false),
+                        );
+                      }}
+                      className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-md bg-destructive px-2 text-xs font-medium text-destructive-foreground hover:opacity-90 disabled:opacity-60"
+                    >
+                      <Trash2 className="size-3.5" />
+                      {deleting ? "…" : isTripStart ? "Clear" : "Delete"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={deleting}
+                      onClick={() => setConfirmDelete(false)}
+                      className="inline-flex h-8 flex-1 items-center justify-center rounded-md border border-border bg-background px-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-60"
+                    >
+                      Cancel
+                    </button>
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete(true)}
-                    aria-label={
-                      isTripStart
-                        ? `Clear trip start ${item.name}`
-                        : `Delete ${item.name}`
-                    }
-                    {...tip(
-                      isTripStart
-                        ? "Clear trip start (Day 1 stop 1)"
-                        : "Delete stop",
-                    )}
-                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-sm text-muted-foreground transition-colors hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash2 className="size-3.5" />
-                    {isTripStart ? "Clear" : "Delete"}
-                  </button>
-                )
+                </div>
               ) : null}
             </div>
           </div>

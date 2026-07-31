@@ -96,7 +96,7 @@ type Props = {
   onFocusStop?: (item: PlannerItem) => void;
   /** Shared with map day selection — opening a day updates this, and vice versa. */
   activeDayId?: string | null;
-  onSelectDay?: (dayId: string) => void;
+  onSelectDay?: (dayId: string | null) => void;
 };
 
 function DayMenu({
@@ -360,9 +360,22 @@ export function ItineraryCanvas({
     let cancelled = false;
     let correctTimer: number | undefined;
 
-    // Match sticky planner header + scroll-mt-* on day cards.
+    // Sticky planner chrome: main header + mobile Itinerary/Map tabs.
     function headerOffset() {
-      return window.matchMedia("(min-width: 640px)").matches ? 112 : 96;
+      const header = document.querySelector<HTMLElement>(
+        "[data-planner-sticky-header]",
+      );
+      const tabs = document.querySelector<HTMLElement>(
+        "[data-planner-mobile-tabs]",
+      );
+      const headerH = header?.getBoundingClientRect().height ?? 56;
+      const tabsVisible =
+        !!tabs &&
+        tabs.offsetParent !== null &&
+        getComputedStyle(tabs).display !== "none";
+      const tabsH = tabsVisible ? tabs.getBoundingClientRect().height : 0;
+      // Extra breathing room so the day title isn’t tight under the bars.
+      return Math.ceil(headerH + tabsH + 16);
     }
 
     function alignDay(behavior: ScrollBehavior) {
@@ -400,9 +413,11 @@ export function ItineraryCanvas({
   }, [days]);
 
   function toggleDay(id: string) {
-    // Accordion: opening another day closes this one. Keep one day open so
-    // map ↔ itinerary selection stays aligned.
-    if (openDayId === id) return;
+    // Accordion: one open at a time; tapping the open day collapses all.
+    if (openDayId === id) {
+      onSelectDay?.(null);
+      return;
+    }
     onSelectDay?.(id);
   }
 
@@ -459,7 +474,8 @@ export function ItineraryCanvas({
                 else dayRefs.current.delete(day.id);
               }}
               className={cn(
-                "scroll-mt-24 overflow-hidden rounded-2xl border shadow-soft sm:scroll-mt-28",
+                // Clear sticky header + mobile tabs (measured at scroll time too).
+                "scroll-mt-36 overflow-hidden rounded-2xl border shadow-soft sm:scroll-mt-44 lg:scroll-mt-28",
                 isRest
                   ? "border-sandstone/50 bg-sandstone/10"
                   : "border-border bg-card",
