@@ -2072,8 +2072,9 @@ export function PlannerShell({ tripId }: Props) {
                   onAddCustomPlace={addCustomPlace}
                   onAddDay={addDay}
                   onFocusStop={(item) => {
+                    // Remember the stop for when the user opens Maps; do not
+                    // switch mobile panes — place details open over Itinerary.
                     setFocusStopId(item.id);
-                    setMobilePane("map");
                   }}
                   activeDayId={activeDayId}
                   onSelectDay={setActiveDayId}

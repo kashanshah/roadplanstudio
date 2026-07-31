@@ -320,9 +320,7 @@ function MapCanvas({
 
             {selected.arriveMins != null || selected.departMins != null ? (
               <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-xl bg-secondary/70 px-2.5 py-2 text-xs">
-                {!selected.isDayStart &&
-                selected.type !== "hotel" &&
-                selected.arriveMins != null ? (
+                {!selected.isDayStart && selected.arriveMins != null ? (
                   <>
                     <span className="text-muted-foreground">Arrive</span>
                     <span className="font-mono font-semibold tabular-nums text-primary">

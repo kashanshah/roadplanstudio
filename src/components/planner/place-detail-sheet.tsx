@@ -425,8 +425,30 @@ export function PlaceDetailSheet({
             </label>
 
             {isHotel && !isFirstStop ? (
-              <div className="rounded-xl border border-border bg-sandstone/15 p-3 text-sm text-foreground/85">
-                Overnight stay — no depart time on this stop.
+              <div className="rounded-xl border border-border bg-background/80 p-3">
+                <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                  <Clock className="size-3.5 text-primary" />
+                  Schedule
+                </p>
+                <label className="mt-2 block">
+                  <span className="mb-1 block text-xs text-muted-foreground">
+                    Arrive
+                    <span>
+                      {" "}
+                      · from previous stop
+                      {arriveDayOffset > 0 ? " · next day" : ""}
+                    </span>
+                  </span>
+                  <input
+                    type="time"
+                    value={arriveDraft}
+                    disabled
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                  />
+                </label>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Overnight stay — no depart time on this stop.
+                </p>
               </div>
             ) : (
               <div className="rounded-xl border border-border bg-background/80 p-3">
