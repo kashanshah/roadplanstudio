@@ -27,6 +27,7 @@ import {
   Car,
   ChevronDown,
   ChevronUp,
+  Clock,
   Footprints,
   ExternalLink,
   GripVertical,
@@ -39,8 +40,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { tip } from "@/components/ui/app-tooltip";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { EditStopTimesSheet } from "@/components/planner/edit-stop-times-sheet";
 import {
   ReplacePlaceSheet,
   type ReplacePlacePayload,
@@ -67,13 +68,7 @@ import {
   formatClockWithDayOffset,
   useDisplayPrefs,
 } from "@/lib/prefs/display-prefs";
-import {
-  buildStopTimePatch,
-  dayOffsetFromMins,
-  minsToTimeInput,
-  resolveDepartAfterArrive,
-  timeInputToMins,
-} from "@/lib/trips/stop-time";
+import { dayOffsetFromMins } from "@/lib/trips/stop-time";
 import {
   isTripStartItem,
   pinTripStartFirst,
@@ -448,66 +443,11 @@ function SortableStopRow({
 
   const [editingTimes, setEditingTimes] = useState(false);
   const [replacingPlace, setReplacingPlace] = useState(false);
-  const [arriveDraft, setArriveDraft] = useState("");
-  const [departDraft, setDepartDraft] = useState("");
-  const [savingTimes, setSavingTimes] = useState(false);
-  const [timeError, setTimeError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    if (!editingTimes) return;
-    setArriveDraft(minsToTimeInput(row.arriveMins));
-    setDepartDraft(minsToTimeInput(row.departMins));
-    setTimeError(null);
-  }, [editingTimes, row.arriveMins, row.departMins]);
-
-  const draftDepartWall = timeInputToMins(departDraft);
-  const draftArriveContinuous = isFirstStop
-    ? draftDepartWall
-    : row.arriveMins;
-  const draftDepartContinuous =
-    draftArriveContinuous != null && draftDepartWall != null
-      ? isFirstStop
-        ? draftDepartWall
-        : resolveDepartAfterArrive(draftArriveContinuous, draftDepartWall)
-      : null;
-  const draftStayMins =
-    draftArriveContinuous != null && draftDepartContinuous != null
-      ? Math.max(0, draftDepartContinuous - draftArriveContinuous)
-      : null;
-
   const canEditTimes = Boolean(onUpdateItem) && (!isHotel || isFirstStop);
   const canReplace = Boolean(onReplaceItem);
-
-  async function saveTimes() {
-    if (!canEditTimes || !onUpdateItem) return;
-    const departWall = timeInputToMins(departDraft);
-    if (departWall == null) {
-      setTimeError("Enter a valid time.");
-      return;
-    }
-
-    // Keep timeline day-offset for arrive (disabled field); resolve depart
-    // so "arrive 2:00 AM +1 → depart 10:00 AM" stays on the next morning.
-    const arriveMins = isFirstStop ? departWall : row.arriveMins;
-    const departMins = isFirstStop
-      ? departWall
-      : resolveDepartAfterArrive(arriveMins, departWall);
-
-    setSavingTimes(true);
-    setTimeError(null);
-    try {
-      await onUpdateItem(
-        item.id,
-        buildStopTimePatch({ arriveMins, departMins, isFirstStop }),
-      );
-      setEditingTimes(false);
-    } finally {
-      setSavingTimes(false);
-    }
-  }
-
   const canEditOvernight =
     Boolean(onUpdateItem) && isHotel && !isTripStart;
   const showTimesPanel = canEditTimes || canEditOvernight;
@@ -654,11 +594,11 @@ function SortableStopRow({
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start sm:gap-2">
-            <div className="flex min-w-0 flex-1 items-start gap-2">
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <div className="min-w-0">
               <button
                 type="button"
-                className="group/place min-w-0 flex-1 cursor-pointer rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group/place w-full min-w-0 cursor-pointer rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => onOpenItem(item)}
               >
                 <div className="flex flex-wrap items-center gap-2">
@@ -731,12 +671,12 @@ function SortableStopRow({
 
             <div
               className={cn(
-                "flex w-full shrink-0 flex-wrap items-center gap-1.5 sm:w-auto sm:justify-end",
-                confirmDelete && "flex-col items-stretch sm:items-end",
+                "flex flex-wrap items-center gap-1.5",
+                confirmDelete && "flex-col items-stretch sm:max-w-xs",
               )}
             >
               {!confirmDelete ? (
-                <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:justify-end">
+                <div className="flex flex-wrap items-center gap-1.5">
                   {isEditor && canReplace ? (
                     <button
                       type="button"
@@ -744,10 +684,10 @@ function SortableStopRow({
                         setEditingTimes(false);
                         setReplacingPlace(true);
                       }}
-                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-                      {...tip("Swap for a different place")}
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border px-2.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground sm:px-3"
+                      {...tip("Change this stop's place")}
                     >
-                      <MapPin className="size-3.5" />
+                      <Pencil className="size-3.5" />
                       Place
                     </button>
                   ) : null}
@@ -756,21 +696,16 @@ function SortableStopRow({
                       type="button"
                       onClick={() => {
                         setReplacingPlace(false);
-                        setEditingTimes((prev) => !prev);
+                        setEditingTimes(true);
                       }}
-                      className={cn(
-                        "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-3 text-sm transition-colors",
-                        editingTimes
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                      )}
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border px-2.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground sm:px-3"
                       {...tip(
                         canEditTimes
                           ? "Edit depart / stay times"
                           : "Overnight options",
                       )}
                     >
-                      <Pencil className="size-3.5" />
+                      <Clock className="size-3.5" />
                       {canEditTimes ? "Times" : "Edit"}
                     </button>
                   ) : null}
@@ -884,127 +819,21 @@ function SortableStopRow({
           </div>
         </div>
 
-        {editingTimes && isEditor && showTimesPanel ? (
-          <div className="mt-3 space-y-4 rounded-xl border border-border bg-card/80 p-3">
-            {canEditOvernight && onUpdateItem ? (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                  Overnight
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Keep the place but stop treating it as lodging, or delete the
-                  stop entirely with Delete.
-                </p>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    void onUpdateItem(item.id, { type: "attraction" })
-                  }
-                >
-                  Remove overnight
-                </Button>
-              </div>
-            ) : null}
-
-            {canEditTimes ? (
-              <div
-                className={cn(
-                  "space-y-3",
-                  canEditOvernight && "border-t border-border pt-4",
-                )}
-              >
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                  Times
-                </p>
-                <div
-                  className={cn("grid gap-3", !isFirstStop && "sm:grid-cols-2")}
-                >
-                  {!isFirstStop ? (
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                        Arrive
-                        <span className="font-normal">
-                          {" "}
-                          · from previous stop
-                          {arriveDayOffset > 0 ? " · next day" : ""}
-                        </span>
-                      </span>
-                      <input
-                        type="time"
-                        value={arriveDraft}
-                        disabled
-                        className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
-                      />
-                    </label>
-                  ) : null}
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium text-muted-foreground">
-                      Depart
-                      {departDayOffset > 0 ||
-                      (draftDepartContinuous != null &&
-                        dayOffsetFromMins(draftDepartContinuous) > 0) ? (
-                        <span className="font-normal"> · next day</span>
-                      ) : null}
-                    </span>
-                    <input
-                      type="time"
-                      value={departDraft}
-                      onChange={(e) => setDepartDraft(e.target.value)}
-                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  </label>
-                </div>
-                {!isFirstStop ? (
-                  <p className="text-sm text-muted-foreground">
-                    Stay{" "}
-                    <span className="font-medium text-foreground">
-                      {draftStayMins != null
-                        ? formatDurationLabel(draftStayMins)
-                        : "—"}
-                    </span>{" "}
-                    (auto)
-                    {arriveDayOffset > 0 ? (
-                      <span>
-                        . Overnight arrivals keep the next-day offset when you
-                        save depart.
-                      </span>
-                    ) : null}
-                  </p>
-                ) : null}
-                {timeError ? (
-                  <p className="text-sm text-destructive" role="alert">
-                    {timeError}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
-            <div className="flex flex-wrap gap-2 border-t border-border pt-3">
-              {canEditTimes ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={savingTimes}
-                  onClick={() => void saveTimes()}
-                >
-                  {savingTimes ? "Saving…" : "Save"}
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                disabled={savingTimes}
-                onClick={() => setEditingTimes(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        ) : null}
       </div>
+
+      {showTimesPanel && onUpdateItem ? (
+        <EditStopTimesSheet
+          open={editingTimes}
+          onClose={() => setEditingTimes(false)}
+          stopName={item.name}
+          arriveMins={row.arriveMins}
+          departMins={row.departMins}
+          isFirstStop={isFirstStop}
+          canEditTimes={canEditTimes}
+          canEditOvernight={canEditOvernight}
+          onUpdate={(patch) => onUpdateItem(item.id, patch)}
+        />
+      ) : null}
 
       {canReplace && onReplaceItem ? (
         <ReplacePlaceSheet

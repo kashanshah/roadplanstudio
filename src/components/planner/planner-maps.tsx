@@ -150,7 +150,7 @@ export function PlannerMaps({
       </div>
 
       {tab === "daily" && mappedDays.length > 1 ? (
-        <div className="flex gap-2 overflow-x-auto pb-1 px-1">
+        <div className="flex gap-2 overflow-x-auto py-1 px-1">
           {mappedDays.map((day) => (
             <button
               key={day.id}
