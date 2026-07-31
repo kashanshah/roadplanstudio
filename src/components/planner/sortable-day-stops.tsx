@@ -494,12 +494,22 @@ function SortableStopRow({
               </span>
             </label>
 
-            {/* Mobile: morning base / first stop = Depart only; end hotel = Overnight; else Arrive→Depart */}
+            {/* Mobile: morning base = Depart only; overnight hotel = Arrive; else Arrive→Depart */}
             <div className="flex min-w-0 flex-1 flex-wrap items-end gap-x-2 gap-y-1 sm:hidden">
               {isHotel && !isFirstStop ? (
-                <span className="mb-0.5 text-xs text-muted-foreground">
-                  Overnight
-                </span>
+                <>
+                  <div>
+                    <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                      Arrive
+                    </p>
+                    <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-primary">
+                      {formatClockWithDayOffset(row.arriveMins, timeFormat)}
+                    </p>
+                  </div>
+                  <span className="mb-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                    Overnight
+                  </span>
+                </>
               ) : (
                 <>
                   {!isFirstStop ? (
@@ -542,12 +552,20 @@ function SortableStopRow({
               ) : null}
             </div>
 
-            {/* Desktop: morning base / first stop = Depart only; end hotel = Overnight */}
+            {/* Desktop: morning base = Depart only; overnight hotel = Arrive; else Arrive→Depart */}
             <div className="hidden w-full flex-col items-center text-center sm:flex">
               {isHotel && !isFirstStop ? (
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Overnight
-                </p>
+                <>
+                  <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                    Arrive
+                  </p>
+                  <p className="whitespace-nowrap font-mono text-sm font-semibold tabular-nums text-primary">
+                    {formatClockWithDayOffset(row.arriveMins, timeFormat)}
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Overnight
+                  </p>
+                </>
               ) : (
                 <>
                   {!isFirstStop ? (
