@@ -154,3 +154,97 @@ export async function syncNextDayMorningBaseInDb(opts: {
     }
   }
 }
+
+/**
+ * Persist Day N last-stop sync after Day N+1's morning base place is edited.
+ */
+export async function syncPreviousDayEndFromMorningBaseInDb(opts: {
+  tripId: string;
+  dayId: string;
+  itemId: string;
+}) {
+  const [day] = await db
+    .select({
+      id: tripDays.id,
+      dayIndex: tripDays.dayIndex,
+    })
+    .from(tripDays)
+    .where(and(eq(tripDays.id, opts.dayId), eq(tripDays.tripId, opts.tripId)))
+    .limit(1);
+
+  if (!day || day.dayIndex <= 1) return;
+
+  const dayItems = await db
+    .select({
+      id: itineraryItems.id,
+      type: itineraryItems.type,
+      sortOrder: itineraryItems.sortOrder,
+      status: itineraryItems.status,
+      name: itineraryItems.name,
+      address: itineraryItems.address,
+      latitude: itineraryItems.latitude,
+      longitude: itineraryItems.longitude,
+      googlePlaceId: itineraryItems.googlePlaceId,
+      googleMapsUri: itineraryItems.googleMapsUri,
+      notes: itineraryItems.notes,
+    })
+    .from(itineraryItems)
+    .where(eq(itineraryItems.dayId, day.id))
+    .orderBy(asc(itineraryItems.sortOrder));
+
+  const first = dayItems[0] ?? null;
+  if (!first || first.id !== opts.itemId) return;
+  if (!isMorningBaseItem(first)) return;
+
+  const [prevDay] = await db
+    .select({
+      id: tripDays.id,
+      dayIndex: tripDays.dayIndex,
+    })
+    .from(tripDays)
+    .where(
+      and(
+        eq(tripDays.tripId, opts.tripId),
+        eq(tripDays.dayIndex, day.dayIndex - 1),
+      ),
+    )
+    .limit(1);
+
+  if (!prevDay) return;
+
+  const prevItems = await db
+    .select({
+      id: itineraryItems.id,
+      type: itineraryItems.type,
+      sortOrder: itineraryItems.sortOrder,
+      status: itineraryItems.status,
+      name: itineraryItems.name,
+      address: itineraryItems.address,
+      latitude: itineraryItems.latitude,
+      longitude: itineraryItems.longitude,
+      googlePlaceId: itineraryItems.googlePlaceId,
+      googleMapsUri: itineraryItems.googleMapsUri,
+    })
+    .from(itineraryItems)
+    .where(eq(itineraryItems.dayId, prevDay.id))
+    .orderBy(asc(itineraryItems.sortOrder));
+
+  const endItem = findDayEndStop(prevItems);
+  if (!endItem) return;
+
+  const place = toDayEndPlaceFields(first);
+  const endType = morningBaseType(place.type);
+
+  await db
+    .update(itineraryItems)
+    .set({
+      name: place.name,
+      address: place.address ?? null,
+      latitude: place.latitude ?? null,
+      longitude: place.longitude ?? null,
+      googlePlaceId: place.googlePlaceId ?? null,
+      googleMapsUri: place.googleMapsUri ?? null,
+      type: endType,
+    })
+    .where(eq(itineraryItems.id, endItem.id));
+}

@@ -234,3 +234,58 @@ export function syncNextDayMorningBase<
 
   return days;
 }
+
+/**
+ * Keep Day N's last stop aligned when Day N+1's linked morning base is edited.
+ * Only runs when the changed item is stop 1 and marked as a morning base.
+ */
+export function syncPreviousDayEndFromMorningBase<
+  TItem extends DayEndPlaceFields & {
+    id: string;
+    type: string;
+    notes?: string | null;
+    sortOrder?: number;
+    status?: string | null;
+  },
+  TDay extends DayLike<TItem>,
+>(days: TDay[], changedDayId: string, changedItemId: string): TDay[] {
+  const changed = days.find((day) => day.id === changedDayId);
+  if (!changed || changed.dayIndex <= 1) return days;
+
+  const ordered = [...changed.items].sort(
+    (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+  );
+  const first = ordered[0] ?? null;
+  if (!first || first.id !== changedItemId) return days;
+  if (!isMorningBaseItem(first)) return days;
+
+  const prevDay = days.find((day) => day.dayIndex === changed.dayIndex - 1);
+  if (!prevDay) return days;
+
+  const endItem = findDayEndStop(prevDay.items);
+  if (!endItem || endItem.id === first.id) return days;
+
+  const place = toDayEndPlaceFields(first);
+  const endType = morningBaseType(place.type);
+
+  return days.map((day) => {
+    if (day.id !== prevDay.id) return day;
+    return {
+      ...day,
+      items: day.items.map((item) =>
+        item.id === endItem.id
+          ? {
+              ...item,
+              name: place.name,
+              address: place.address ?? null,
+              latitude: place.latitude ?? null,
+              longitude: place.longitude ?? null,
+              googlePlaceId: place.googlePlaceId ?? null,
+              googleMapsUri: place.googleMapsUri ?? null,
+              type: endType,
+            }
+          : item,
+      ),
+    };
+  });
+}

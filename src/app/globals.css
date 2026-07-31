@@ -139,12 +139,20 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans), system-ui, sans-serif;
-    font-size: 1.0625rem;
-    line-height: 1.65;
+    /* Slightly tighter on phones; roomier from tablet up. */
+    font-size: 1rem;
+    line-height: 1.6;
     overflow-x: clip;
     transition:
       background-color 0.5s var(--ease-alpine),
       color 0.5s var(--ease-alpine);
+  }
+
+  @media (min-width: 640px) {
+    body {
+      font-size: 1.0625rem;
+      line-height: 1.65;
+    }
   }
 
   /*

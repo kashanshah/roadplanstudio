@@ -41,7 +41,10 @@ import {
 import { tip } from "@/components/ui/app-tooltip";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AddStopSearch } from "@/components/planner/add-stop-search";
+import {
+  ReplacePlaceSheet,
+  type ReplacePlacePayload,
+} from "@/components/planner/replace-place-sheet";
 import {
   formatDurationLabel,
   useDayTimeline,
@@ -51,7 +54,6 @@ import {
 import { googleMapsDirectionsUrl } from "@/lib/maps/google-maps-url";
 import {
   statusLabel,
-  type PlaceDetailsPayload,
   type PlannerItem,
   type StopStatus,
   type TravelMode,
@@ -82,30 +84,7 @@ type ItemTimePatch = Partial<
   Pick<PlannerItem, "durationMins" | "timingMode" | "timingMins" | "type">
 >;
 
-export type ReplacePlacePayload = {
-  name: string;
-  address: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  googlePlaceId: string | null;
-  googleMapsUri: string | null;
-  type: "attraction" | "hotel" | "custom";
-};
-
-function placeToReplacePayload(
-  place: PlaceDetailsPayload,
-  asHotel: boolean,
-): ReplacePlacePayload {
-  return {
-    name: place.name,
-    address: place.formattedAddress,
-    latitude: place.latitude,
-    longitude: place.longitude,
-    googlePlaceId: place.placeId,
-    googleMapsUri: place.googleMapsUri,
-    type: asHotel ? "hotel" : "attraction",
-  };
-}
+export type { ReplacePlacePayload };
 
 type Props = {
   dayId: string;
@@ -236,7 +215,7 @@ function TravelConnector({
             target="_blank"
             rel="noreferrer"
             {...tip("Open in Google Maps")}
-            className="inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-map-route hover:bg-secondary hover:text-foreground"
+            className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-map-route hover:bg-secondary hover:text-foreground sm:gap-2 sm:px-3 sm:py-1.5 sm:text-sm"
           >
             <Icon className="size-3.5 shrink-0 text-map-route" />
             <span className="font-medium text-foreground">
@@ -261,7 +240,7 @@ function TravelConnector({
             <ExternalLink className="size-3 shrink-0 opacity-70" aria-hidden />
           </a>
         ) : (
-          <div className="inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground">
+          <div className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-dashed border-map-route/40 bg-secondary/60 px-2.5 py-1 text-xs text-muted-foreground sm:gap-2 sm:px-3 sm:py-1.5 sm:text-sm">
             <Icon className="size-3.5 shrink-0 text-map-route" />
             {loading && !leg && !hasCustom ? (
               <span>Calculating route…</span>
@@ -467,7 +446,8 @@ function SortableStopRow({
   const overnight = arriveDayOffset > 0 || departDayOffset > 0;
   const visitedCheckboxId = useId();
 
-  const [editing, setEditing] = useState(false);
+  const [editingTimes, setEditingTimes] = useState(false);
+  const [replacingPlace, setReplacingPlace] = useState(false);
   const [arriveDraft, setArriveDraft] = useState("");
   const [departDraft, setDepartDraft] = useState("");
   const [savingTimes, setSavingTimes] = useState(false);
@@ -476,11 +456,11 @@ function SortableStopRow({
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if (!editing) return;
+    if (!editingTimes) return;
     setArriveDraft(minsToTimeInput(row.arriveMins));
     setDepartDraft(minsToTimeInput(row.departMins));
     setTimeError(null);
-  }, [editing, row.arriveMins, row.departMins]);
+  }, [editingTimes, row.arriveMins, row.departMins]);
 
   const draftDepartWall = timeInputToMins(departDraft);
   const draftArriveContinuous = isFirstStop
@@ -499,7 +479,6 @@ function SortableStopRow({
 
   const canEditTimes = Boolean(onUpdateItem) && (!isHotel || isFirstStop);
   const canReplace = Boolean(onReplaceItem);
-  const canEdit = canEditTimes || canReplace;
 
   async function saveTimes() {
     if (!canEditTimes || !onUpdateItem) return;
@@ -523,10 +502,15 @@ function SortableStopRow({
         item.id,
         buildStopTimePatch({ arriveMins, departMins, isFirstStop }),
       );
+      setEditingTimes(false);
     } finally {
       setSavingTimes(false);
     }
   }
+
+  const canEditOvernight =
+    Boolean(onUpdateItem) && isHotel && !isTripStart;
+  const showTimesPanel = canEditTimes || canEditOvernight;
 
   return (
     <li
@@ -683,7 +667,7 @@ function SortableStopRow({
                   </span>
                   <span
                     className={cn(
-                      "break-words text-base font-semibold underline-offset-4 transition-colors group-hover/place:text-primary group-hover/place:underline sm:text-lg",
+                      "break-words text-sm font-semibold underline-offset-4 transition-colors group-hover/place:text-primary group-hover/place:underline sm:text-base lg:text-lg",
                       checked && "line-through",
                     )}
                   >
@@ -715,7 +699,7 @@ function SortableStopRow({
                   ) : null}
                 </div>
 
-                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground sm:text-sm">
                   {isHotel ? (
                     <span className="inline-flex items-center gap-1 text-foreground/80">
                       <BedDouble className="size-3.5" />
@@ -738,7 +722,7 @@ function SortableStopRow({
                   ) : null}
                 </div>
                 {item.notes ? (
-                  <p className="mt-1 line-clamp-2 text-sm text-foreground/75">
+                  <p className="mt-1 line-clamp-2 text-xs text-foreground/75 sm:text-sm">
                     {item.notes}
                   </p>
                 ) : null}
@@ -753,19 +737,41 @@ function SortableStopRow({
             >
               {!confirmDelete ? (
                 <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:justify-end">
-                  {isEditor && canEdit ? (
+                  {isEditor && canReplace ? (
                     <button
                       type="button"
-                      onClick={() => setEditing((prev) => !prev)}
+                      onClick={() => {
+                        setEditingTimes(false);
+                        setReplacingPlace(true);
+                      }}
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                      {...tip("Swap for a different place")}
+                    >
+                      <MapPin className="size-3.5" />
+                      Place
+                    </button>
+                  ) : null}
+                  {isEditor && showTimesPanel ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReplacingPlace(false);
+                        setEditingTimes((prev) => !prev);
+                      }}
                       className={cn(
                         "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-3 text-sm transition-colors",
-                        editing
+                        editingTimes
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
                       )}
+                      {...tip(
+                        canEditTimes
+                          ? "Edit depart / stay times"
+                          : "Overnight options",
+                      )}
                     >
                       <Pencil className="size-3.5" />
-                      Edit
+                      {canEditTimes ? "Times" : "Edit"}
                     </button>
                   ) : null}
 
@@ -878,55 +884,10 @@ function SortableStopRow({
           </div>
         </div>
 
-        {editing && isEditor && canEdit ? (
+        {editingTimes && isEditor && showTimesPanel ? (
           <div className="mt-3 space-y-4 rounded-xl border border-border bg-card/80 p-3">
-            {canReplace && onReplaceItem ? (
+            {canEditOvernight && onUpdateItem ? (
               <div className="space-y-2">
-                <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                  Change place
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Swap this stop for another place. Times and notes stay the
-                  same.
-                </p>
-                <AddStopSearch
-                  dayId={dayId}
-                  variant="replace"
-                  bias={
-                    searchBias ??
-                    (item.latitude != null && item.longitude != null
-                      ? { lat: item.latitude, lng: item.longitude }
-                      : null)
-                  }
-                  defaultAsHotel={isHotel}
-                  onReplace={async (place, asHotel) => {
-                    await onReplaceItem(
-                      item.id,
-                      placeToReplacePayload(place, asHotel),
-                    );
-                  }}
-                  onReplaceCustom={async (input) => {
-                    await onReplaceItem(item.id, {
-                      name: input.name,
-                      address: input.address ?? null,
-                      latitude: null,
-                      longitude: null,
-                      googlePlaceId: null,
-                      googleMapsUri: null,
-                      type: input.asHotel ? "hotel" : "custom",
-                    });
-                  }}
-                />
-              </div>
-            ) : null}
-
-            {isHotel && !isTripStart && onUpdateItem ? (
-              <div
-                className={cn(
-                  "space-y-2",
-                  canReplace && "border-t border-border pt-4",
-                )}
-              >
                 <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                   Overnight
                 </p>
@@ -951,7 +912,7 @@ function SortableStopRow({
               <div
                 className={cn(
                   "space-y-3",
-                  (canReplace || isHotel) && "border-t border-border pt-4",
+                  canEditOvernight && "border-t border-border pt-4",
                 )}
               >
                 <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -1017,33 +978,52 @@ function SortableStopRow({
                     {timeError}
                   </p>
                 ) : null}
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={savingTimes}
-                    onClick={() => void saveTimes()}
-                  >
-                    {savingTimes ? "Saving…" : "Save times"}
-                  </Button>
-                </div>
               </div>
             ) : null}
 
-            <div className="flex gap-2 border-t border-border pt-3">
+            <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+              {canEditTimes ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={savingTimes}
+                  onClick={() => void saveTimes()}
+                >
+                  {savingTimes ? "Saving…" : "Save"}
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 size="sm"
                 variant="secondary"
                 disabled={savingTimes}
-                onClick={() => setEditing(false)}
+                onClick={() => setEditingTimes(false)}
               >
-                Done
+                Cancel
               </Button>
             </div>
           </div>
         ) : null}
       </div>
+
+      {canReplace && onReplaceItem ? (
+        <ReplacePlaceSheet
+          open={replacingPlace}
+          onClose={() => setReplacingPlace(false)}
+          dayId={dayId}
+          currentName={item.name}
+          defaultAsHotel={isHotel}
+          bias={
+            searchBias ??
+            (item.latitude != null && item.longitude != null
+              ? { lat: item.latitude, lng: item.longitude }
+              : null)
+          }
+          onReplace={async (next) => {
+            await onReplaceItem(item.id, next);
+          }}
+        />
+      ) : null}
     </li>
   );
 }
@@ -1126,7 +1106,7 @@ export function SortableDayStops({
 
   if (!localItems.length) {
     return (
-      <p className="px-1 py-3 text-base text-muted-foreground">
+      <p className="px-1 py-3 text-sm text-muted-foreground sm:text-base">
         {pinTripStart
           ? "Set Trip start above — it becomes Day 1 stop 1. Then add places from search."
           : "Empty day — add a stop from Places search."}

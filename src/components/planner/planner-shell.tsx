@@ -42,6 +42,7 @@ import {
   findDayEndStop,
   MORNING_BASE_NOTE,
   syncNextDayMorningBase,
+  syncPreviousDayEndFromMorningBase,
   toDayEndPlaceFields,
   type DayEndPlaceFields,
 } from "@/lib/trips/morning-base";
@@ -193,6 +194,73 @@ function applyMorningBaseSync<
         notes: MORNING_BASE_NOTE,
       }) as TDay["items"][number],
   });
+}
+
+function applyMorningBaseReverseSync<
+  TDay extends {
+    id: string;
+    dayIndex: number;
+    items: Array<{
+      id: string;
+      type: string;
+      name: string;
+      address?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+      googlePlaceId?: string | null;
+      googleMapsUri?: string | null;
+      notes?: string | null;
+      sortOrder?: number;
+      durationMins?: number | null;
+      status?: string;
+      timingMode?: "arrive_by" | "depart_at" | null;
+      timingMins?: number | null;
+      customTravelDurationMins?: number | null;
+      customTravelDistanceKm?: number | null;
+      travelMode?: "driving" | "walking" | "bicycling" | "transit";
+    }>;
+  },
+>(days: TDay[], changedDayId: string, changedItemId: string): TDay[] {
+  return syncPreviousDayEndFromMorningBase(days, changedDayId, changedItemId);
+}
+
+/** Day-end ↔ next-morning links after a stop place/type change. */
+function applyLinkedPlaceSync<
+  TDay extends {
+    id: string;
+    dayIndex: number;
+    items: Array<{
+      id: string;
+      type: string;
+      name: string;
+      address?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
+      googlePlaceId?: string | null;
+      googleMapsUri?: string | null;
+      notes?: string | null;
+      sortOrder?: number;
+      durationMins?: number | null;
+      status?: string;
+      timingMode?: "arrive_by" | "depart_at" | null;
+      timingMins?: number | null;
+      customTravelDurationMins?: number | null;
+      customTravelDistanceKm?: number | null;
+      travelMode?: "driving" | "walking" | "bicycling" | "transit";
+    }>;
+  },
+>(
+  days: TDay[],
+  changedDayId: string,
+  changedItemId: string,
+  previousDayEnd: DayEndPlaceFields | null,
+): TDay[] {
+  const reversed = applyMorningBaseReverseSync(
+    days,
+    changedDayId,
+    changedItemId,
+  );
+  return applyMorningBaseSync(reversed, changedDayId, previousDayEnd);
 }
 
 const TripMapPanel = dynamic(
@@ -569,12 +637,21 @@ export function PlannerShell({ tripId }: Props) {
               : item,
           ),
         }));
+        let synced = nextDays;
+        if (hostDay && mayChangeDayEnd) {
+          synced =
+            patch.type != null
+              ? applyLinkedPlaceSync(
+                  nextDays,
+                  hostDay.id,
+                  itemId,
+                  previousDayEnd,
+                )
+              : applyMorningBaseSync(nextDays, hostDay.id, previousDayEnd);
+        }
         return {
           ...current,
-          days:
-            previousDayEnd != null && hostDay
-              ? applyMorningBaseSync(nextDays, hostDay.id, previousDayEnd)
-              : nextDays,
+          days: synced,
         };
       });
       return;
@@ -588,12 +665,21 @@ export function PlannerShell({ tripId }: Props) {
           item.id === itemId ? { ...item, ...patch } : item,
         ),
       }));
+      let synced = nextDays;
+      if (hostDay && mayChangeDayEnd) {
+        synced =
+          patch.type != null
+            ? applyLinkedPlaceSync(
+                nextDays,
+                hostDay.id,
+                itemId,
+                previousDayEnd,
+              )
+            : applyMorningBaseSync(nextDays, hostDay.id, previousDayEnd);
+      }
       return {
         ...prev,
-        days:
-          previousDayEnd != null && hostDay
-            ? applyMorningBaseSync(nextDays, hostDay.id, previousDayEnd)
-            : nextDays,
+        days: synced,
       };
     });
 
@@ -733,7 +819,12 @@ export function PlannerShell({ tripId }: Props) {
         return {
           ...current,
           days: hostDay
-            ? applyMorningBaseSync(nextDays, hostDay.id, previousDayEnd)
+            ? applyLinkedPlaceSync(
+                nextDays,
+                hostDay.id,
+                itemId,
+                previousDayEnd,
+              )
             : nextDays,
         };
       });
@@ -758,7 +849,12 @@ export function PlannerShell({ tripId }: Props) {
       return {
         ...prev,
         days: hostDay
-          ? applyMorningBaseSync(nextDays, hostDay.id, previousDayEnd)
+          ? applyLinkedPlaceSync(
+              nextDays,
+              hostDay.id,
+              itemId,
+              previousDayEnd,
+            )
           : nextDays,
       };
     });
@@ -1857,10 +1953,10 @@ export function PlannerShell({ tripId }: Props) {
         >
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-sm font-medium uppercase tracking-[0.14em] text-primary">
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-primary sm:text-sm">
                 Itinerary
               </p>
-              <h1 className="font-display text-3xl font-semibold sm:text-4xl">
+              <h1 className="font-display text-2xl font-semibold sm:text-3xl lg:text-4xl">
                 Timeline
               </h1>
             </div>
@@ -1998,7 +2094,7 @@ export function PlannerShell({ tripId }: Props) {
           )}
         >
           <div className="mb-3 px-1">
-            <h2 className="font-display text-3xl font-semibold sm:text-4xl">
+            <h2 className="font-display text-2xl font-semibold sm:text-3xl lg:text-4xl">
               Maps
             </h2>
           </div>
@@ -2011,10 +2107,7 @@ export function PlannerShell({ tripId }: Props) {
               days={days}
               focusStopId={focusStopId}
               activeDayId={activeDayId}
-              onActiveDayChange={(dayId) => {
-                setActiveDayId(dayId);
-                setMobilePane("itinerary");
-              }}
+              onActiveDayChange={setActiveDayId}
             />
           )}
         </section>

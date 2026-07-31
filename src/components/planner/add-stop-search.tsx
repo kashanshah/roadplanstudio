@@ -246,8 +246,8 @@ export function AddStopSearch({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border bg-background/80 p-3",
-        !isReplace && "mt-3",
+        !isReplace &&
+          "mt-3 rounded-2xl border border-border bg-background/80 p-3",
       )}
     >
       <div className="flex gap-1 rounded-full border border-border bg-card p-1">

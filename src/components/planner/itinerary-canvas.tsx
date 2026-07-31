@@ -443,7 +443,7 @@ export function ItineraryCanvas({
 
       {progress.total > 0 ? (
         <div className="rounded-2xl bg-secondary/70 px-4 py-3">
-          <p className="text-base text-foreground">
+          <p className="text-sm text-foreground sm:text-base">
             <span className="font-semibold">{progress.visited}</span>
             <span className="text-muted-foreground">
               {" "}
@@ -488,7 +488,7 @@ export function ItineraryCanvas({
                   className="flex min-w-0 flex-1 items-start justify-between gap-3 px-2 py-2 text-left"
                 >
                   <div className="min-w-0">
-                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium uppercase tracking-[0.12em] text-primary">
+                    <p className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.12em] text-primary sm:text-sm">
                       <span>
                         {formatDayHeading(day.dayIndex, day.date)}
                       </span>
@@ -499,10 +499,10 @@ export function ItineraryCanvas({
                         </span>
                       ) : null}
                     </p>
-                    <h3 className="mt-1 font-display text-xl font-semibold sm:text-2xl">
+                    <h3 className="mt-1 font-display text-lg font-semibold sm:text-xl lg:text-2xl">
                       {day.title}
                     </h3>
-                    <p className="mt-1 line-clamp-2 break-words text-sm text-muted-foreground sm:text-base">
+                    <p className="mt-1 line-clamp-2 break-words text-xs text-muted-foreground sm:text-sm lg:text-base">
                       {isRest && !day.items.length
                         ? "Recovery day — no travel planned"
                         : [

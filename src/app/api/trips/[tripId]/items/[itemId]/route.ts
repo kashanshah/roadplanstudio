@@ -10,7 +10,10 @@ import {
   toDayEndPlaceFields,
 } from "@/lib/trips/morning-base";
 import { demoteOtherOvernightHotels } from "@/lib/trips/overnight-hotel";
-import { syncNextDayMorningBaseInDb } from "@/lib/trips/sync-morning-base-db";
+import {
+  syncNextDayMorningBaseInDb,
+  syncPreviousDayEndFromMorningBaseInDb,
+} from "@/lib/trips/sync-morning-base-db";
 
 type Ctx = { params: Promise<{ tripId: string; itemId: string }> };
 
@@ -175,9 +178,8 @@ export async function PATCH(request: Request, ctx: Ctx) {
     }
   }
 
-  const mayChangeDayEnd =
+  const mayChangePlace =
     parsed.data.type != null ||
-    parsed.data.status != null ||
     parsed.data.name != null ||
     parsed.data.address !== undefined ||
     parsed.data.latitude !== undefined ||
@@ -185,7 +187,19 @@ export async function PATCH(request: Request, ctx: Ctx) {
     parsed.data.googlePlaceId !== undefined ||
     parsed.data.googleMapsUri !== undefined;
 
+  const mayChangeDayEnd = mayChangePlace || parsed.data.status != null;
+
+  if (mayChangePlace) {
+    // Day N+1 morning base → Day N last stop
+    await syncPreviousDayEndFromMorningBaseInDb({
+      tripId,
+      dayId: item.dayId,
+      itemId,
+    });
+  }
+
   if (mayChangeDayEnd) {
+    // Day N last stop → Day N+1 morning base
     await syncNextDayMorningBaseInDb({
       tripId,
       dayId: item.dayId,
